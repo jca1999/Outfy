@@ -1,0 +1,159 @@
+Implement the authentication flow for the existing Outfy application.
+
+IMPORTANT:
+
+* Do not redesign or remove the existing Outfy application.
+* Preserve the current Home, Explore, Matches, Chats and Profile pages and the existing Outfy visual style.
+* Authentication must be added in front of the existing application.
+* Do not use mock authentication.
+* We will use Supabase Auth for real authentication.
+* Keep the implementation mobile-first and responsive.
+
+AUTHENTICATION FLOW
+
+When the application starts:
+
+1. Check whether the user has an active authenticated session.
+2. If the user is authenticated, show the existing Outfy application.
+3. If the user is not authenticated, redirect them to the Sign In screen.
+4. Existing application routes must be protected from unauthenticated users.
+
+Create the following pages:
+
+1. `/sign-in`
+2. `/sign-up`
+3. `/verify-email`
+
+SIGN IN PAGE
+
+Create a clean mobile-first Outfy sign-in page.
+
+At the top, reserve an area for the future Outfy logo. For now, use a simple placeholder/Outfy wordmark that can easily be replaced later.
+
+Fields:
+
+* Username
+* Password
+
+Password field:
+
+* Include a show/hide password button.
+
+Actions:
+
+* Primary button: "Iniciar sesión"
+* Link: "Crear cuenta"
+
+Do not add Google, Apple, Facebook or other social login methods yet.
+
+SIGN UP PAGE
+
+Fields:
+
+* Nombre de usuario
+* Correo electrónico
+* Contraseña
+* Confirmar contraseña
+
+Validation:
+
+* Username is required.
+* Username must not contain spaces.
+* Email must be valid.
+* Password must contain at least 8 characters.
+* Password confirmation must match.
+* Show clear validation errors below the corresponding fields.
+
+Include show/hide controls for password fields.
+
+Actions:
+
+* Primary button: "Crear cuenta"
+* Link: "Iniciar sesión"
+
+EMAIL VERIFICATION
+
+After successful registration, redirect the user to `/verify-email`.
+
+The page must:
+
+* Tell the user that a verification code was sent to their email.
+* Show the email partially masked when possible.
+* Provide a six-digit OTP input.
+* Use the existing `input-otp` package if appropriate.
+* Automatically focus and advance between OTP digits.
+* Allow pasting the complete six-digit code.
+* Have a primary "Verificar" button.
+* Add a "Reenviar código" option with a 60-second cooldown.
+* Show clear errors for invalid or expired codes.
+
+SUPABASE
+
+Install and configure `@supabase/supabase-js`.
+
+Create a reusable Supabase client in an appropriate location such as:
+
+`src/lib/supabase.ts`
+
+Use environment variables and NEVER hardcode Supabase credentials.
+
+Expected variables:
+
+`VITE_SUPABASE_URL`
+`VITE_SUPABASE_ANON_KEY`
+
+Create an authentication context/provider or equivalent reusable auth layer responsible for:
+
+* current user
+* current session
+* loading state
+* sign in
+* sign up
+* email verification
+* resend verification code
+* sign out
+
+Use Supabase session persistence so users remain logged in after closing/reopening the application.
+
+USERNAME
+
+Outfy users must have a unique username separate from their email address.
+
+Prepare the application architecture so usernames are stored in a profile associated with the Supabase Auth user ID.
+
+The final login experience must support username + password rather than exposing email as the main login identifier.
+
+Do not expose private user email addresses publicly.
+
+Do not use insecure client-side username-to-email mappings. If username-based authentication requires server-side logic, implement or prepare the secure server-side endpoint needed for it.
+
+EMAIL OTP
+
+The registration flow must support a six-digit email confirmation OTP.
+
+Use Supabase email verification/OTP capabilities and `verifyOtp` appropriately.
+
+Do not consider the account fully usable until the email has been verified.
+
+UI / DESIGN
+
+Keep the existing Outfy visual identity:
+
+* modern
+* friendly
+* social
+* mobile-first
+* simple
+* polished
+
+Authentication screens should visually feel like part of the existing Outfy application.
+
+Do not modify the existing app pages unless required to protect them behind authentication.
+
+STRUCTURE
+
+Prefer reusable components rather than putting all authentication logic inside `App.tsx`.
+
+Create clear files/components for authentication pages and auth state management.
+
+Finally, run TypeScript/type checking and fix any errors introduced by these changes.
