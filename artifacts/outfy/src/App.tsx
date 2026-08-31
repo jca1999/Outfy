@@ -1,5 +1,6 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider, useAuth } from '@/auth/auth-context';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { CreatePlanDialog } from '@/components/create-plan-dialog';
 import { OutfyShell } from '@/components/outfy-shell';
@@ -9,6 +10,9 @@ import { Home } from '@/pages/home';
 import { Matches } from '@/pages/matches';
 import { Chats } from '@/pages/chats';
 import { Profile } from '@/pages/profile';
+import { SignIn } from '@/pages/auth/sign-in';
+import { SignUp } from '@/pages/auth/sign-up';
+import { VerifyEmail } from '@/pages/auth/verify-email';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
@@ -22,6 +26,8 @@ import {
 const queryClient = new QueryClient();
 
 function Router() {
+  const { user, loading } = useAuth();
+  const [location, navigate] = useLocation();
   const [activities, setActivities] = useState(initialActivities);
   const [saved, setSaved] = useState<Set<string>>(new Set(['cine-verdi']));
   const [interested, setInterested] = useState<Set<string>>(new Set(['futbol-parque']));
@@ -60,6 +66,49 @@ function Router() {
     onSave: (id: string) => toggleSet(setSaved, id),
     onInterest: (id: string) => toggleSet(setInterested, id),
   };
+
+  const authRoute =
+    location === '/sign-in' ||
+    location === '/sign-up' ||
+    location === '/verify-email';
+
+  useEffect(() => {
+    if (loading) return;
+    if (!user && !authRoute) {
+      navigate('/sign-in');
+    } else if (user && authRoute) {
+      navigate('/');
+    }
+  }, [authRoute, loading, navigate, user]);
+
+  if (loading) {
+    return (
+      <div className="auth-loading-screen">
+        <span className="auth-loading-mark">
+          <span>o</span>
+        </span>
+        <p className="font-mono-ui text-[10px] uppercase tracking-[.18em] text-muted-foreground">
+          preparando tu espacio
+        </p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <RoutedErrorBoundary>
+        <Switch>
+          <Route path="/sign-in" component={SignIn} />
+          <Route path="/sign-up" component={SignUp} />
+          <Route path="/verify-email" component={VerifyEmail} />
+          <Route component={SignIn} />
+        </Switch>
+      </RoutedErrorBoundary>
+    );
+  }
+
+  if (authRoute) return null;
+
   return (
     <RoutedErrorBoundary>
       <OutfyShell onCreateActivity={() => setDialogOpen(true)}>
@@ -87,7 +136,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
-          <Router />
+          <AuthProvider>
+            <Router />
+          </AuthProvider>
         </WouterRouter>
         <Toaster />
       </TooltipProvider>

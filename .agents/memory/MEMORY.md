@@ -1,0 +1,1 @@
+- [OpenAPI email validation](openapi-email-validation.md) — Keep generated email fields as strings and validate them at the API boundary in this workspace.

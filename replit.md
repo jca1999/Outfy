@@ -1,6 +1,6 @@
-# [Project name]
+# Outfy
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Aplicación social para descubrir actividades, conocer gente con intereses afines y organizar planes reales.
 
 ## Run & Operate
 
@@ -22,15 +22,25 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/outfy/src/pages/` — pantallas principales y pantallas de autenticación.
+- `artifacts/outfy/src/auth/` — contexto de sesión y cliente de las rutas de autenticación.
+- `artifacts/outfy/src/components/` — shell de Outfy, tarjetas, diálogos y componentes compartidos.
+- `artifacts/api-server/src/routes/auth.ts` — proxy server-side para Supabase Auth.
+- `artifacts/api-server/src/lib/supabase.ts` — cliente server-side con la conexión Supabase de Replit.
+- `supabase/migrations/001_profiles.sql` — tabla privada de perfiles y trigger para usernames únicos.
+- `lib/api-spec/openapi.yaml` — contrato de las rutas compartidas, incluida autenticación.
+- `artifacts/outfy/src/index.css` — tokens visuales y estilos de la aplicación.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- La interfaz nunca recibe directamente claves ni tokens de Supabase; el servidor usa la conexión gestionada y entrega una sesión mediante cookies `httpOnly`.
+- La aplicación mantiene el nombre de usuario como identificador de acceso, resolviéndolo server-side contra `profiles` antes de llamar a Supabase Auth.
+- La primera versión conserva los planes y páginas sociales como datos mock locales; la autenticación es la primera capacidad real conectada a un servicio externo.
+- Las rutas protegidas se resuelven en el cliente después de consultar `/api/auth/session`, mientras que la sesión persiste en cookies y puede renovarse con el refresh token.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Outfy ofrece Inicio, Explorar, Conexiones, Mensajes y Mi perfil. La experiencia está en español, es responsive y prioriza descubrir planes por encima de las funciones sociales secundarias. El acceso incluye registro, login por username, verificación email con OTP de seis cifras y cierre de sesión.
 
 ## User preferences
 
@@ -38,7 +48,9 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Hay que ejecutar `supabase/migrations/001_profiles.sql` en el proyecto Supabase conectado antes de usar registro/login por username.
+- La migración guarda el email solo como dato privado de soporte para el login server-side; nunca se expone en respuestas públicas de perfil.
+- Si se modifica `lib/api-spec/openapi.yaml`, hay que ejecutar `pnpm --filter @workspace/api-spec run codegen` antes del typecheck.
 
 ## Pointers
 

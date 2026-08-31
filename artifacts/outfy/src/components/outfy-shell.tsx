@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { navItems } from '@/constants';
 import { cn } from '@/utils';
+import { useAuth } from '@/auth/auth-context';
 
 interface OutfyShellProps {
   children: ReactNode;
@@ -11,6 +12,7 @@ interface OutfyShellProps {
 }
 
 export function OutfyShell({ children, onCreateActivity }: OutfyShellProps) {
+  const { user } = useAuth();
   const [location] = useLocation();
   const [notificationsRead, setNotificationsRead] = useState(false);
   return (
@@ -58,7 +60,7 @@ export function OutfyShell({ children, onCreateActivity }: OutfyShellProps) {
               <button type="button" onClick={onCreateActivity} className="hidden items-center gap-1.5 rounded-full bg-foreground px-4 py-2.5 text-xs font-bold text-background transition hover:bg-primary sm:flex" data-testid="button-create-activity"><Plus className="h-3.5 w-3.5" />Crear plan</button>
               <button type="button" onClick={() => setNotificationsRead((current) => !current)} className="relative rounded-full p-2.5 text-muted-foreground hover:bg-muted" aria-label="Notificaciones" data-testid="button-notifications"><Bell className="h-[18px] w-[18px]" />{!notificationsRead && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />}</button>
               <Link href="/profile" className="flex items-center gap-2 rounded-full pl-1.5 pr-1 sm:gap-2.5" data-testid="link-header-profile">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-teal text-[10px] font-bold text-teal-foreground">LC</span><span className="hidden text-xs font-bold sm:inline">Laura C.</span><ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:inline" />
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-teal text-[10px] font-bold text-teal-foreground">{(user?.username ?? 'LC').slice(0, 2).toUpperCase()}</span><span className="hidden text-xs font-bold sm:inline">{user?.username ?? 'Laura C.'}</span><ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:inline" />
               </Link>
             </div>
           </div>
