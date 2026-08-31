@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
 import {
+  getSupabaseAdmin,
   getSupabaseError,
   supabaseRequest,
   type SupabaseSession,
@@ -74,13 +75,16 @@ type InvitationDecision = {
 };
 
 async function consumeInvitationCode(code: string) {
-  const result = await supabaseAdmin.rpc("consume_invitation_code", {
-    input_code_hash: invitationCodeHash(code),
-  });
+  const { data, error } = await getSupabaseAdmin().rpc(
+    "consume_invitation_code",
+    {
+      input_code_hash: invitationCodeHash(code),
+    },
+  );
 
   return {
-    data: result.data as InvitationDecision[] | null,
-    error: result.error,
+    data: data as InvitationDecision[] | null,
+    error,
   };
 }
 
@@ -177,21 +181,30 @@ async function currentSession(request: Request, response: Response) {
 
 async function findProfileByUsername(username: string) {
   const normalizedUsername = normalizeUsername(username);
-  return supabaseAdmin
+
+  const { data, error } = await getSupabaseAdmin()
     .from("profiles")
     .select("id,email,username,username_normalized")
     .eq("username_normalized", normalizedUsername)
-    .limit(1)
-    .returns<ProfileLookup[]>();
+    .limit(1);
+
+  return {
+    data: data as ProfileLookup[] | null,
+    error,
+  };
 }
 
 async function findProfileByUserId(userId: string) {
-  return supabaseAdmin
+  const { data, error } = await getSupabaseAdmin()
     .from("profiles")
     .select("id,username")
     .eq("id", userId)
-    .limit(1)
-    .returns<ProfileLookup[]>();
+    .limit(1);
+
+  return {
+    data: data as ProfileLookup[] | null,
+    error,
+  };
 }
 
 router.get("/auth/session", async (request, response) => {
