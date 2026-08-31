@@ -107,7 +107,7 @@ export function SignIn() {
         <button
           type="submit"
           disabled={submitting}
-          className="auth-primary-button"
+          className="auth-primary-button outfy-primary-action"
           data-testid="button-sign-in"
         >
           {submitting && <Loader2 className="h-4 w-4 animate-spin" />}

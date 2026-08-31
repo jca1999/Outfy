@@ -20,15 +20,15 @@ export function Home({ activities, saved, interested, onSave, onInterest, onCrea
   return (
     <div className="space-y-10">
       <section className="grid gap-5 lg:grid-cols-[1.2fr_.8fr]">
-        <div className="relative overflow-hidden rounded-[28px] bg-primary p-6 text-primary-foreground sm:p-9">
-          <div className="absolute -right-10 -top-16 h-56 w-56 rounded-full border-[28px] border-primary-foreground/10" />
-          <div className="absolute bottom-[-70px] right-20 h-44 w-44 rounded-full border-[20px] border-primary-foreground/10" />
-          <p className="relative font-mono-ui text-[10px] uppercase tracking-[.2em] text-primary-foreground/70">Jueves, 24 de octubre · Zaragoza</p>
-          <h1 className="relative mt-8 max-w-[620px] text-[clamp(2.2rem,5vw,4.2rem)] font-bold leading-[.98] tracking-[-.065em]">Hola, Laura.<br /><span className="text-primary-foreground/65">Hoy pasa algo.</span></h1>
-          <p className="relative mt-6 max-w-[440px] text-sm leading-relaxed text-primary-foreground/80">Planes reales, gente cercana y una excusa para salir de casa. ¿Qué te apetece?</p>
+        <div className="relative overflow-hidden rounded-[28px] bg-sidebar p-6 text-sidebar-foreground sm:p-9">
+          <div className="absolute -right-10 -top-16 h-56 w-56 rounded-full border-[28px] border-primary/10" />
+          <div className="absolute bottom-[-70px] right-20 h-44 w-44 rounded-full border-[20px] border-primary/10" />
+          <p className="relative font-mono-ui text-[10px] uppercase tracking-[.2em] text-sidebar-foreground/70">Jueves, 24 de octubre · Zaragoza</p>
+          <h1 className="relative mt-8 max-w-[620px] text-[clamp(2.2rem,5vw,4.2rem)] font-bold leading-[.98] tracking-[-.065em]">Hola, Laura.<br /><span className="text-sidebar-foreground/65">Hoy pasa algo.</span></h1>
+          <p className="relative mt-6 max-w-[440px] text-sm leading-relaxed text-sidebar-foreground/80">Planes reales, gente cercana y una excusa para salir de casa. ¿Qué te apetece?</p>
           <div className="relative mt-8 flex flex-wrap gap-3">
-            <Link href="/explore" className="inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-3 text-xs font-bold text-background transition hover:-translate-y-0.5" data-testid="link-hero-explore">Explorar planes <ArrowRight className="h-3.5 w-3.5" /></Link>
-            <button type="button" onClick={onCreate} className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/30 px-4 py-3 text-xs font-bold text-primary-foreground transition hover:bg-primary-foreground/10" data-testid="button-hero-create"><Plus className="h-3.5 w-3.5" /> Proponer un plan</button>
+            <Link href="/explore" className="outfy-primary-action inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-xs font-bold text-primary-foreground transition hover:-translate-y-0.5" data-testid="link-hero-explore">Explorar planes <ArrowRight className="h-3.5 w-3.5" /></Link>
+            <button type="button" onClick={onCreate} className="inline-flex items-center gap-2 rounded-full border border-primary/30 px-4 py-3 text-xs font-bold text-primary transition hover:bg-primary/10" data-testid="button-hero-create"><Plus className="h-3.5 w-3.5" /> Proponer un plan</button>
           </div>
         </div>
         <div className="relative overflow-hidden rounded-[28px] bg-sidebar p-6 text-sidebar-foreground sm:p-8">

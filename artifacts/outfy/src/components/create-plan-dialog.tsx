@@ -25,7 +25,7 @@ export function CreatePlanDialog({ open, onClose, onCreate }: CreatePlanDialogPr
           <label className="text-sm font-semibold" htmlFor="plan-title">Nombre del plan</label>
           <input id="plan-title" value={title} onChange={(event) => setTitle(event.target.value)} autoFocus placeholder="Ej. Vermú y paseo por el centro" className="mt-2 w-full rounded-xl border border-input bg-background px-4 py-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15" data-testid="input-plan-title" />
           <p className="mt-2 text-xs text-muted-foreground">Podrás añadir fecha, lugar y detalles después. Por ahora, dale un nombre.</p>
-          <button type="submit" className="mt-6 w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground transition hover:-translate-y-0.5" data-testid="button-submit-create-plan">Crear plan</button>
+          <button type="submit" className="outfy-primary-action mt-6 w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground transition hover:-translate-y-0.5" data-testid="button-submit-create-plan">Crear plan</button>
         </form>
       </div>
     </div>

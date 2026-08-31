@@ -191,7 +191,7 @@ export function SignUp() {
         <button
           type="submit"
           disabled={submitting}
-          className="auth-primary-button"
+          className="auth-primary-button outfy-primary-action"
           data-testid="button-sign-up"
         >
           {submitting && <Loader2 className="h-4 w-4 animate-spin" />}

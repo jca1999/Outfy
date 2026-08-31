@@ -21,10 +21,10 @@ export function AuthShell({
 }: AuthShellProps) {
   return (
     <main className="min-h-[100dvh] bg-background px-4 py-5 sm:px-8 sm:py-8">
-      <div className="mx-auto grid min-h-[calc(100dvh-2.5rem)] w-full max-w-5xl overflow-hidden rounded-[30px] border border-border bg-card shadow-[0_24px_80px_rgba(39,34,72,0.10)] sm:min-h-[calc(100dvh-4rem)] md:grid-cols-[0.85fr_1.15fr]">
+      <div className="mx-auto grid min-h-[calc(100dvh-2.5rem)] w-full max-w-5xl overflow-hidden rounded-[30px] border border-border bg-card shadow-2xl sm:min-h-[calc(100dvh-4rem)] md:grid-cols-[0.85fr_1.15fr]">
         <aside className="relative hidden overflow-hidden bg-sidebar p-10 text-sidebar-foreground md:flex md:flex-col">
           <div className="absolute -right-20 -top-14 h-64 w-64 rounded-full border-[34px] border-primary/20" />
-          <div className="absolute -bottom-24 -left-12 h-64 w-64 rounded-full border-[28px] border-teal/20" />
+          <div className="absolute -bottom-24 -left-12 h-64 w-64 rounded-full border-[28px] border-primary/20" />
           <Link href="/" className="relative flex items-center gap-2.5" aria-label="Volver a Outfy">
             <span className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-primary text-primary-foreground">
               <Compass className="h-5 w-5" strokeWidth={2.5} />
