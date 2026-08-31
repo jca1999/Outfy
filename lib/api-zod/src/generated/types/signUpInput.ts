@@ -13,4 +13,9 @@ export interface SignUpInput {
   email: string;
   /** @minLength 8 */
   password: string;
+  /**
+     * Private invitation code required during registration
+     * @minLength 1
+     */
+  invitationCode: string;
 }

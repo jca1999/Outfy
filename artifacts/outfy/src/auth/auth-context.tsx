@@ -17,6 +17,7 @@ interface AuthContextValue {
     username: string;
     email: string;
     password: string;
+    invitationCode: string;
   }) => Promise<authApi.AuthMessageResponse>;
   verifyEmail: (input: {
     email: string;

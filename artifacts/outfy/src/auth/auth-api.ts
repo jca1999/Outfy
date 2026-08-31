@@ -70,6 +70,7 @@ export function signUp(input: {
   username: string;
   email: string;
   password: string;
+  invitationCode: string;
 }) {
   return request<AuthMessageResponse>('/sign-up', {
     method: 'POST',

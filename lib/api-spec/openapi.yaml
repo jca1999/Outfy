@@ -217,10 +217,15 @@ components:
         password:
           type: string
           minLength: 8
+        invitationCode:
+          type: string
+          minLength: 1
+          description: Private invitation code required during registration
       required:
         - username
         - email
         - password
+        - invitationCode
     VerifyEmailInput:
       type: object
       properties:

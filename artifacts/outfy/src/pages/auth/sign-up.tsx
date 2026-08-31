@@ -10,6 +10,7 @@ interface FormErrors {
   email?: string;
   password?: string;
   confirmPassword?: string;
+  invitationCode?: string;
   form?: string;
 }
 
@@ -22,6 +23,7 @@ export function SignUp() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [invitationCode, setInvitationCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -31,6 +33,7 @@ export function SignUp() {
     const nextErrors: FormErrors = {};
     const cleanUsername = username.trim();
     const cleanEmail = email.trim();
+    const cleanInvitationCode = invitationCode.trim();
 
     if (!cleanUsername) nextErrors.username = 'El nombre de usuario es obligatorio.';
     else if (/\s/.test(cleanUsername)) {
@@ -45,6 +48,9 @@ export function SignUp() {
     if (confirmPassword !== password) {
       nextErrors.confirmPassword = 'Las contraseñas no coinciden.';
     }
+    if (!cleanInvitationCode) {
+      nextErrors.invitationCode = 'El código de invitación es obligatorio.';
+    }
 
     setErrors(nextErrors);
     return nextErrors;
@@ -58,10 +64,12 @@ export function SignUp() {
     setSubmitting(true);
     try {
       const cleanEmail = email.trim().toLowerCase();
+      const cleanInvitationCode = invitationCode.trim();
       await signUp({
         username: username.trim(),
         email: cleanEmail,
         password,
+        invitationCode: cleanInvitationCode,
       });
       window.localStorage.setItem('outfy_pending_email', cleanEmail);
       navigate(`/verify-email?email=${encodeURIComponent(cleanEmail)}`);
@@ -124,6 +132,27 @@ export function SignUp() {
             data-testid="input-sign-up-email"
           />
           {errors.email && <p className="auth-field-error">{errors.email}</p>}
+        </div>
+        <div>
+          <label htmlFor="sign-up-invitation-code" className="mb-2 block text-xs font-bold">
+            Código de invitación
+          </label>
+          <input
+            id="sign-up-invitation-code"
+            value={invitationCode}
+            onChange={(event) => setInvitationCode(event.target.value)}
+            autoComplete="one-time-code"
+            placeholder="OUTFY-XXXX"
+            className="auth-input font-mono-ui uppercase tracking-[.08em]"
+            aria-invalid={Boolean(errors.invitationCode)}
+            data-testid="input-sign-up-invitation-code"
+          />
+          <p className="mt-1.5 text-[11px] text-muted-foreground">
+            Outfy está en desarrollo privado.
+          </p>
+          {errors.invitationCode && (
+            <p className="auth-field-error">{errors.invitationCode}</p>
+          )}
         </div>
         <div>
           <label htmlFor="sign-up-password" className="mb-2 block text-xs font-bold">

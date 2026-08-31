@@ -28,6 +28,7 @@ Aplicación social para descubrir actividades, conocer gente con intereses afine
 - `artifacts/api-server/src/routes/auth.ts` — proxy server-side para Supabase Auth.
 - `artifacts/api-server/src/lib/supabase.ts` — cliente server-side con la conexión Supabase de Replit.
 - `supabase/migrations/001_profiles.sql` — tabla privada de perfiles y trigger para usernames únicos.
+- `supabase/migrations/002_invitation_codes.sql` — códigos de invitación con hash, RLS y consumo atómico.
 - `lib/api-spec/openapi.yaml` — contrato de las rutas compartidas, incluida autenticación.
 - `artifacts/outfy/src/index.css` — tokens visuales y estilos de la aplicación.
 
@@ -40,7 +41,7 @@ Aplicación social para descubrir actividades, conocer gente con intereses afine
 
 ## Product
 
-Outfy ofrece Inicio, Explorar, Conexiones, Mensajes y Mi perfil. La experiencia está en español, es responsive y prioriza descubrir planes por encima de las funciones sociales secundarias. El acceso incluye registro, login por username, verificación email con OTP de seis cifras y cierre de sesión.
+Outfy ofrece Inicio, Explorar, Conexiones, Mensajes y Mi perfil. La experiencia está en español, es responsive y prioriza descubrir planes por encima de las funciones sociales secundarias. El acceso privado incluye registro mediante invitación, login por username, verificación email con OTP de seis cifras y cierre de sesión.
 
 ## User preferences
 
@@ -49,6 +50,7 @@ _Populate as you build — explicit user instructions worth remembering across s
 ## Gotchas
 
 - Hay que ejecutar `supabase/migrations/001_profiles.sql` en el proyecto Supabase conectado antes de usar registro/login por username.
+- También hay que ejecutar `supabase/migrations/002_invitation_codes.sql` antes de habilitar registros; los códigos se insertan como hashes y se consumen mediante la función SQL protegida.
 - La migración guarda el email solo como dato privado de soporte para el login server-side; nunca se expone en respuestas públicas de perfil.
 - Si se modifica `lib/api-spec/openapi.yaml`, hay que ejecutar `pnpm --filter @workspace/api-spec run codegen` antes del typecheck.
 

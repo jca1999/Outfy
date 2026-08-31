@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
 import {
   getSupabaseError,
@@ -21,6 +22,7 @@ interface AuthBody {
   email?: unknown;
   password?: unknown;
   token?: unknown;
+  invitationCode?: unknown;
 }
 
 interface ProfileLookup {
@@ -51,6 +53,40 @@ function isUsername(value: unknown): value is string {
     !/\s/.test(value.trim()) &&
     value.trim().length <= 32
   );
+}
+
+function invitationCodeHash(code: string) {
+  return createHash("sha256")
+    .update(code.trim().toUpperCase(), "utf8")
+    .digest("hex");
+}
+
+type InvitationDecision = {
+  accepted: boolean;
+  reason: "accepted" | "invalid" | "inactive" | "expired" | "exhausted";
+};
+
+async function consumeInvitationCode(code: string) {
+  return supabaseRequest<InvitationDecision[]>(
+    "/rest/v1/rpc/consume_invitation_code",
+    {
+      method: "POST",
+      body: { input_code_hash: invitationCodeHash(code) },
+    },
+  );
+}
+
+function invitationError(reason: InvitationDecision["reason"]) {
+  switch (reason) {
+    case "inactive":
+      return "Este código de invitación ya no está activo.";
+    case "expired":
+      return "Este código de invitación ha caducado.";
+    case "exhausted":
+      return "Este código de invitación ya ha alcanzado su límite de usos.";
+    default:
+      return "El código de invitación no es válido.";
+  }
 }
 
 function sendError(response: Response, status: number, message: string) {
@@ -193,6 +229,9 @@ router.post("/auth/sign-up", async (request, response) => {
   const username = isUsername(body.username) ? body.username.trim() : "";
   const email = isEmail(body.email) ? body.email.trim().toLowerCase() : "";
   const password = isNonEmptyString(body.password) ? body.password : "";
+  const invitationCode = isNonEmptyString(body.invitationCode)
+    ? body.invitationCode.trim()
+    : "";
 
   if (!username) {
     sendError(response, 400, "El nombre de usuario es obligatorio y no puede contener espacios.");
@@ -206,11 +245,38 @@ router.post("/auth/sign-up", async (request, response) => {
     sendError(response, 400, "La contraseña debe tener al menos 8 caracteres.");
     return;
   }
+  if (!invitationCode || invitationCode.length > 128) {
+    sendError(response, 400, "Introduce un código de invitación válido.");
+    return;
+  }
 
   try {
     const existingProfile = await findProfileByUsername(username);
     if (existingProfile.response.ok && existingProfile.data?.length) {
       sendError(response, 409, "Ese nombre de usuario ya está en uso.");
+      return;
+    }
+
+    const invitationResult = await consumeInvitationCode(invitationCode);
+    if (
+      !invitationResult.response.ok ||
+      !invitationResult.data?.[0]
+    ) {
+      request.log.error(
+        { status: invitationResult.response.status },
+        "Invitation code validation is unavailable",
+      );
+      sendError(
+        response,
+        503,
+        "El acceso privado no está disponible ahora. Inténtalo de nuevo más tarde.",
+      );
+      return;
+    }
+
+    const invitation = invitationResult.data[0];
+    if (!invitation.accepted) {
+      sendError(response, 400, invitationError(invitation.reason));
       return;
     }
 

@@ -58,10 +58,12 @@ export const signUpBodyPasswordMin = 8;
 
 
 
+
 export const SignUpBody = zod.object({
   "username": zod.string().min(1),
   "email": zod.string().describe('Valid email address'),
-  "password": zod.string().min(signUpBodyPasswordMin)
+  "password": zod.string().min(signUpBodyPasswordMin),
+  "invitationCode": zod.string().min(1).describe('Private invitation code required during registration')
 })
 
 export const SignUpResponse = zod.object({
