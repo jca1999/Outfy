@@ -29,6 +29,7 @@ Aplicación social para descubrir actividades, conocer gente con intereses afine
 - `artifacts/api-server/src/lib/supabase.ts` — cliente server-side con la conexión Supabase de Replit.
 - `supabase/migrations/001_profiles.sql` — tabla privada de perfiles y trigger para usernames únicos.
 - `supabase/migrations/002_invitation_codes.sql` — códigos de invitación con hash, RLS y consumo atómico.
+- `supabase/migrations/003_case_insensitive_usernames.sql` — username visible, forma normalizada e índice único case-insensitive.
 - `lib/api-spec/openapi.yaml` — contrato de las rutas compartidas, incluida autenticación.
 - `artifacts/outfy/src/index.css` — tokens visuales y estilos de la aplicación.
 
@@ -36,6 +37,7 @@ Aplicación social para descubrir actividades, conocer gente con intereses afine
 
 - La interfaz nunca recibe directamente claves ni tokens de Supabase; el servidor usa la conexión gestionada y entrega una sesión mediante cookies `httpOnly`.
 - La aplicación mantiene el nombre de usuario como identificador de acceso, resolviéndolo server-side contra `profiles` antes de llamar a Supabase Auth.
+- `profiles.username` conserva el nombre visible y `profiles.username_normalized` aplica `trim + lowercase`; un índice único protege la unicidad también en altas concurrentes.
 - La primera versión conserva los planes y páginas sociales como datos mock locales; la autenticación es la primera capacidad real conectada a un servicio externo.
 - Las rutas protegidas se resuelven en el cliente después de consultar `/api/auth/session`, mientras que la sesión persiste en cookies y puede renovarse con el refresh token.
 

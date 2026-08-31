@@ -74,6 +74,11 @@ export function SignUp() {
       window.localStorage.setItem('outfy_pending_email', cleanEmail);
       navigate(`/verify-email?email=${encodeURIComponent(cleanEmail)}`);
     } catch (cause) {
+      if (cause instanceof AuthApiError && cause.status === 409) {
+        setErrors({ username: cause.message });
+        return;
+      }
+
       setErrors({
         form:
           cause instanceof AuthApiError

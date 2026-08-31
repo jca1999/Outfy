@@ -26,8 +26,10 @@ interface AuthBody {
 }
 
 interface ProfileLookup {
+  id?: string;
   email?: string;
   username?: string;
+  username_normalized?: string;
 }
 
 function bodyOf(request: Request): AuthBody {
@@ -53,6 +55,10 @@ function isUsername(value: unknown): value is string {
     !/\s/.test(value.trim()) &&
     value.trim().length <= 32
   );
+}
+
+function normalizeUsername(username: string) {
+  return username.trim().toLowerCase();
 }
 
 function invitationCodeHash(code: string) {
@@ -93,11 +99,13 @@ function sendError(response: Response, status: number, message: string) {
   response.status(status).json({ error: message });
 }
 
-function publicUser(user: SupabaseUser) {
+function publicUser(user: SupabaseUser, displayUsername?: string) {
   const username = user.user_metadata?.username;
   return {
     id: user.id,
-    username: typeof username === "string" ? username : "usuario",
+    username:
+      displayUsername ??
+      (typeof username === "string" ? username : "usuario"),
   };
 }
 
@@ -117,8 +125,18 @@ function setSession(response: Response, session: SupabaseSession) {
   });
 }
 
-function sessionPayload(user: SupabaseUser) {
-  return { authenticated: true, user: publicUser(user) };
+async function sessionPayload(user: SupabaseUser) {
+  const profileResult = await findProfileByUserId(user.id);
+  const displayUsername =
+    profileResult.response.ok && profileResult.data?.[0]?.username;
+
+  return {
+    authenticated: true,
+    user: publicUser(
+      user,
+      typeof displayUsername === "string" ? displayUsername : undefined,
+    ),
+  };
 }
 
 async function refreshSession(request: Request, response: Response) {
@@ -156,7 +174,13 @@ async function currentSession(request: Request, response: Response) {
 }
 
 async function findProfileByUsername(username: string) {
-  const query = `/rest/v1/profiles?select=email,username&username=eq.${encodeURIComponent(username)}&limit=1`;
+  const normalizedUsername = normalizeUsername(username);
+  const query = `/rest/v1/profiles?select=id,email,username,username_normalized&username_normalized=eq.${encodeURIComponent(normalizedUsername)}&limit=1`;
+  return supabaseRequest<ProfileLookup[]>(query);
+}
+
+async function findProfileByUserId(userId: string) {
+  const query = `/rest/v1/profiles?select=id,username&id=eq.${encodeURIComponent(userId)}&limit=1`;
   return supabaseRequest<ProfileLookup[]>(query);
 }
 
@@ -165,7 +189,7 @@ router.get("/auth/session", async (request, response) => {
     const session = await currentSession(request, response);
     response.json(
       session
-        ? sessionPayload(session.user)
+        ? await sessionPayload(session.user)
         : { authenticated: false, user: null },
     );
   } catch (error) {
@@ -217,7 +241,7 @@ router.post("/auth/sign-in", async (request, response) => {
     }
 
     setSession(response, loginResult.data);
-    response.json(sessionPayload(loginResult.data.user));
+    response.json(await sessionPayload(loginResult.data.user));
   } catch (error) {
     request.log.error({ err: error }, "Supabase sign in failed");
     sendError(response, 502, "No se ha podido conectar con el servicio de acceso.");
@@ -253,7 +277,7 @@ router.post("/auth/sign-up", async (request, response) => {
   try {
     const existingProfile = await findProfileByUsername(username);
     if (existingProfile.response.ok && existingProfile.data?.length) {
-      sendError(response, 409, "Ese nombre de usuario ya está en uso.");
+       sendError(response, 409, "Este nombre de usuario ya está en uso");
       return;
     }
 
@@ -289,6 +313,12 @@ router.post("/auth/sign-up", async (request, response) => {
     );
 
     if (!signupResult.response.ok || !signupResult.data?.user) {
+      const profileAfterSignup = await findProfileByUsername(username);
+      if (profileAfterSignup.response.ok && profileAfterSignup.data?.length) {
+        sendError(response, 409, "Este nombre de usuario ya está en uso");
+        return;
+      }
+
       const message = getSupabaseError(
         signupResult.data,
         "No se ha podido crear la cuenta.",
@@ -343,7 +373,7 @@ router.post("/auth/verify-email", async (request, response) => {
     }
 
     setSession(response, verificationResult.data);
-    response.json(sessionPayload(verificationResult.data.user));
+    response.json(await sessionPayload(verificationResult.data.user));
   } catch (error) {
     request.log.error({ err: error }, "Supabase email verification failed");
     sendError(response, 502, "No se ha podido verificar el correo electrónico.");
