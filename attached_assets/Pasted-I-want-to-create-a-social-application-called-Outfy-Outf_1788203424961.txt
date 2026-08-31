@@ -1,0 +1,175 @@
+I want to create a social application called Outfy.
+
+Outfy is an app for discovering activities and plans, meeting people with similar interests, and organizing real-life meetups.
+
+The application should initially be built as a responsive, mobile-first web application.
+
+It must work well on:
+- desktop browsers
+- mobile browsers
+- as a PWA in the future
+- and it should be prepared to be packaged later as Android and iOS apps using Capacitor.
+
+TECH STACK:
+- React
+- TypeScript
+- modern, maintainable architecture
+- reusable components
+- mobile-first responsive design
+
+IMPORTANT:
+For now, DO NOT implement:
+- backend
+- database
+- authentication
+- Supabase
+- real chat
+- notifications
+- maps
+- payments
+- external services
+
+Use only local mock data.
+
+The goal of this first step is to create the base UI and project architecture.
+
+APP NAME:
+Outfy
+
+CORE CONCEPT:
+The user opens Outfy because they want to find something to do and people to do it with.
+
+The application should initially have five main sections:
+
+1. Home
+2. Explore
+3. Matches
+4. Chats
+5. Profile
+
+On mobile devices, these sections should appear as a bottom navigation bar.
+
+On desktop, adapt the navigation and layout to make good use of the wider screen, while still feeling like a modern application rather than a traditional website.
+
+HOME SCREEN:
+
+Show:
+- greeting
+- recommended activities
+- nearby activities
+- popular categories
+
+Create mock activity cards such as:
+
+1. Football match
+   - Zaragoza
+   - Saturday 18:00
+   - 6 of 10 participants
+
+2. Cinema
+   - Zaragoza
+   - Today 21:30
+   - 3 of 5 participants
+
+3. Board games
+   - Friday 20:00
+   - 4 of 8 participants
+
+4. Drinks
+   - Friday 22:00
+   - 5 participants
+
+5. Hiking
+   - Sunday 09:00
+   - 7 participants
+
+Each activity card should include:
+- category
+- title
+- date
+- time
+- location
+- participants
+- an "I'm interested" button
+
+The button should not have real backend logic yet.
+
+EXPLORE SCREEN:
+
+Show:
+- search bar
+- visual filters
+- categories
+- mock activities
+
+MATCHES SCREEN:
+
+For now, show a sample UI with fictional people the user could potentially match with.
+
+CHATS SCREEN:
+
+Show only mock conversations:
+- private chats
+- group chats for activities
+
+PROFILE SCREEN:
+
+Show:
+- profile picture placeholder
+- name
+- city
+- bio
+- interests
+- basic statistics
+- completed activities
+
+DESIGN:
+
+I want the design to feel:
+- modern
+- social
+- youthful but professional
+- clean
+- visual
+- friendly
+- mobile-first
+
+Do NOT make it look like Tinder or a dating app.
+
+The main focus of Outfy should be plans and activities.
+
+Profiles and matches are secondary social features.
+
+ARCHITECTURE:
+
+Avoid giant components.
+
+Organize the project cleanly into:
+- pages/routes
+- components
+- types
+- constants
+- mock-data
+- utilities
+
+Prepare the architecture so we can later add:
+- Supabase
+- authentication
+- real activities
+- user profiles
+- likes
+- matches
+- real-time chat
+- geolocation
+- notifications
+- Spanish/English internationalization
+- Capacitor
+
+Do not implement those features yet.
+
+Do not add functionality that I did not request.
+
+Prioritize a clean and simple foundation over complexity.
+
+UI LANGUAGE:
+For now, display the interface in Spanish.

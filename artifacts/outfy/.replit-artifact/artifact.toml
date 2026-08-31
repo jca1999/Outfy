@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Outfy"
+description = "A responsive social discovery app for finding activities, meeting like-minded people, and organizing real-life plans."
+version = "1.0.0"
+id = "artifacts/outfy"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 22608
+
+[services.development]
+run = "pnpm --filter @workspace/outfy run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/outfy", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/outfy/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "22608"
+BASE_PATH = "/"
