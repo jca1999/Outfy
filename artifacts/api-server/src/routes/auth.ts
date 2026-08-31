@@ -7,7 +7,6 @@ import {
   type SupabaseSession,
   type SupabaseUser,
 } from "../lib/supabase";
-import { supabaseAdmin } from "../lib/supabase-admin";
 
 const router: IRouter = Router();
 const ACCESS_COOKIE = "outfy_access_token";

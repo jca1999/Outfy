@@ -3,7 +3,7 @@ import { logger } from "./lib/logger";
 
 const rawPort =
   process.env["PORT"] ??
-  (process.env["NODE_ENV"] === "development" ? "5000" : undefined);
+  (process.env["NODE_ENV"] === "development" ? "8080" : undefined);
 
 if (!rawPort) {
   throw new Error(
