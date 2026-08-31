@@ -1,0 +1,99 @@
+Fix the privileged Supabase database operations in the Outfy authentication backend.
+
+CURRENT PROBLEM:
+
+The endpoint POST /api/auth/sign-up currently fails with:
+
+"El acceso privado no está disponible ahora. Inténtalo de nuevo más tarde."
+
+The `consume_invitation_code` PostgreSQL function is intentionally restricted to the Supabase `service_role`.
+
+Do NOT grant this function to anon or authenticated users.
+
+The current Replit Supabase connector does not provide the elevated database privileges required for this operation.
+
+========================================
+SERVER-SIDE ADMIN CLIENT
+========================================
+
+Create a dedicated server-only Supabase admin client using the already installed:
+
+@supabase/supabase-js
+
+Use these environment variables:
+
+SUPABASE_URL
+SUPABASE_SECRET_KEY
+
+The secret key is a Supabase `sb_secret_...` backend key.
+
+NEVER expose this key to:
+- frontend code
+- Vite environment variables
+- browser bundles
+- API responses
+- logs
+
+Do not use any `VITE_` prefix for this secret.
+
+Configure the admin client with session persistence disabled because this client is for privileged server/database operations only.
+
+========================================
+PRIVILEGED OPERATIONS
+========================================
+
+Use the dedicated admin client for server-only database operations that need to bypass RLS, especially:
+
+1. Calling:
+
+consume_invitation_code
+
+using:
+
+supabaseAdmin.rpc("consume_invitation_code", {
+  input_code_hash: invitationCodeHash
+})
+
+2. Looking up profiles by username before authentication.
+
+3. Any profile lookup required by the backend where no authenticated user JWT exists.
+
+Keep the existing public authentication flow separate from this admin client.
+
+Do NOT use the admin client as the browser authentication client.
+
+Do NOT expose user tokens or the Supabase secret key.
+
+========================================
+INVITATION SECURITY
+========================================
+
+Keep the current database permissions:
+
+- invitation_codes must remain inaccessible to anon users
+- invitation_codes must remain inaccessible to authenticated users
+- consume_invitation_code must remain executable only by service_role
+
+Do NOT solve the issue by granting execute permissions to anon.
+
+========================================
+ERROR HANDLING
+========================================
+
+If the RPC fails, log the Supabase status/error server-side without logging any invitation code, hashes, passwords, API keys or secrets.
+
+Keep friendly Spanish errors in the frontend.
+
+========================================
+TEST
+========================================
+
+After implementing:
+
+1. Run TypeScript checks.
+2. Test a valid invitation code.
+3. Verify consume_invitation_code returns accepted=true.
+4. Verify invalid invitation codes are rejected.
+5. Verify normal clients still cannot read invitation_codes.
+6. Verify the secret key never appears in frontend bundles or source code.
+7. Do not alter the existing UI.

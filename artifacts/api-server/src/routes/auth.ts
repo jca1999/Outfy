@@ -6,6 +6,7 @@ import {
   type SupabaseSession,
   type SupabaseUser,
 } from "../lib/supabase";
+import { supabaseAdmin } from "../lib/supabase-admin";
 
 const router: IRouter = Router();
 const ACCESS_COOKIE = "outfy_access_token";
@@ -73,13 +74,14 @@ type InvitationDecision = {
 };
 
 async function consumeInvitationCode(code: string) {
-  return supabaseRequest<InvitationDecision[]>(
-    "/rest/v1/rpc/consume_invitation_code",
-    {
-      method: "POST",
-      body: { input_code_hash: invitationCodeHash(code) },
-    },
-  );
+  const result = await supabaseAdmin.rpc("consume_invitation_code", {
+    input_code_hash: invitationCodeHash(code),
+  });
+
+  return {
+    data: result.data as InvitationDecision[] | null,
+    error: result.error,
+  };
 }
 
 function invitationError(reason: InvitationDecision["reason"]) {
@@ -128,7 +130,7 @@ function setSession(response: Response, session: SupabaseSession) {
 async function sessionPayload(user: SupabaseUser) {
   const profileResult = await findProfileByUserId(user.id);
   const displayUsername =
-    profileResult.response.ok && profileResult.data?.[0]?.username;
+    !profileResult.error && profileResult.data?.[0]?.username;
 
   return {
     authenticated: true,
@@ -175,13 +177,21 @@ async function currentSession(request: Request, response: Response) {
 
 async function findProfileByUsername(username: string) {
   const normalizedUsername = normalizeUsername(username);
-  const query = `/rest/v1/profiles?select=id,email,username,username_normalized&username_normalized=eq.${encodeURIComponent(normalizedUsername)}&limit=1`;
-  return supabaseRequest<ProfileLookup[]>(query);
+  return supabaseAdmin
+    .from("profiles")
+    .select("id,email,username,username_normalized")
+    .eq("username_normalized", normalizedUsername)
+    .limit(1)
+    .returns<ProfileLookup[]>();
 }
 
 async function findProfileByUserId(userId: string) {
-  const query = `/rest/v1/profiles?select=id,username&id=eq.${encodeURIComponent(userId)}&limit=1`;
-  return supabaseRequest<ProfileLookup[]>(query);
+  return supabaseAdmin
+    .from("profiles")
+    .select("id,username")
+    .eq("id", userId)
+    .limit(1)
+    .returns<ProfileLookup[]>();
 }
 
 router.get("/auth/session", async (request, response) => {
@@ -212,7 +222,7 @@ router.post("/auth/sign-in", async (request, response) => {
   try {
     const profileResult = await findProfileByUsername(username);
     if (
-      !profileResult.response.ok ||
+      profileResult.error ||
       !profileResult.data?.[0]?.email ||
       typeof profileResult.data[0].email !== "string"
     ) {
@@ -276,19 +286,28 @@ router.post("/auth/sign-up", async (request, response) => {
 
   try {
     const existingProfile = await findProfileByUsername(username);
-    if (existingProfile.response.ok && existingProfile.data?.length) {
+    if (existingProfile.error) {
+      request.log.error(
+        { code: existingProfile.error.code },
+        "Privileged username lookup failed",
+      );
+      sendError(
+        response,
+        503,
+        "El acceso privado no está disponible ahora. Inténtalo de nuevo más tarde.",
+      );
+      return;
+    }
+    if (existingProfile.data?.length) {
        sendError(response, 409, "Este nombre de usuario ya está en uso");
       return;
     }
 
     const invitationResult = await consumeInvitationCode(invitationCode);
-    if (
-      !invitationResult.response.ok ||
-      !invitationResult.data?.[0]
-    ) {
+    if (invitationResult.error || !invitationResult.data?.[0]) {
       request.log.error(
-        { status: invitationResult.response.status },
-        "Invitation code validation is unavailable",
+        { code: invitationResult.error?.code },
+        "Privileged invitation validation failed",
       );
       sendError(
         response,
@@ -314,7 +333,7 @@ router.post("/auth/sign-up", async (request, response) => {
 
     if (!signupResult.response.ok || !signupResult.data?.user) {
       const profileAfterSignup = await findProfileByUsername(username);
-      if (profileAfterSignup.response.ok && profileAfterSignup.data?.length) {
+      if (!profileAfterSignup.error && profileAfterSignup.data?.length) {
         sendError(response, 409, "Este nombre de usuario ya está en uso");
         return;
       }
