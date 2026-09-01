@@ -27,7 +27,7 @@ Aplicación social para descubrir actividades, conocer gente con intereses afine
 - `artifacts/outfy/src/components/` — shell de Outfy, tarjetas, diálogos y componentes compartidos.
 - `artifacts/api-server/src/routes/auth.ts` — proxy server-side para Supabase Auth.
 - `artifacts/api-server/src/lib/supabase.ts` — cliente server-side con la conexión Supabase de Replit.
-- `artifacts/api-server/src/lib/supabase-admin.ts` — cliente Supabase privilegiado, exclusivo del servidor, para RPC y consultas privadas.
+- `artifacts/api-server/src/lib/supabase.ts` — transporte directo de Auth y cliente Supabase privilegiado, exclusivo del servidor, para RPC y consultas privadas.
 - `supabase/migrations/001_profiles.sql` — tabla privada de perfiles y trigger para usernames únicos.
 - `supabase/migrations/002_invitation_codes.sql` — códigos de invitación con hash, RLS y consumo atómico.
 - `supabase/migrations/003_case_insensitive_usernames.sql` — username visible, forma normalizada e índice único case-insensitive.

@@ -1,0 +1,148 @@
+Refactor the Outfy Supabase connection to remove ReplitConnectors from the authentication flow.
+
+CURRENT ARCHITECTURE PROBLEM:
+
+The application currently uses two different ways to communicate with Supabase:
+
+1. Privileged database operations use:
+   SUPABASE_URL
+   SUPABASE_SECRET_KEY
+   @supabase/supabase-js
+
+2. Normal Auth operations use:
+   ReplitConnectors().proxy("supabase", ...)
+
+This makes authentication harder to debug and can potentially cause different Supabase connection configurations to be used.
+
+We want ALL Supabase communication to target the same Supabase project directly.
+
+========================================
+ENVIRONMENT VARIABLES
+========================================
+
+Use:
+
+SUPABASE_URL
+SUPABASE_PUBLISHABLE_KEY
+SUPABASE_SECRET_KEY
+
+SUPABASE_PUBLISHABLE_KEY is an sb_publishable_... key.
+
+SUPABASE_SECRET_KEY is an sb_secret_... server-only key.
+
+Never expose SUPABASE_SECRET_KEY to frontend code.
+
+========================================
+NORMAL AUTH REQUESTS
+========================================
+
+Replace the ReplitConnectors implementation inside:
+
+artifacts/api-server/src/lib/supabase.ts
+
+Remove:
+
+@replit/connectors-sdk
+
+from this authentication implementation.
+
+Keep the existing supabaseRequest() interface if possible so the existing auth routes require minimal modification.
+
+supabaseRequest() should call Supabase directly using:
+
+SUPABASE_URL
+
+and:
+
+SUPABASE_PUBLISHABLE_KEY
+
+For Supabase Auth requests include the appropriate apikey header using the publishable key.
+
+If an Authorization token is provided, continue passing:
+
+Authorization: Bearer <token>
+
+Keep Content-Type application/json when a body exists.
+
+All these existing endpoints must continue working:
+
+/auth/v1/signup
+/auth/v1/token
+/auth/v1/user
+/auth/v1/verify
+/auth/v1/resend
+/auth/v1/logout
+
+========================================
+ADMIN OPERATIONS
+========================================
+
+Keep getSupabaseAdmin() using:
+
+SUPABASE_URL
+SUPABASE_SECRET_KEY
+
+Admin operations include:
+
+- invitation validation
+- profile lookup by username
+- privileged database operations
+
+Do not use the secret key for normal browser/user authentication operations.
+
+========================================
+DIAGNOSTIC LOGGING
+========================================
+
+Improve the signup error logging.
+
+When Supabase rejects /auth/v1/signup, log server-side:
+
+- HTTP status
+- Supabase error code if available
+- Supabase error message if available
+
+Do NOT log:
+
+- passwords
+- invitation codes
+- invitation hashes
+- access tokens
+- refresh tokens
+- API keys
+
+Use a log message such as:
+
+"Supabase signup rejected"
+
+Keep the friendly Spanish frontend error.
+
+========================================
+IMPORTANT
+========================================
+
+Do NOT modify the Outfy UI.
+
+Do NOT change the database schema.
+
+Do NOT change invitation permissions.
+
+Do NOT expose the secret key.
+
+Do NOT remove email confirmation or OTP verification.
+
+Do NOT introduce another authentication provider.
+
+========================================
+TESTS
+========================================
+
+After implementation:
+
+1. Run TypeScript checks.
+2. Build the API server.
+3. Verify GET /api/healthz.
+4. Verify an invalid invitation is rejected.
+5. Verify signup reaches the same Supabase project configured in SUPABASE_URL.
+6. Verify no Replit connector is used for Supabase Auth.
+7. Verify the secret key is not included in browser/frontend bundles.

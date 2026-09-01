@@ -1,4 +1,3 @@
-import { ReplitConnectors } from "@replit/connectors-sdk";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let adminClient: SupabaseClient | null = null;
@@ -53,8 +52,20 @@ export async function supabaseRequest<T>(
   path: string,
   options: SupabaseRequestOptions = {},
 ): Promise<{ response: Response; data: T | null }> {
+  const supabaseUrl = process.env["SUPABASE_URL"]?.trim();
+  const publishableKey = process.env["SUPABASE_PUBLISHABLE_KEY"]?.trim();
+
+  if (!supabaseUrl) {
+    throw new Error("SUPABASE_URL is not configured.");
+  }
+
+  if (!publishableKey) {
+    throw new Error("SUPABASE_PUBLISHABLE_KEY is not configured.");
+  }
+
   const headers: Record<string, string> = {
     Accept: "application/json",
+    apikey: publishableKey,
   };
 
   if (options.body !== undefined) {
@@ -65,13 +76,15 @@ export async function supabaseRequest<T>(
     headers.Authorization = options.authorization;
   }
 
-  const connectors = new ReplitConnectors();
-  const response = await connectors.proxy("supabase", path, {
+  const response = await fetch(
+    `${supabaseUrl.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`,
+    {
     method: options.method ?? "GET",
     headers,
     body:
       options.body === undefined ? undefined : JSON.stringify(options.body),
-  });
+    },
+  );
 
   const text = await response.text();
   if (!text) {
@@ -96,4 +109,11 @@ export function getSupabaseError(
   return typeof message === "string" && message.length > 0
     ? message
     : fallback;
+}
+
+export function getSupabaseErrorCode(data: unknown): string | undefined {
+  if (!data || typeof data !== "object") return undefined;
+
+  const code = (data as Record<string, unknown>).code;
+  return typeof code === "string" && code.length > 0 ? code : undefined;
 }

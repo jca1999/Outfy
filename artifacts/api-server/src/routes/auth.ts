@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
 import {
   getSupabaseAdmin,
+  getSupabaseErrorCode,
   getSupabaseError,
   supabaseRequest,
   type SupabaseSession,
@@ -353,6 +354,14 @@ router.post("/auth/sign-up", async (request, response) => {
       const message = getSupabaseError(
         signupResult.data,
         "No se ha podido crear la cuenta.",
+      );
+      request.log.warn(
+        {
+          status: signupResult.response.status,
+          code: getSupabaseErrorCode(signupResult.data),
+          message,
+        },
+        "Supabase signup rejected",
       );
       sendError(response, 400, /already|registered|exists/i.test(message)
         ? "Ese correo electrónico ya está registrado."
