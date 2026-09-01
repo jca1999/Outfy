@@ -24,12 +24,12 @@ export function AuthShell({
   brandLogoSrc,
 }: AuthShellProps) {
   return (
-    <main className="min-h-[100dvh] bg-background px-4 py-5 sm:px-8 sm:py-8">
+    <main className="flex min-h-[100dvh] flex-col bg-background px-2 py-2 md:block md:px-8 md:py-8">
       <div
-        className={`mx-auto min-h-[calc(100dvh-2.5rem)] w-full overflow-hidden rounded-[30px] border border-border bg-card shadow-2xl sm:min-h-[calc(100dvh-4rem)] ${
+        className={`mx-auto w-full overflow-hidden rounded-[30px] border border-border bg-card shadow-2xl ${
           singleColumn
-          ? 'max-w-[620px] md:min-h-0'
-          : 'grid max-w-5xl md:grid-cols-[0.85fr_1.15fr]'
+            ? 'my-auto max-w-[620px]'
+            : 'grid min-h-[calc(100dvh-2.5rem)] max-w-5xl sm:min-h-[calc(100dvh-4rem)] md:grid-cols-[0.85fr_1.15fr]'
         }`}
       >
         
@@ -60,7 +60,13 @@ export function AuthShell({
           </aside>
         )}
 
-        <section className="flex flex-col p-5 sm:p-10 lg:p-14">
+        <section
+          className={`flex flex-col ${
+            singleColumn
+              ? 'px-3 py-3 md:p-10 lg:p-14'
+              : 'p-5 sm:p-10 lg:p-14'
+          }`}
+        >
           <div className="flex items-center justify-between">
             {!brandLogoSrc && (
               <Link href="/" className="flex items-center gap-2 md:hidden" aria-label="Volver a Outfy">
@@ -83,14 +89,14 @@ export function AuthShell({
             )}
           </div>
 
-          <div className="mx-auto flex w-full max-w-[500px] flex-col px-6 py-10 sm:px-8 md:px-10 md:py-10">
+          <div className="mx-auto flex w-full max-w-[500px] flex-col px-0 py-2 md:px-10 md:py-10">
             {brandLogoSrc && (
               <Link
                 href="/"
-                className="mb-8 block w-full"
+                className="mb-4 block w-full md:mb-8"
                 aria-label="Volver a Outfy"
               >
-                <div className="-mx-6 rounded-[22px] border border-primary/70 bg-black p-1.5 shadow-[0_0_0_1px_rgba(163,230,53,0.08)] sm:-mx-8 md:-mx-10">
+                <div className="mx-0 rounded-[22px] border border-primary/70 bg-black p-1.5 shadow-[0_0_0_1px_rgba(163,230,53,0.08)] md:-mx-10">
                   <img
                     src={brandLogoSrc}
                     alt="Outfy"
@@ -102,16 +108,16 @@ export function AuthShell({
             <p className="font-mono-ui text-base font-semibold uppercase tracking-[.12em] text-primary md:text-lg">
               {eyebrow}
             </p>
-            <h1 className="mt-3 text-[2.7rem] font-bold leading-tight tracking-[-.055em] text-foreground md:text-[3.4rem]">
+            <h1 className="mt-2 text-[2.7rem] font-bold leading-tight tracking-[-.055em] text-foreground md:mt-3 md:text-[3.4rem]">
               {title}
             </h1>
-            <p className="mt-5 max-w-lg text-[17px] leading-relaxed text-muted-foreground md:text-lg">
+            <p className="mt-3 max-w-lg text-[17px] leading-relaxed text-muted-foreground md:mt-5 md:text-lg">
               {description}
             </p>
-            <div className="mt-8">{children}</div>
+            <div className="mt-5 md:mt-8">{children}</div>
           </div>
 
-          <div className="mx-auto w-full max-w-[500px] text-center text-base text-muted-foreground md:text-[17px]">
+          <div className="mx-auto mt-5 w-full max-w-[500px] text-center text-base text-muted-foreground md:mt-6 md:text-[17px]">
             {footer}
           </div>
         </section>

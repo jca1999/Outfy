@@ -58,9 +58,9 @@ export function SignIn() {
         </p>
       }
     >
-      <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+      <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5" noValidate>
         <div>
-          <label htmlFor="sign-in-username" className="mb-3 block text-base font-bold md:text-[17px]">
+          <label htmlFor="sign-in-username" className="mb-2 block text-base font-bold md:mb-3 md:text-[17px]">
             Nombre de usuario
           </label>
           <input
@@ -74,7 +74,7 @@ export function SignIn() {
           />
         </div>
         <div>
-          <label htmlFor="sign-in-password" className="mb-3 block text-base font-bold md:text-[17px]">
+          <label htmlFor="sign-in-password" className="mb-2 block text-base font-bold md:mb-3 md:text-[17px]">
             Contraseña
           </label>
           <div className="relative">
@@ -108,11 +108,10 @@ export function SignIn() {
 
         <button
           type="submit"
+          className="auth-primary-button mt-1 md:mt-0"
           disabled={submitting}
-          className="auth-primary-button outfy-primary-action"
           data-testid="button-sign-in"
         >
-          {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
           {submitting ? 'Entrando…' : 'Iniciar sesión'}
         </button>
       </form>
