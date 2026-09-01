@@ -1,0 +1,85 @@
+Fix the Outfy signup response handling.
+
+IMPORTANT:
+The Supabase signup is actually succeeding, but Outfy incorrectly shows:
+
+"No se ha podido crear la cuenta."
+
+The user is successfully created in Supabase Authentication and appears as:
+
+"Waiting for verification"
+
+The problem is in:
+
+artifacts/api-server/src/routes/auth.ts
+
+CURRENT BUG:
+
+The signup endpoint currently calls:
+
+/auth/v1/signup
+
+and expects the response to always have the shape of SupabaseSession.
+
+It then checks:
+
+signupResult.data?.user
+
+However, when email confirmation is enabled, Supabase Auth can return the newly created user object directly instead of returning a session object containing `.user`.
+
+Therefore a successful signup is incorrectly treated as an error.
+
+FIX:
+
+Update the signup response handling so it supports BOTH valid Supabase signup response shapes:
+
+1. A session response containing:
+   - access_token
+   - refresh_token
+   - user
+
+2. A direct user response containing:
+   - id
+   - email
+   - user_metadata
+   etc.
+
+For email-confirmation signup, a direct user response with a valid user ID must be considered a SUCCESS.
+
+Do not require signupResult.data.user when the returned object itself is the Supabase user.
+
+If a session with access_token exists:
+- set the session cookies as currently implemented.
+
+If email verification is required and no session token exists:
+- clear session cookies
+- return HTTP 201
+- return:
+  {
+    message: "Te hemos enviado un código de verificación.",
+    email
+  }
+
+The frontend must then navigate to:
+
+/verify-email
+
+Do NOT:
+- remove email verification
+- automatically confirm the user
+- change invitation validation
+- change Supabase configuration
+- change the UI
+- expose any secret key
+
+Also improve typing so the signup result explicitly supports:
+
+SupabaseSession | SupabaseUser
+
+After the change:
+
+1. Run TypeScript checks.
+2. Build the API server.
+3. Verify that a signup requiring email confirmation is treated as successful.
+4. Verify that Outfy redirects to the email verification screen.
+5. Verify a session is NOT created until the email is verified.

@@ -74,6 +74,26 @@ type InvitationDecision = {
   reason: "accepted" | "invalid" | "inactive" | "expired" | "exhausted";
 };
 
+type SupabaseSignupResponse = SupabaseSession | SupabaseUser;
+
+function isSupabaseUser(value: unknown): value is SupabaseUser {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      typeof (value as { id?: unknown }).id === "string",
+  );
+}
+
+function isSupabaseSession(value: unknown): value is SupabaseSession {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      typeof (value as { access_token?: unknown }).access_token === "string" &&
+      typeof (value as { refresh_token?: unknown }).refresh_token === "string" &&
+      isSupabaseUser((value as { user?: unknown }).user),
+  );
+}
+
 async function consumeInvitationCode(code: string) {
   const { data, error } = await getSupabaseAdmin().rpc(
     "consume_invitation_code",
@@ -336,41 +356,51 @@ router.post("/auth/sign-up", async (request, response) => {
       return;
     }
 
-    const signupResult = await supabaseRequest<SupabaseSession>(
+    const signupResult = await supabaseRequest<SupabaseSignupResponse>(
       "/auth/v1/signup",
       {
         method: "POST",
         body: { email, password, data: { username } },
       },
     );
+    const signupData = signupResult.data;
+    const signupUser = isSupabaseSession(signupData)
+      ? signupData.user
+      : isSupabaseUser(signupData)
+        ? signupData
+        : null;
 
-    if (!signupResult.response.ok || !signupResult.data?.user) {
+    if (!signupResult.response.ok || !signupUser) {
       const profileAfterSignup = await findProfileByUsername(username);
       if (!profileAfterSignup.error && profileAfterSignup.data?.length) {
         sendError(response, 409, "Este nombre de usuario ya está en uso");
         return;
       }
 
-      const message = getSupabaseError(
+      const providerError = getSupabaseError(
         signupResult.data,
-        "No se ha podido crear la cuenta.",
+        "",
       );
       request.log.warn(
         {
           status: signupResult.response.status,
           code: getSupabaseErrorCode(signupResult.data),
-          message,
+          message: providerError || undefined,
         },
         "Supabase signup rejected",
       );
-      sendError(response, 400, /already|registered|exists/i.test(message)
-        ? "Ese correo electrónico ya está registrado."
-        : message);
+      sendError(
+        response,
+        400,
+        /already|registered|exists/i.test(providerError)
+          ? "Ese correo electrónico ya está registrado."
+          : "No se ha podido crear la cuenta.",
+      );
       return;
     }
 
-    if (signupResult.data.access_token) {
-      setSession(response, signupResult.data);
+    if (isSupabaseSession(signupData)) {
+      setSession(response, signupData);
     } else {
       clearSession(response);
     }

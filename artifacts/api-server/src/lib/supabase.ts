@@ -105,7 +105,8 @@ export function getSupabaseError(
   if (!data || typeof data !== "object") return fallback;
 
   const value = data as Record<string, unknown>;
-  const message = value.message ?? value.error_description ?? value.error;
+  const message =
+    value.message ?? value.msg ?? value.error_description ?? value.error;
   return typeof message === "string" && message.length > 0
     ? message
     : fallback;
@@ -114,6 +115,7 @@ export function getSupabaseError(
 export function getSupabaseErrorCode(data: unknown): string | undefined {
   if (!data || typeof data !== "object") return undefined;
 
-  const code = (data as Record<string, unknown>).code;
+  const value = data as Record<string, unknown>;
+  const code = value.code ?? value.error_code;
   return typeof code === "string" && code.length > 0 ? code : undefined;
 }
