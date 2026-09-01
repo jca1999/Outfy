@@ -44,9 +44,11 @@ export function SignIn() {
 
   return (
     <AuthShell
-      eyebrow="Qué bien verte"
-      title="Inicia sesión."
-      description="Entra en tu espacio para descubrir qué pasa cerca de ti."
+      singleColumn
+      brandLogoSrc="/outfy-logo-signin.png"
+      eyebrow="Tu próximo plan te espera"
+      title="¿Qué plan toca hoy?"
+      description="Entra y descubre planes, escapadas y experiencias cerca de ti."
       footer={
         <p>
           ¿Todavía no tienes cuenta?{' '}
@@ -58,7 +60,7 @@ export function SignIn() {
     >
       <form onSubmit={handleSubmit} className="space-y-5" noValidate>
         <div>
-          <label htmlFor="sign-in-username" className="mb-2 block text-xs font-bold">
+          <label htmlFor="sign-in-username" className="mb-3 block text-base font-bold md:text-[17px]">
             Nombre de usuario
           </label>
           <input
@@ -66,13 +68,13 @@ export function SignIn() {
             value={username}
             onChange={(event) => setUsername(event.target.value)}
             autoComplete="username"
-            placeholder="tu_nombre"
+            placeholder="Nombre de usuario"
             className="auth-input"
             data-testid="input-sign-in-username"
           />
         </div>
         <div>
-          <label htmlFor="sign-in-password" className="mb-2 block text-xs font-bold">
+          <label htmlFor="sign-in-password" className="mb-3 block text-base font-bold md:text-[17px]">
             Contraseña
           </label>
           <div className="relative">
@@ -82,7 +84,7 @@ export function SignIn() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
-              placeholder="Tu contraseña"
+              placeholder="Contraseña"
               className="auth-input pr-12"
               data-testid="input-sign-in-password"
             />

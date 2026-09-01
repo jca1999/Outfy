@@ -272,11 +272,11 @@
 
 @layer components {
   .auth-input {
-    @apply w-full rounded-2xl border border-border bg-background px-4 py-3.5 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/60 focus:border-primary focus:ring-4 focus:ring-primary/10;
+    @apply w-full rounded-2xl border border-border bg-background px-5 py-4 text-base text-foreground outline-none transition placeholder:text-muted-foreground/75 focus:border-primary focus:ring-4 focus:ring-primary/10 md:text-[17px];
   }
 
   .auth-primary-button {
-    @apply flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-4 py-3.5 text-sm font-bold text-primary-foreground transition disabled:cursor-not-allowed disabled:opacity-60;
+    @apply flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-4 text-lg font-bold text-primary-foreground transition disabled:cursor-not-allowed disabled:opacity-60 md:text-xl;
   }
 
   .outfy-primary-action:hover:not(:disabled) {
