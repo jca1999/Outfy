@@ -94,6 +94,20 @@ function isSupabaseSession(value: unknown): value is SupabaseSession {
   );
 }
 
+async function validateInvitationCode(code: string) {
+  const { data, error } = await getSupabaseAdmin().rpc(
+    "validate_invitation_code",
+    {
+      input_code_hash: invitationCodeHash(code),
+    },
+  );
+
+  return {
+    data: data as InvitationDecision[] | null,
+    error,
+  };
+}
+
 async function consumeInvitationCode(code: string) {
   const { data, error } = await getSupabaseAdmin().rpc(
     "consume_invitation_code",
@@ -106,6 +120,32 @@ async function consumeInvitationCode(code: string) {
     data: data as InvitationDecision[] | null,
     error,
   };
+}
+
+async function rollbackSignupUser(
+  request: Request,
+  response: Response,
+  userId: string,
+) {
+  clearSession(response);
+
+  try {
+    const { error } = await getSupabaseAdmin().auth.admin.deleteUser(userId);
+    if (error) {
+      request.log.error(
+        { err: error, userId },
+        "Failed to roll back signup after invitation consumption failure",
+      );
+      return false;
+    }
+    return true;
+  } catch (error) {
+    request.log.error(
+      { err: error, userId },
+      "Failed to roll back signup after invitation consumption failure",
+    );
+    return false;
+  }
 }
 
 function invitationError(reason: InvitationDecision["reason"]) {
@@ -336,7 +376,7 @@ router.post("/auth/sign-up", async (request, response) => {
       return;
     }
 
-    const invitationResult = await consumeInvitationCode(invitationCode);
+    const invitationResult = await validateInvitationCode(invitationCode);
     if (invitationResult.error || !invitationResult.data?.[0]) {
       request.log.error(
         { code: invitationResult.error?.code },
@@ -356,6 +396,7 @@ router.post("/auth/sign-up", async (request, response) => {
       return;
     }
 
+    let signupUserId: string;
     const signupResult = await supabaseRequest<SupabaseSignupResponse>(
       "/auth/v1/signup",
       {
@@ -395,6 +436,66 @@ router.post("/auth/sign-up", async (request, response) => {
         /already|registered|exists/i.test(providerError)
           ? "Ese correo electrónico ya está registrado."
           : "No se ha podido crear la cuenta.",
+      );
+      return;
+    }
+
+    signupUserId = signupUser.id;
+
+    let invitationConsumption;
+    try {
+      invitationConsumption = await consumeInvitationCode(invitationCode);
+    } catch (error) {
+      request.log.error(
+        { err: error, userId: signupUserId },
+        "Invitation consumption failed after signup",
+      );
+      await rollbackSignupUser(request, response, signupUserId);
+      sendError(
+        response,
+        503,
+        "No se ha podido completar el registro. Inténtalo de nuevo más tarde.",
+      );
+      return;
+    }
+
+    if (invitationConsumption.error || !invitationConsumption.data?.[0]) {
+      request.log.error(
+        {
+          code: invitationConsumption.error?.code,
+          userId: signupUserId,
+        },
+        "Privileged invitation consumption failed after signup",
+      );
+      await rollbackSignupUser(request, response, signupUserId);
+      sendError(
+        response,
+        503,
+        "No se ha podido completar el registro. Inténtalo de nuevo más tarde.",
+      );
+      return;
+    }
+
+    const consumedInvitation = invitationConsumption.data[0];
+    if (!consumedInvitation.accepted) {
+      request.log.warn(
+        {
+          reason: consumedInvitation.reason,
+          userId: signupUserId,
+        },
+        "Invitation became unusable before consumption",
+      );
+      const rollbackSucceeded = await rollbackSignupUser(
+        request,
+        response,
+        signupUserId,
+      );
+      sendError(
+        response,
+        rollbackSucceeded ? 400 : 503,
+        rollbackSucceeded
+          ? invitationError(consumedInvitation.reason)
+          : "No se ha podido completar el registro. Inténtalo de nuevo más tarde.",
       );
       return;
     }
