@@ -89,7 +89,7 @@ export function AuthShell({
             )}
           </div>
 
-          <div className="mx-auto flex w-full max-w-[500px] flex-col px-0 py-2 md:px-10 md:py-10">
+          <div className="mx-auto flex w-full max-w-[500px] flex-col px-0 py-2 md:px-10 md:pt-10 md:pb-5">
             {brandLogoSrc && (
               <Link
                 href="/"
@@ -105,19 +105,24 @@ export function AuthShell({
                 </div>
               </Link>
             )}
-            <p className="font-mono-ui text-base font-semibold uppercase tracking-[.12em] text-primary md:text-lg">
-              {eyebrow}
-            </p>
-            <h1 className="mt-2 text-[2.7rem] font-bold leading-tight tracking-[-.055em] text-foreground md:mt-3 md:text-[3.4rem]">
-              {title}
-            </h1>
-            <p className="mt-3 max-w-lg text-[17px] leading-relaxed text-muted-foreground md:mt-5 md:text-lg">
-              {description}
-            </p>
-            <div className="mt-5 md:mt-8">{children}</div>
+            <div className="pl-2 md:pl-0">
+              <p className="font-mono-ui text-base font-semibold uppercase tracking-[.12em] text-primary md:text-lg">
+                {eyebrow}
+              </p>
+
+              <h1 className="mt-2 text-[2.7rem] font-bold leading-tight tracking-[-.055em] text-foreground md:mt-3 md:text-[3.4rem]">
+                {title}
+              </h1>
+
+              <p className="mt-3 max-w-lg text-[17px] leading-relaxed text-muted-foreground md:mt-5 md:text-lg">
+                {description}
+              </p>
+
+              <div className="mt-5 md:mt-8">{children}</div>
+            </div>
           </div>
 
-          <div className="mx-auto mt-5 w-full max-w-[500px] text-center text-base text-muted-foreground md:mt-6 md:text-[17px]">
+          <div className="mx-auto mt-5 w-full max-w-[500px] text-center text-base text-muted-foreground md:mt-4 md:text-[17px]">
             {footer}
           </div>
         </section>

@@ -106,14 +106,16 @@ export function SignIn() {
           </p>
         )}
 
-        <button
-          type="submit"
-          className="auth-primary-button mt-1 md:mt-0"
-          disabled={submitting}
-          data-testid="button-sign-in"
-        >
-          {submitting ? 'Entrando…' : 'Iniciar sesión'}
-        </button>
+        <div className="pt-1 md:pt-2">
+          <button
+            type="submit"
+            className="auth-primary-button"
+            disabled={submitting}
+            data-testid="button-sign-in"
+          >
+            {submitting ? 'Entrando…' : 'Iniciar sesión'}
+          </button>
+        </div>
       </form>
     </AuthShell>
   );
