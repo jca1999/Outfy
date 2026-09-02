@@ -1,0 +1,13 @@
+{
+  "language": {
+    "selector": "Seleccionar idioma",
+    "spanish": "Español",
+    "english": "Inglés"
+  },
+  "actions": {
+    "back": "Volver"
+  },
+  "brand": {
+    "backToOutfy": "Volver a Outfy"
+  }
+}

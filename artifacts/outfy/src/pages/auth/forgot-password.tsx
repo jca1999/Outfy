@@ -1,6 +1,7 @@
 import { CheckCircle2, Loader2, Mail } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { Link } from 'wouter';
+import { useTranslation } from 'react-i18next';
 
 import {
   AuthApiError,
@@ -13,7 +14,8 @@ export function ForgotPassword() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [submitting, setSubmitting] = useState(false);
-
+  const { t } = useTranslation('auth');
+  
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
@@ -22,23 +24,23 @@ export function ForgotPassword() {
     const normalizedEmail = email.trim().toLowerCase();
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      setError('Introduce un correo electrónico válido.');
+      setError(t('forgotPassword.errors.invalidEmail'));
       return;
     }
 
     setSubmitting(true);
 
     try {
-      const result = await requestPasswordReset({
+      await requestPasswordReset({
         email: normalizedEmail,
       });
 
-      setNotice(result.message);
+      setNotice(t('forgotPassword.success'));
     } catch (cause) {
       setError(
-        cause instanceof AuthApiError
-          ? cause.message
-          : 'No se ha podido enviar el correo. Inténtalo de nuevo.',
+        cause instanceof AuthApiError && cause.status === 429
+          ? t('forgotPassword.errors.rateLimit')
+          : t('forgotPassword.errors.generic'),
       );
     } finally {
       setSubmitting(false);
@@ -49,17 +51,17 @@ export function ForgotPassword() {
     <AuthShell
       singleColumn
       brandLogoSrc="/outfy-logo-signin.png"
-      eyebrow="Recupera tu acceso"
-      title="¿Has olvidado tu contraseña?"
-      description="Introduce el correo con el que creaste tu cuenta y te enviaremos un enlace para elegir una contraseña nueva."
+      eyebrow={t('forgotPassword.eyebrow')}
+      title={t('forgotPassword.title')}
+      description={t('forgotPassword.description')}
       footer={
         <p>
-          ¿La recuerdas?{' '}
+          {t('forgotPassword.rememberPassword')}{' '}
           <Link
             href="/sign-in"
             className="font-bold text-foreground hover:text-primary"
           >
-            Volver a iniciar sesión
+            {t('forgotPassword.backToSignIn')}
           </Link>
         </p>
       }
@@ -74,7 +76,7 @@ export function ForgotPassword() {
             htmlFor="forgot-email"
             className="mb-2 block text-base font-bold md:mb-3 md:text-[17px]"
           >
-            Correo electrónico
+            {t('forgotPassword.email')}
           </label>
 
           <div className="relative">
@@ -86,7 +88,7 @@ export function ForgotPassword() {
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               autoComplete="email"
-              placeholder="tu@email.com"
+              placeholder={t('forgotPassword.emailPlaceholder')}
               className="auth-input pl-12"
             />
           </div>
@@ -116,7 +118,9 @@ export function ForgotPassword() {
           disabled={submitting}
         >
           {submitting && <Loader2 className="h-5 w-5 animate-spin" />}
-          {submitting ? 'Enviando…' : 'Enviar enlace'}
+          {submitting
+            ? t('forgotPassword.submitting')
+            : t('forgotPassword.submit')}
         </button>
       </form>
     </AuthShell>

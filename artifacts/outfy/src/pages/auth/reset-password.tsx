@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useState, type FormEvent } from 'react';
 import { Link } from 'wouter';
+import { useTranslation } from 'react-i18next';
 
 import {
   AuthApiError,
@@ -32,25 +33,24 @@ export function ResetPassword() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const { t } = useTranslation('auth');
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
 
     if (!tokenHash) {
-      setError(
-        'Este enlace de recuperación no es válido. Solicita uno nuevo.',
-      );
+      setError(t('resetPassword.errors.invalidLink'));
       return;
     }
 
     if (password.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres.');
+      setError(t('resetPassword.errors.passwordTooShort'));
       return;
     }
 
     if (password !== passwordConfirmation) {
-      setError('Las contraseñas no coinciden.');
+      setError(t('resetPassword.errors.passwordMismatch'));
       return;
     }
 
@@ -72,11 +72,22 @@ export function ResetPassword() {
       setPasswordConfirmation('');
       setSuccess(true);
     } catch (cause) {
-      setError(
-        cause instanceof AuthApiError
-          ? cause.message
-          : 'No se ha podido cambiar la contraseña. Inténtalo de nuevo.',
-      );
+      if (cause instanceof AuthApiError) {
+        if (cause.message.includes('igual a la contraseña actual')) {
+          setError(t('resetPassword.errors.samePassword'));
+        } else if (cause.message.includes('requisitos de seguridad')) {
+          setError(t('resetPassword.errors.weakPassword'));
+        } else if (
+          cause.message.includes('no es válido') ||
+          cause.message.includes('caducado')
+        ) {
+          setError(t('resetPassword.errors.invalidLink'));
+        } else {
+          setError(t('resetPassword.errors.generic'));
+        }
+      } else {
+        setError(t('resetPassword.errors.generic'));
+      }
     } finally {
       setSubmitting(false);
     }
@@ -86,16 +97,16 @@ export function ResetPassword() {
     <AuthShell
       singleColumn
       brandLogoSrc="/outfy-logo-signin.png"
-      eyebrow="Casi está"
-      title="Crea una contraseña nueva"
-      description="Elige una contraseña nueva para volver a acceder a tu cuenta de Outfy."
+      eyebrow={t('resetPassword.eyebrow')}
+      title={t('resetPassword.title')}
+      description={t('resetPassword.description')}
       footer={
         <p>
           <Link
             href="/sign-in"
             className="font-bold text-foreground hover:text-primary"
           >
-            Volver a iniciar sesión
+            {t('forgotPassword.backToSignIn')}
           </Link>
         </p>
       }
@@ -110,18 +121,18 @@ export function ResetPassword() {
 
             <div>
               <p className="text-lg font-bold">
-                Contraseña actualizada
+                {t('resetPassword.successTitle')}
               </p>
 
               <p className="mt-2 text-base leading-relaxed text-muted-foreground">
-                Ya puedes iniciar sesión con tu nueva contraseña.
+                {t('resetPassword.successDescription')}
               </p>
 
               <Link
                 href="/sign-in"
                 className="mt-5 inline-flex font-bold text-primary hover:underline"
               >
-                Iniciar sesión
+                {t('resetPassword.signIn')}
               </Link>
             </div>
           </div>
@@ -144,7 +155,7 @@ export function ResetPassword() {
               htmlFor="new-password"
               className="mb-2 block text-base font-bold md:mb-3 md:text-[17px]"
             >
-              Nueva contraseña
+              {t('forgotPassword.backToSignIn')}
             </label>
 
             <div className="relative">
@@ -154,7 +165,7 @@ export function ResetPassword() {
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
                 autoComplete="new-password"
-                placeholder="Nueva contraseña"
+                placeholder={t('resetPassword.newPasswordPlaceholder')}
                 className="auth-input pr-12"
               />
 
@@ -164,8 +175,8 @@ export function ResetPassword() {
                 className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-muted-foreground transition hover:text-foreground"
                 aria-label={
                   showPassword
-                    ? 'Ocultar contraseña'
-                    : 'Mostrar contraseña'
+                    ? t('resetPassword.hidePassword')
+                    : t('resetPassword.showPassword')
                 }
               >
                 {showPassword ? (
@@ -182,7 +193,7 @@ export function ResetPassword() {
               htmlFor="new-password-confirmation"
               className="mb-2 block text-base font-bold md:mb-3 md:text-[17px]"
             >
-              Repite la contraseña
+              {t('resetPassword.repeatPassword')}
             </label>
 
             <input
@@ -193,7 +204,7 @@ export function ResetPassword() {
                 setPasswordConfirmation(event.target.value)
               }
               autoComplete="new-password"
-              placeholder="Repite la contraseña"
+              placeholder={t('resetPassword.repeatPasswordPlaceholder')}
               className="auth-input"
             />
           </div>
@@ -211,8 +222,8 @@ export function ResetPassword() {
           >
             {submitting && <Loader2 className="h-5 w-5 animate-spin" />}
             {submitting
-              ? 'Guardando…'
-              : 'Guardar nueva contraseña'}
+              ? t('resetPassword.submitting')
+              : t('resetPassword.submit')}
           </button>
         </form>
       )}

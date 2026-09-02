@@ -4,6 +4,7 @@ import { Link, useLocation } from 'wouter';
 import { AuthApiError } from '@/auth/auth-api';
 import { useAuth } from '@/auth/auth-context';
 import { AuthShell } from '@/components/auth-shell';
+import { useTranslation } from 'react-i18next';
 
 export function SignIn() {
   const { signIn } = useAuth();
@@ -13,17 +14,18 @@ export function SignIn() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const { t } = useTranslation('auth');
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
 
     if (!username.trim() || !password) {
-      setError('Introduce tu nombre de usuario y contraseña.');
+      setError(t('signIn.errors.required'));
       return;
     }
     if (/\s/.test(username.trim())) {
-      setError('El nombre de usuario no puede contener espacios.');
+      setError(t('signIn.errors.usernameSpaces'));
       return;
     }
 
@@ -35,7 +37,7 @@ export function SignIn() {
       setError(
         cause instanceof AuthApiError
           ? cause.message
-          : 'No se ha podido iniciar sesión. Inténtalo de nuevo.',
+          : t('signIn.errors.generic')
       );
     } finally {
       setSubmitting(false);
@@ -46,14 +48,14 @@ export function SignIn() {
     <AuthShell
       singleColumn
       brandLogoSrc="/outfy-logo-signin.png"
-      eyebrow="Tu próximo plan te espera"
-      title="¿Qué plan toca hoy?"
-      description="Entra y descubre planes, escapadas y experiencias cerca de ti."
+      eyebrow={t('signIn.eyebrow')}
+      title={t('signIn.title')}
+      description={t('signIn.description')}
       footer={
         <p>
-          ¿Todavía no tienes cuenta?{' '}
+          {t('signIn.noAccount')}{' '}
           <Link href="/sign-up" className="font-bold text-foreground hover:text-primary">
-            Crear cuenta
+            {t('signIn.createAccount')}
           </Link>
         </p>
       }
@@ -61,21 +63,21 @@ export function SignIn() {
       <form onSubmit={handleSubmit} className="space-y-4 md:space-y-5" noValidate>
         <div>
           <label htmlFor="sign-in-username" className="mb-2 block text-base font-bold md:mb-3 md:text-[17px]">
-            Nombre de usuario
+            {t('signIn.username')}
           </label>
           <input
             id="sign-in-username"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
             autoComplete="username"
-            placeholder="Nombre de usuario"
+            placeholder={t('signIn.usernamePlaceholder')}
             className="auth-input"
             data-testid="input-sign-in-username"
           />
         </div>
         <div>
           <label htmlFor="sign-in-password" className="mb-2 block text-base font-bold md:mb-3 md:text-[17px]">
-            Contraseña
+            {t('signIn.password')}
           </label>
           <div className="relative">
             <input
@@ -84,7 +86,7 @@ export function SignIn() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
-              placeholder="Contraseña"
+              placeholder={t('signIn.passwordPlaceholder')}
               className="auth-input pr-12"
               data-testid="input-sign-in-password"
             />
@@ -92,7 +94,11 @@ export function SignIn() {
               type="button"
               onClick={() => setShowPassword((current) => !current)}
               className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-muted-foreground transition hover:text-foreground"
-              aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              aria-label={
+                showPassword
+                  ? t('signIn.hidePassword')
+                  : t('signIn.showPassword')
+              }
               data-testid="button-toggle-sign-in-password"
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -105,7 +111,7 @@ export function SignIn() {
             href="/forgot-password"
             className="text-sm font-semibold text-muted-foreground transition hover:text-primary md:text-[15px]"
           >
-            ¿Has olvidado tu contraseña?
+            {t('signIn.forgotPassword')}
           </Link>
         </div>
         
@@ -122,7 +128,9 @@ export function SignIn() {
             disabled={submitting}
             data-testid="button-sign-in"
           >
-            {submitting ? 'Entrando…' : 'Iniciar sesión'}
+            {submitting
+              ? t('signIn.submitting')
+              : t('signIn.submit')}
           </button>
         </div>
       </form>
