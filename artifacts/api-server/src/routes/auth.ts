@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { Router, type IRouter, type Request, type Response } from "express";
 import {
   getSupabaseAdmin,
+  getSupabaseAuth,
   getSupabaseErrorCode,
   getSupabaseError,
   supabaseRequest,
@@ -24,6 +25,7 @@ interface AuthBody {
   email?: unknown;
   password?: unknown;
   token?: unknown;
+  tokenHash?: unknown;
   invitationCode?: unknown;
 }
 
@@ -178,6 +180,32 @@ function publicUser(user: SupabaseUser, displayUsername?: string) {
 function clearSession(response: Response) {
   response.clearCookie(ACCESS_COOKIE, SESSION_COOKIE_OPTIONS);
   response.clearCookie(REFRESH_COOKIE, SESSION_COOKIE_OPTIONS);
+}
+
+function passwordRecoveryRedirectUrl(request: Request) {
+  const configuredUrl = process.env["APP_URL"]?.trim();
+
+  if (configuredUrl) {
+    return new URL("/reset-password", configuredUrl).toString();
+  }
+
+  const origin = request.get("origin");
+
+  if (origin) {
+    try {
+      return new URL("/reset-password", origin).toString();
+    } catch {
+      // Continúa con el fallback.
+    }
+  }
+
+  const host = request.get("host");
+
+  if (!host) {
+    throw new Error("Unable to determine application URL.");
+  }
+
+  return `${request.protocol}://${host}/reset-password`;
 }
 
 function setSession(response: Response, session: SupabaseSession) {
@@ -575,6 +603,180 @@ router.post("/auth/resend-code", async (request, response) => {
   } catch (error) {
     request.log.error({ err: error }, "Supabase verification resend failed");
     sendError(response, 502, "No se ha podido reenviar el código.");
+  }
+});
+
+router.post("/auth/forgot-password", async (request, response) => {
+  const body = bodyOf(request);
+  const email = isEmail(body.email)
+    ? body.email.trim().toLowerCase()
+    : "";
+
+  if (!email) {
+    sendError(response, 400, "Introduce un correo electrónico válido.");
+    return;
+  }
+
+  try {
+    const redirectTo = passwordRecoveryRedirectUrl(request);
+
+    const { error } = await getSupabaseAuth().auth.resetPasswordForEmail(
+      email,
+      {
+        redirectTo,
+      },
+    );
+
+    if (error) {
+      request.log.warn(
+        {
+          status: error.status,
+          message: error.message,
+        },
+        "Supabase password recovery email failed",
+      );
+
+      if (error.status === 429) {
+        sendError(
+          response,
+          429,
+          "Has solicitado demasiados enlaces. Espera un poco antes de intentarlo de nuevo.",
+        );
+        return;
+      }
+
+      sendError(
+        response,
+        502,
+        "No se ha podido enviar el correo de recuperación.",
+      );
+      return;
+    }
+
+    response.json({
+      message:
+        "Si existe una cuenta asociada a ese correo, recibirás un enlace para restablecer tu contraseña.",
+    });
+  } catch (error) {
+    request.log.error(
+      { err: error },
+      "Password recovery request failed",
+    );
+
+    sendError(
+      response,
+      502,
+      "No se ha podido enviar el correo de recuperación.",
+    );
+  }
+});
+
+router.post("/auth/reset-password", async (request, response) => {
+  const body = bodyOf(request);
+
+  const tokenHash = isNonEmptyString(body.tokenHash)
+    ? body.tokenHash.trim()
+    : "";
+
+  const password = isNonEmptyString(body.password)
+    ? body.password
+    : "";
+
+  if (!tokenHash) {
+    sendError(
+      response,
+      400,
+      "El enlace de recuperación no es válido.",
+    );
+    return;
+  }
+
+  if (password.length < 8) {
+    sendError(
+      response,
+      400,
+      "La contraseña debe tener al menos 8 caracteres.",
+    );
+    return;
+  }
+
+  try {
+    const verificationResult =
+      await supabaseRequest<SupabaseSession>(
+        "/auth/v1/verify",
+        {
+          method: "POST",
+          body: {
+            type: "recovery",
+            token_hash: tokenHash,
+          },
+        },
+      );
+
+    if (
+      !verificationResult.response.ok ||
+      !verificationResult.data?.access_token
+    ) {
+      sendError(
+        response,
+        400,
+        "El enlace de recuperación no es válido o ha caducado.",
+      );
+      return;
+    }
+
+    const updateResult = await supabaseRequest<SupabaseUser>(
+      "/auth/v1/user",
+      {
+        method: "PUT",
+        authorization: `Bearer ${verificationResult.data.access_token}`,
+        body: {
+          password,
+        },
+      },
+    );
+
+    if (!updateResult.response.ok || !updateResult.data?.id) {
+      request.log.error(
+        {
+          status: updateResult.response.status,
+        },
+        "Supabase password update failed",
+      );
+
+      sendError(
+        response,
+        400,
+        "No se ha podido guardar la nueva contraseña.",
+      );
+      return;
+    }
+
+    try {
+      await supabaseRequest("/auth/v1/logout", {
+        method: "POST",
+        authorization: `Bearer ${verificationResult.data.access_token}`,
+      });
+    } catch {
+      // La contraseña ya ha sido actualizada.
+    }
+
+    clearSession(response);
+
+    response.json({
+      message: "Tu contraseña se ha actualizado correctamente.",
+    });
+  } catch (error) {
+    request.log.error(
+      { err: error },
+      "Password reset failed",
+    );
+
+    sendError(
+      response,
+      502,
+      "No se ha podido cambiar la contraseña.",
+    );
   }
 });
 

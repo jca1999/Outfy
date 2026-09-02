@@ -100,6 +100,15 @@ export function SignIn() {
           </div>
         </div>
 
+        <div className="-mt-1 flex justify-end md:-mt-2">
+          <Link
+            href="/forgot-password"
+            className="text-sm font-semibold text-muted-foreground transition hover:text-primary md:text-[15px]"
+          >
+            ¿Has olvidado tu contraseña?
+          </Link>
+        </div>
+        
         {error && (
           <p className="auth-error" role="alert" data-testid="text-sign-in-error">
             {error}

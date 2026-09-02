@@ -92,6 +92,23 @@ export function resendVerificationCode(input: { email: string }) {
   });
 }
 
+export function requestPasswordReset(input: { email: string }) {
+  return request<AuthMessageResponse>('/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function resetPassword(input: {
+  tokenHash: string;
+  password: string;
+}) {
+  return request<AuthMessageResponse>('/reset-password', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
 export function signOut() {
   return request<AuthMessageResponse>('/sign-out', { method: 'POST' });
 }

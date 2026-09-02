@@ -1,6 +1,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let adminClient: SupabaseClient | null = null;
+let authClient: SupabaseClient | null = null;
 
 export function getSupabaseAdmin(): SupabaseClient {
   if (adminClient) {
@@ -27,6 +28,33 @@ export function getSupabaseAdmin(): SupabaseClient {
   });
 
   return adminClient;
+}
+
+export function getSupabaseAuth(): SupabaseClient {
+  if (authClient) {
+    return authClient;
+  }
+
+  const supabaseUrl = process.env["SUPABASE_URL"];
+  const publishableKey = process.env["SUPABASE_PUBLISHABLE_KEY"];
+
+  if (!supabaseUrl) {
+    throw new Error("SUPABASE_URL is not configured.");
+  }
+
+  if (!publishableKey) {
+    throw new Error("SUPABASE_PUBLISHABLE_KEY is not configured.");
+  }
+
+  authClient = createClient(supabaseUrl, publishableKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+
+  return authClient;
 }
 
 export interface SupabaseUser {

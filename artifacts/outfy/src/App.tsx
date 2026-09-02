@@ -16,6 +16,8 @@ import { VerifyEmail } from '@/pages/auth/verify-email';
 import { Toaster } from '@/components/ui/toaster';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import NotFound from '@/pages/not-found';
+import { ForgotPassword } from '@/pages/auth/forgot-password';
+import { ResetPassword } from '@/pages/auth/reset-password';
 import {
   Route,
   Switch,
@@ -67,16 +69,21 @@ function Router() {
     onInterest: (id: string) => toggleSet(setInterested, id),
   };
 
-  const authRoute =
+  const guestAuthRoute =
     location === '/sign-in' ||
     location === '/sign-up' ||
-    location === '/verify-email';
+    location === '/verify-email' ||
+    location === '/forgot-password';
+
+  const resetPasswordRoute = location === '/reset-password';
+
+  const authRoute = guestAuthRoute || resetPasswordRoute;
 
   useEffect(() => {
     if (loading) return;
     if (!user && !authRoute) {
       navigate('/sign-in');
-    } else if (user && authRoute) {
+    } else if (user && guestAuthRoute) {
       navigate('/');
     }
   }, [authRoute, loading, navigate, user]);
@@ -94,6 +101,14 @@ function Router() {
     );
   }
 
+  if (resetPasswordRoute) {
+    return (
+      <RoutedErrorBoundary>
+        <ResetPassword />
+      </RoutedErrorBoundary>
+    );
+  }
+  
   if (!user) {
     return (
       <RoutedErrorBoundary>
@@ -101,6 +116,7 @@ function Router() {
           <Route path="/sign-in" component={SignIn} />
           <Route path="/sign-up" component={SignUp} />
           <Route path="/verify-email" component={VerifyEmail} />
+          <Route path="/forgot-password" component={ForgotPassword} />
           <Route component={SignIn} />
         </Switch>
       </RoutedErrorBoundary>
