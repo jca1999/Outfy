@@ -13,6 +13,7 @@ interface AuthShellProps {
   backHref?: string;
   singleColumn?: boolean;
   brandLogoSrc?: string;
+  showLanguageSwitcher?: boolean;
 }
 
 export function AuthShell({
@@ -24,6 +25,7 @@ export function AuthShell({
   backHref,
   singleColumn = false,
   brandLogoSrc,
+  showLanguageSwitcher = false,
 }: AuthShellProps) {
   const { t } = useTranslation(['auth', 'common']);
   return (
@@ -81,28 +83,23 @@ export function AuthShell({
                 </span>
               </Link>
             )}
-            {backHref && (
-              <Link
-                href={backHref}
-                className="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground transition hover:text-foreground"
-              >
-                <ArrowLeft className="h-3.5 w-3.5" />
-                {t('common:actions.back')}
-              </Link>
-            )}
-            <div className="ml-auto flex items-center gap-3">
-              {backHref && (
-                <Link
-                  href={backHref}
-                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground transition hover:text-foreground"
-                >
-                  <ArrowLeft className="h-3.5 w-3.5" />
-                  {t('common:actions.back')}
-                </Link>
-              )}
+            {(backHref || showLanguageSwitcher) && (
+              <div className="ml-auto flex items-center gap-3">
+                {backHref && (
+                  <Link
+                    href={backHref}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-muted-foreground transition hover:text-foreground"
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5" />
+                    {t('common:actions.back')}
+                  </Link>
+                )}
 
-              <LanguageSwitcher />
-            </div>
+                {showLanguageSwitcher && (
+                  <LanguageSwitcher />
+                )}
+              </div>
+            )}
           </div>
 
           <div className="mx-auto flex w-full max-w-[500px] flex-col px-0 py-2 md:px-10 md:pt-10 md:pb-5">
