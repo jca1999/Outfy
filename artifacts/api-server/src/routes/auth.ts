@@ -13,6 +13,7 @@ import {
 const router: IRouter = Router();
 const ACCESS_COOKIE = "outfy_access_token";
 const REFRESH_COOKIE = "outfy_refresh_token";
+const RECOVERY_COOKIE = "outfy_recovery_token";
 const SESSION_COOKIE_OPTIONS = {
   httpOnly: true,
   sameSite: "lax" as const,
@@ -148,6 +149,17 @@ async function rollbackSignupUser(
     );
     return false;
   }
+}
+
+function clearRecoverySession(response: Response) {
+  response.clearCookie(RECOVERY_COOKIE, SESSION_COOKIE_OPTIONS);
+}
+
+function setRecoverySession(response: Response, accessToken: string) {
+  response.cookie(RECOVERY_COOKIE, accessToken, {
+    ...SESSION_COOKIE_OPTIONS,
+    maxAge: 1000 * 60 * 15,
+  });
 }
 
 function invitationError(reason: InvitationDecision["reason"]) {
@@ -682,15 +694,6 @@ router.post("/auth/reset-password", async (request, response) => {
     ? body.password
     : "";
 
-  if (!tokenHash) {
-    sendError(
-      response,
-      400,
-      "El enlace de recuperación no es válido.",
-    );
-    return;
-  }
-
   if (password.length < 8) {
     sendError(
       response,
@@ -701,35 +704,58 @@ router.post("/auth/reset-password", async (request, response) => {
   }
 
   try {
-    const verificationResult =
-      await supabaseRequest<SupabaseSession>(
-        "/auth/v1/verify",
-        {
-          method: "POST",
-          body: {
-            type: "recovery",
-            token_hash: tokenHash,
-          },
-        },
-      );
+    let recoveryAccessToken = request.cookies?.[RECOVERY_COOKIE];
 
-    if (
-      !verificationResult.response.ok ||
-      !verificationResult.data?.access_token
-    ) {
-      sendError(
+    if (!isNonEmptyString(recoveryAccessToken)) {
+      if (!tokenHash) {
+        sendError(
+          response,
+          400,
+          "El enlace de recuperación no es válido o ha caducado.",
+        );
+        return;
+      }
+
+      const verificationResult =
+        await supabaseRequest<SupabaseSession>(
+          "/auth/v1/verify",
+          {
+            method: "POST",
+            body: {
+              type: "recovery",
+              token_hash: tokenHash,
+            },
+          },
+        );
+
+      if (
+        !verificationResult.response.ok ||
+        !verificationResult.data?.access_token
+      ) {
+        clearRecoverySession(response);
+
+        sendError(
+          response,
+          400,
+          "El enlace de recuperación no es válido o ha caducado.",
+        );
+        return;
+      }
+
+      recoveryAccessToken =
+        verificationResult.data.access_token;
+
+      setRecoverySession(
         response,
-        400,
-        "El enlace de recuperación no es válido o ha caducado.",
+        recoveryAccessToken,
       );
-      return;
     }
 
     const updateResult = await supabaseRequest<SupabaseUser>(
       "/auth/v1/user",
       {
         method: "PUT",
-        authorization: `Bearer ${verificationResult.data.access_token}`,
+        authorization: `Bearer ${recoveryAccessToken}`,
         body: {
           password,
         },
@@ -737,12 +763,34 @@ router.post("/auth/reset-password", async (request, response) => {
     );
 
     if (!updateResult.response.ok || !updateResult.data?.id) {
-      request.log.error(
+      const errorCode =
+        getSupabaseErrorCode(updateResult.data);
+
+      request.log.warn(
         {
           status: updateResult.response.status,
+          code: errorCode,
         },
-        "Supabase password update failed",
+        "Supabase password update rejected",
       );
+
+      if (errorCode === "same_password") {
+        sendError(
+          response,
+          400,
+          "La nueva contraseña no puede ser igual a la contraseña actual. Elige una diferente.",
+        );
+        return;
+      }
+
+      if (errorCode === "weak_password") {
+        sendError(
+          response,
+          400,
+          "La contraseña no cumple los requisitos de seguridad. Elige una contraseña más segura.",
+        );
+        return;
+      }
 
       sendError(
         response,
@@ -755,12 +803,13 @@ router.post("/auth/reset-password", async (request, response) => {
     try {
       await supabaseRequest("/auth/v1/logout", {
         method: "POST",
-        authorization: `Bearer ${verificationResult.data.access_token}`,
+        authorization: `Bearer ${recoveryAccessToken}`,
       });
     } catch {
-      // La contraseña ya ha sido actualizada.
+      // La contraseña ya ha sido actualizada correctamente.
     }
 
+    clearRecoverySession(response);
     clearSession(response);
 
     response.json({
@@ -771,6 +820,8 @@ router.post("/auth/reset-password", async (request, response) => {
       { err: error },
       "Password reset failed",
     );
+
+    clearRecoverySession(response);
 
     sendError(
       response,
