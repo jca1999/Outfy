@@ -4,12 +4,23 @@ export type DisplayNameVisibility =
   | 'friends'
   | 'nobody';
 
+export interface HomeLocation {
+  countryCode: string;
+  country: string;
+  regionCode: string | null;
+  region: string | null;
+  city: string;
+  latitude: number;
+  longitude: number;
+}
+
 export interface AuthUser {
   id: string;
   username: string;
   displayName: string | null;
   displayNameVisibility: DisplayNameVisibility;
   homeCity: string | null;
+  homeLocation: HomeLocation | null;
 }
 
 export interface UpdateProfileResponse {
@@ -126,6 +137,7 @@ export function updateProfile(input: {
   displayName?: string;
   displayNameVisibility?: DisplayNameVisibility;
   homeCity?: string;
+  homeLocation?: HomeLocation | null;
 }) {
   return request<UpdateProfileResponse>('/profile', {
     method: 'PATCH',

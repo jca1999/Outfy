@@ -404,6 +404,9 @@ importers:
 
   artifacts/outfy:
     dependencies:
+      '@countrystatecity/countries-browser':
+        specifier: ^1.0.4
+        version: 1.0.4
       i18next:
         specifier: ^26.4.1
         version: 26.4.1(typescript@5.9.3)
@@ -746,6 +749,9 @@ packages:
     resolution: {integrity: sha512-yeJlba62xqmkgELUsn7356MEnzLLu/fw2x4lofFqGnXh6YysRdEs2BaLeLtg1+KU0AXvMeqQvTTp+3hBEBK+EA==}
     peerDependencies:
       commander: ~15.0.0
+
+  '@countrystatecity/countries-browser@1.0.4':
+    resolution: {integrity: sha512-6V/TKWFTK2IJAY4bj1vku92v5mtrCvJXt9cvc1VdRnpSvqmV0zPfb/0YAR+CMU+9hnCzpVr0R/s3Z0UDfYDMXw==}
 
   '@date-fns/tz@1.5.0':
     resolution: {integrity: sha512-lwYN/vDPeNRULcepoE/LO2Pgx+7/RV+S9ARfbc9lr2DtGkOD7pAiruHvbR1RX3Qyf6ja47EWJDMsNK5vK08DJg==}
@@ -3282,6 +3288,8 @@ snapshots:
   '@commander-js/extra-typings@15.0.0(commander@15.0.0)':
     dependencies:
       commander: 15.0.0
+
+  '@countrystatecity/countries-browser@1.0.4': {}
 
   '@date-fns/tz@1.5.0': {}
 

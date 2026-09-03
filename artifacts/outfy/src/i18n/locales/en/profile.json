@@ -24,9 +24,29 @@
     },
     "location": {
       "label": "Your usual location",
-      "placeholder": "Enter your city",
       "help": "We'll use it to show you plans nearby. You can explore other locations without changing it.",
-      "notSet": "No location set"
+      "notSet": "No location set",
+      "useCurrent": "Use my current location",
+      "detecting": "Detecting location…",
+      "privacy": "We'll only ask for permission when you press this button. Outfy doesn't store your exact position; it stores the selected city.",
+      "or": "or choose manually",
+      "country": "Country",
+      "region": "State / region",
+      "city": "City",
+      "chooseCountry": "Select a country",
+      "chooseRegion": "Select a state or region",
+      "chooseCity": "Select a city",
+      "regionNotRequired": "Not required",
+      "searchCountry": "Search country…",
+      "searchRegion": "Search state or region…",
+      "searchCity": "Search city…",
+      "noMatches": "No matches found.",
+      "remove": "Remove location",
+      "dataLoadError": "We couldn't load locations. Please try again.",
+      "cityDataError": "This city does not have valid coordinates.",
+      "geolocationUnsupported": "Your browser can't detect your location. You can choose it manually.",
+      "permissionDenied": "Location permission was denied. You can choose your city manually.",
+      "detectionFailed": "We couldn't determine your city. You can choose it manually."
     }
   },
 
@@ -37,7 +57,8 @@
     "saveError": "We couldn't save your profile. Please try again.",
     "visibilitySaved": "Privacy updated.",
     "visibilitySaveError": "We couldn't update your privacy settings. Please try again.",
-    "cityTooLong": "Your location can't be longer than 80 characters."
+    "cityTooLong": "Your location can't be longer than 80 characters.",
+    "locationIncomplete": "Complete the country, region, and city selection before saving."
   },
 
   "stats": {

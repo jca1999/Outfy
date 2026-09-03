@@ -162,9 +162,45 @@ components:
           type: string
         username:
           type: string
+        homeLocation:
+          oneOf:
+            - $ref: "#/components/schemas/HomeLocation"
+            - type: "null"
       required:
         - id
         - username
+        - homeLocation
+    HomeLocation:
+      type: object
+      properties:
+        countryCode:
+          type: string
+          minLength: 2
+          maxLength: 2
+        country:
+          type: string
+        regionCode:
+          type: ["string", "null"]
+        region:
+          type: ["string", "null"]
+        city:
+          type: string
+        latitude:
+          type: number
+          minimum: -90
+          maximum: 90
+        longitude:
+          type: number
+          minimum: -180
+          maximum: 180
+      required:
+        - countryCode
+        - country
+        - regionCode
+        - region
+        - city
+        - latitude
+        - longitude
     AuthSession:
       type: object
       properties:

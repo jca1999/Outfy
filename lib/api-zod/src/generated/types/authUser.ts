@@ -5,8 +5,10 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { HomeLocation } from './homeLocation';
 
 export interface AuthUser {
   id: string;
   username: string;
+  homeLocation: HomeLocation | null;
 }

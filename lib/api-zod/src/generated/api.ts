@@ -20,11 +20,31 @@ export const HealthCheckResponse = zod.object({
 /**
  * @summary Get the current authenticated session
  */
+export const getAuthSessionResponseUserOneHomeLocationOneCountryCodeMin = 2;
+export const getAuthSessionResponseUserOneHomeLocationOneCountryCodeMax = 2;
+
+export const getAuthSessionResponseUserOneHomeLocationOneLatitudeMin = -90;
+export const getAuthSessionResponseUserOneHomeLocationOneLatitudeMax = 90;
+
+export const getAuthSessionResponseUserOneHomeLocationOneLongitudeMin = -180;
+export const getAuthSessionResponseUserOneHomeLocationOneLongitudeMax = 180;
+
+
+
 export const GetAuthSessionResponse = zod.object({
   "authenticated": zod.boolean(),
   "user": zod.union([zod.object({
   "id": zod.string(),
-  "username": zod.string()
+  "username": zod.string(),
+  "homeLocation": zod.union([zod.object({
+  "countryCode": zod.string().min(getAuthSessionResponseUserOneHomeLocationOneCountryCodeMin).max(getAuthSessionResponseUserOneHomeLocationOneCountryCodeMax),
+  "country": zod.string(),
+  "regionCode": zod.string().nullable(),
+  "region": zod.string().nullable(),
+  "city": zod.string(),
+  "latitude": zod.number().min(getAuthSessionResponseUserOneHomeLocationOneLatitudeMin).max(getAuthSessionResponseUserOneHomeLocationOneLatitudeMax),
+  "longitude": zod.number().min(getAuthSessionResponseUserOneHomeLocationOneLongitudeMin).max(getAuthSessionResponseUserOneHomeLocationOneLongitudeMax)
+}),zod.null()])
 }),zod.null()])
 })
 
@@ -41,11 +61,31 @@ export const SignInBody = zod.object({
   "password": zod.string().min(1)
 })
 
+export const signInResponseUserOneHomeLocationOneCountryCodeMin = 2;
+export const signInResponseUserOneHomeLocationOneCountryCodeMax = 2;
+
+export const signInResponseUserOneHomeLocationOneLatitudeMin = -90;
+export const signInResponseUserOneHomeLocationOneLatitudeMax = 90;
+
+export const signInResponseUserOneHomeLocationOneLongitudeMin = -180;
+export const signInResponseUserOneHomeLocationOneLongitudeMax = 180;
+
+
+
 export const SignInResponse = zod.object({
   "authenticated": zod.boolean(),
   "user": zod.union([zod.object({
   "id": zod.string(),
-  "username": zod.string()
+  "username": zod.string(),
+  "homeLocation": zod.union([zod.object({
+  "countryCode": zod.string().min(signInResponseUserOneHomeLocationOneCountryCodeMin).max(signInResponseUserOneHomeLocationOneCountryCodeMax),
+  "country": zod.string(),
+  "regionCode": zod.string().nullable(),
+  "region": zod.string().nullable(),
+  "city": zod.string(),
+  "latitude": zod.number().min(signInResponseUserOneHomeLocationOneLatitudeMin).max(signInResponseUserOneHomeLocationOneLatitudeMax),
+  "longitude": zod.number().min(signInResponseUserOneHomeLocationOneLongitudeMin).max(signInResponseUserOneHomeLocationOneLongitudeMax)
+}),zod.null()])
 }),zod.null()])
 })
 
@@ -83,11 +123,31 @@ export const VerifyEmailBody = zod.object({
   "token": zod.string().regex(verifyEmailBodyTokenRegExp)
 })
 
+export const verifyEmailResponseUserOneHomeLocationOneCountryCodeMin = 2;
+export const verifyEmailResponseUserOneHomeLocationOneCountryCodeMax = 2;
+
+export const verifyEmailResponseUserOneHomeLocationOneLatitudeMin = -90;
+export const verifyEmailResponseUserOneHomeLocationOneLatitudeMax = 90;
+
+export const verifyEmailResponseUserOneHomeLocationOneLongitudeMin = -180;
+export const verifyEmailResponseUserOneHomeLocationOneLongitudeMax = 180;
+
+
+
 export const VerifyEmailResponse = zod.object({
   "authenticated": zod.boolean(),
   "user": zod.union([zod.object({
   "id": zod.string(),
-  "username": zod.string()
+  "username": zod.string(),
+  "homeLocation": zod.union([zod.object({
+  "countryCode": zod.string().min(verifyEmailResponseUserOneHomeLocationOneCountryCodeMin).max(verifyEmailResponseUserOneHomeLocationOneCountryCodeMax),
+  "country": zod.string(),
+  "regionCode": zod.string().nullable(),
+  "region": zod.string().nullable(),
+  "city": zod.string(),
+  "latitude": zod.number().min(verifyEmailResponseUserOneHomeLocationOneLatitudeMin).max(verifyEmailResponseUserOneHomeLocationOneLatitudeMax),
+  "longitude": zod.number().min(verifyEmailResponseUserOneHomeLocationOneLongitudeMin).max(verifyEmailResponseUserOneHomeLocationOneLongitudeMax)
+}),zod.null()])
 }),zod.null()])
 })
 

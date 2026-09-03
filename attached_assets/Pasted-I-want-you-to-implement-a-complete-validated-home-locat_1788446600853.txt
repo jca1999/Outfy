@@ -1,0 +1,309 @@
+I want you to implement a complete validated home-location system for my Outfy app.
+
+IMPORTANT:
+- Inspect the CURRENT codebase before making any changes.
+- Do NOT overwrite or revert functionality that is already working.
+- Adapt your implementation to the current code.
+- Keep the existing dark + lime Outfy design.
+- Keep all existing authentication, profile, display name, display-name visibility radio buttons, password recovery, and ES/EN internationalization working.
+- Do not remove existing functionality.
+- Make small, clean changes instead of unnecessarily rewriting whole files.
+- All new user-facing text MUST exist in both Spanish and English through the existing i18next system.
+- Do NOT hardcode Zaragoza or any other city.
+- Do NOT request geolocation permission automatically.
+- Geolocation permission must ONLY be requested after the user explicitly clicks "Use my current location".
+- Do NOT store the user's exact GPS location in our database.
+
+CURRENT STATE:
+- Supabase is used for Auth and database.
+- The profiles table already has a `home_city` column.
+- The frontend AuthUser already has `homeCity`.
+- Home currently uses `user.homeCity`.
+- Profile currently allows editing the usual/home city.
+- Display name visibility is already implemented using radio buttons and automatically saves independently of Edit Profile.
+- The app already supports ES and EN.
+- The profile page is:
+  artifacts/outfy/src/pages/profile.tsx
+- Frontend auth API:
+  artifacts/outfy/src/auth/auth-api.ts
+- Frontend auth context:
+  artifacts/outfy/src/auth/auth-context.tsx
+- Backend auth routes:
+  artifacts/api-server/src/routes/auth.ts
+- Spanish profile translations:
+  artifacts/outfy/src/i18n/locales/es/profile.json
+- English profile translations:
+  artifacts/outfy/src/i18n/locales/en/profile.json
+
+GOAL
+
+Replace the current free-text home-city input with a validated location picker.
+
+The user must have TWO ways to choose their usual location:
+
+1. "Use my current location"
+2. Manual selection:
+   Country
+   -> State / Province / Region
+   -> City
+
+The manual selectors must be searchable/autocomplete controls:
+- typing "Esp" should narrow Country to España
+- after selecting Spain, typing "Z" in region should show matching regions/provinces
+- after selecting a region, typing part of a city name should narrow available cities
+- the user must select a real option, not enter arbitrary free text
+
+Use a component consistent with the existing Outfy design.
+Prefer the existing Command + Popover UI components if they already exist in the project.
+
+LOCATION DATA
+
+Use:
+
+@countrystatecity/countries-browser
+
+Install it in the Outfy frontend package if it is not installed.
+
+Load:
+- countries
+- states/regions for selected country
+- cities for selected state/region
+
+Do not load the entire world city dataset at startup if the library provides lazy/on-demand functions.
+
+Create a reusable component approximately here:
+
+artifacts/outfy/src/components/location-picker.tsx
+
+The component should expose a structured location object.
+
+Use this TypeScript model or an equivalent clean implementation:
+
+type HomeLocation = {
+  countryCode: string;
+  country: string;
+  regionCode: string | null;
+  region: string | null;
+  city: string;
+  latitude: number;
+  longitude: number;
+};
+
+Store both `homeCity` for backwards compatibility and `homeLocation` / the structured fields.
+
+DATABASE
+
+The Supabase profiles table needs these fields in addition to existing `home_city`:
+
+home_country_code text
+home_country text
+home_region_code text
+home_region text
+home_latitude double precision
+home_longitude double precision
+
+DO NOT assume you can directly execute SQL against Supabase unless this Replit workspace actually has access to do so.
+
+If you cannot execute the SQL safely, create or show me the exact SQL I need to run manually in Supabase:
+
+alter table public.profiles
+add column if not exists home_country_code text,
+add column if not exists home_country text,
+add column if not exists home_region_code text,
+add column if not exists home_region text,
+add column if not exists home_latitude double precision,
+add column if not exists home_longitude double precision;
+
+BACKEND
+
+Update the existing profile/session implementation instead of creating a duplicate endpoint.
+
+The backend must:
+- return the structured home location with the authenticated user/session
+- continue returning homeCity
+- allow profile PATCH to update the structured location
+- allow clearing the location
+- validate:
+  - ISO-like 2-character country code
+  - non-empty country
+  - non-empty city
+  - valid numeric latitude between -90 and 90
+  - valid numeric longitude between -180 and 180
+- store the selected CITY coordinates, not exact device GPS coordinates
+- update all existing Supabase `.select(...)` calls that need these fields
+- preserve any existing fields required by login, especially email/username
+- do not break login/session/profile updates
+
+GPS / CURRENT LOCATION
+
+Add a button:
+
+Spanish:
+"Usar mi ubicación actual"
+
+English:
+"Use my current location"
+
+Important privacy behavior:
+
+- Do NOT ask for geolocation permission when the page loads.
+- Only call navigator.geolocation.getCurrentPosition after the user presses this button.
+- If permission is denied, show a translated error and keep manual selection usable.
+- If GPS is unsupported or fails, show a translated error and keep manual selection usable.
+
+Use reverse geocoding only to determine the user's approximate country/region/city.
+
+A free client-side reverse-geocoding service may be used if no API key is required.
+
+Do NOT send or store exact GPS coordinates in the Outfy backend.
+
+After detecting the approximate city, match it against the country/state/city dataset and store the coordinates of the selected/matched city instead of the device's exact GPS coordinates.
+
+If reverse geocoding cannot confidently map the location, do not silently save a wrong location. Show an error and allow manual selection.
+
+PROFILE UX
+
+When NOT editing profile, display something like:
+
+Tu ubicación habitual
+Zaragoza, España
+
+or in English:
+
+Your usual location
+Zaragoza, Spain
+
+When editing profile, show:
+
+Tu ubicación habitual
+
+[ Use my current location ]
+
+OR
+
+Country
+[ searchable picker ]
+
+Province / region
+[ searchable picker ]
+
+City
+[ searchable picker ]
+
+The user must still press the normal profile Save button to save the chosen home location.
+
+Changing the display-name privacy radio buttons must continue saving independently and automatically as it does now.
+
+Do not accidentally save an unconfirmed display-name edit when changing privacy.
+
+The location may be removed/cleared.
+
+If no location is configured, keep the existing translated "Set your location" / equivalent behavior on Home.
+
+HOME
+
+Do not rewrite Home unnecessarily.
+
+Home should continue using the normal `homeCity` value so existing UI keeps working.
+
+Once the structured location is saved, `homeCity` should represent the validated selected city.
+
+There must be NO hardcoded fallback to Zaragoza.
+
+IMPORTANT FUTURE BEHAVIOR
+
+The user's usual/home location is NOT the same as the location used when exploring activities.
+
+Do NOT implement Explore location search yet.
+
+The architecture must allow this future behavior:
+
+Profile:
+usual location = Zaragoza
+
+Explore:
+user can temporarily search Huelva
+
+Searching Huelva must NOT change the user's usual Profile location.
+
+Also later Explore should be able to offer:
+- My usual location
+- Use my current location
+- Search another city
+
+TRANSLATIONS
+
+Add all necessary ES and EN translations to the existing profile namespace.
+
+Spanish terminology:
+- Tu ubicación habitual
+- Usar mi ubicación actual
+- Detectando ubicación…
+- País
+- Provincia / región
+- Ciudad
+- Buscar país…
+- Buscar provincia o región…
+- Buscar ciudad…
+- Sin ubicación configurada
+- Quitar ubicación
+- No hay coincidencias.
+- Permission-denied / GPS / loading errors translated naturally
+
+English terminology:
+- Your usual location
+- Use my current location
+- Detecting location…
+- Country
+- State / region
+- City
+- Search country…
+- Search state or region…
+- Search city…
+- No location set
+- Remove location
+- No matches found.
+- Corresponding natural English error messages
+
+Be extremely careful with JSON commas and ensure all translation JSON files remain valid.
+
+PRIVACY
+
+Display a short translated explanation similar to:
+
+Spanish:
+"Solo pediremos permiso al pulsar este botón. Outfy no guarda tu posición exacta; guarda la ciudad seleccionada."
+
+English:
+"We'll only ask for permission when you press this button. Outfy doesn't store your exact position; it stores the selected city."
+
+Do not expose latitude/longitude in the Profile UI.
+
+TESTING
+
+After implementation:
+
+1. Run the API server TypeScript/typecheck command appropriate for this monorepo.
+2. Run the Outfy frontend typecheck.
+3. Run the API build if available.
+4. Run the frontend build.
+
+For the Outfy frontend build, this project may require environment variables. If necessary use:
+
+PORT=5173 BASE_PATH=/ pnpm --filter @workspace/outfy run build
+
+Fix any TypeScript/build errors introduced by your changes.
+
+Do NOT make unrelated changes just to silence existing unrelated warnings.
+
+Finally give me a concise summary containing:
+
+1. Files changed
+2. What was implemented
+3. Any SQL I still need to manually execute in Supabase
+4. Any external dependency installed
+5. Tests/typechecks/builds run and their results
+6. Exact manual tests I should perform in Preview
+
+Do NOT publish/deploy the application automatically.
+Stop once the implementation and local checks are complete.

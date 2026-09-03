@@ -24,9 +24,29 @@
     },
     "location": {
       "label": "Tu ubicación habitual",
-      "placeholder": "Escribe tu ciudad",
       "help": "La usaremos para mostrarte planes cerca de ti. Podrás explorar otras ubicaciones sin cambiarla.",
-      "notSet": "Sin ubicación configurada"
+      "notSet": "Sin ubicación configurada",
+      "useCurrent": "Usar mi ubicación actual",
+      "detecting": "Detectando ubicación…",
+      "privacy": "Solo pediremos permiso al pulsar este botón. Outfy no guarda tu posición exacta; guarda la ciudad seleccionada.",
+      "or": "o elige manualmente",
+      "country": "País",
+      "region": "Provincia / región",
+      "city": "Ciudad",
+      "chooseCountry": "Selecciona un país",
+      "chooseRegion": "Selecciona una provincia o región",
+      "chooseCity": "Selecciona una ciudad",
+      "regionNotRequired": "No es necesaria",
+      "searchCountry": "Buscar país…",
+      "searchRegion": "Buscar provincia o región…",
+      "searchCity": "Buscar ciudad…",
+      "noMatches": "No hay coincidencias.",
+      "remove": "Quitar ubicación",
+      "dataLoadError": "No se han podido cargar las ubicaciones. Inténtalo de nuevo.",
+      "cityDataError": "No hay coordenadas válidas para esta ciudad.",
+      "geolocationUnsupported": "Tu navegador no permite detectar la ubicación. Puedes elegirla manualmente.",
+      "permissionDenied": "Has denegado el permiso de ubicación. Puedes elegir tu ciudad manualmente.",
+      "detectionFailed": "No hemos podido determinar tu ciudad. Puedes elegirla manualmente."
     }
   },
 
@@ -37,7 +57,8 @@
     "saveError": "No se ha podido guardar el perfil. Inténtalo de nuevo.",
     "visibilitySaved": "Privacidad actualizada.",
     "visibilitySaveError": "No se ha podido cambiar la privacidad. Inténtalo de nuevo.",
-    "cityTooLong": "La ubicación no puede superar los 80 caracteres."
+    "cityTooLong": "La ubicación no puede superar los 80 caracteres.",
+    "locationIncomplete": "Completa la selección de país, región y ciudad antes de guardar."
   },
 
   "stats": {

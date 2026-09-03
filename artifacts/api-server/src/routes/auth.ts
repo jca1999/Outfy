@@ -48,6 +48,7 @@ interface AuthBody {
   displayName?: unknown;
   displayNameVisibility?: unknown;
   homeCity?: unknown;
+  homeLocation?: unknown;
 }
 
 interface ProfileLookup {
@@ -58,6 +59,22 @@ interface ProfileLookup {
   display_name?: string | null;
   display_name_visibility?: DisplayNameVisibility | null;
   home_city?: string | null;
+  home_country_code?: string | null;
+  home_country?: string | null;
+  home_region_code?: string | null;
+  home_region?: string | null;
+  home_latitude?: number | null;
+  home_longitude?: number | null;
+}
+
+interface HomeLocation {
+  countryCode: string;
+  country: string;
+  regionCode: string | null;
+  region: string | null;
+  city: string;
+  latitude: number;
+  longitude: number;
 }
 
 function bodyOf(request: Request): AuthBody {
@@ -82,6 +99,94 @@ function isUsername(value: unknown): value is string {
     isNonEmptyString(value) &&
     !/\s/.test(value.trim()) &&
     value.trim().length <= 32
+  );
+}
+
+function parseHomeLocation(
+  value: unknown,
+): HomeLocation | null | undefined {
+  if (value === null) {
+    return null;
+  }
+
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const location = value as Record<string, unknown>;
+  const countryCode =
+    typeof location.countryCode === "string"
+      ? location.countryCode.trim().toUpperCase()
+      : "";
+  const country =
+    typeof location.country === "string"
+      ? location.country.trim()
+      : "";
+  const city =
+    typeof location.city === "string"
+      ? location.city.trim()
+      : "";
+  const regionCode =
+    location.regionCode === undefined || location.regionCode === null
+      ? null
+      : typeof location.regionCode === "string"
+        ? location.regionCode.trim() || null
+        : undefined;
+  const region =
+    location.region === undefined || location.region === null
+      ? null
+      : typeof location.region === "string"
+        ? location.region.trim() || null
+        : undefined;
+  const latitude = location.latitude;
+  const longitude = location.longitude;
+
+  if (
+    !/^[A-Z]{2}$/.test(countryCode) ||
+    !country ||
+    !city ||
+    regionCode === undefined ||
+    region === undefined ||
+    typeof latitude !== "number" ||
+    !Number.isFinite(latitude) ||
+    latitude < -90 ||
+    latitude > 90 ||
+    typeof longitude !== "number" ||
+    !Number.isFinite(longitude) ||
+    longitude < -180 ||
+    longitude > 180
+  ) {
+    return undefined;
+  }
+
+  return {
+    countryCode,
+    country,
+    regionCode,
+    region,
+    city,
+    latitude,
+    longitude,
+  };
+}
+
+function profileHomeLocation(
+  profile: ProfileLookup | undefined,
+): HomeLocation | null {
+  if (!profile) {
+    return null;
+  }
+
+  return (
+    parseHomeLocation({
+      countryCode: profile.home_country_code,
+      country: profile.home_country,
+      regionCode: profile.home_region_code,
+      region: profile.home_region,
+      city: profile.home_city,
+      latitude: profile.home_latitude,
+      longitude: profile.home_longitude,
+    }) ?? null
   );
 }
 
@@ -208,6 +313,7 @@ function publicUser(
   displayName?: string | null,
   displayNameVisibility: DisplayNameVisibility = "shared_activity",
   homeCity?: string | null,
+  homeLocation: HomeLocation | null = null,
 ) {
   const username = user.user_metadata?.username;
 
@@ -225,6 +331,7 @@ function publicUser(
       typeof homeCity === "string" && homeCity.trim()
         ? homeCity.trim()
         : null,
+    homeLocation,
   };
 }
 
@@ -296,6 +403,7 @@ async function sessionPayload(user: SupabaseUser) {
     typeof profile?.home_city === "string"
       ? profile.home_city
       : null;
+  const homeLocation = profileHomeLocation(profile);
 
   return {
     authenticated: true,
@@ -305,6 +413,7 @@ async function sessionPayload(user: SupabaseUser) {
       displayName,
       displayNameVisibility,
       homeCity,
+      homeLocation,
     ),
   };
 }
@@ -361,7 +470,9 @@ async function findProfileByUsername(username: string) {
 async function findProfileByUserId(userId: string) {
   const { data, error } = await getSupabaseAdmin()
     .from("profiles")
-    .select("id,username,display_name,display_name_visibility,home_city")
+    .select(
+      "id,username,display_name,display_name_visibility,home_city,home_country_code,home_country,home_region_code,home_region,home_latitude,home_longitude",
+    )
     .eq("id", userId)
     .limit(1);
 
@@ -913,10 +1024,17 @@ router.patch("/auth/profile", async (request, response) => {
       "homeCity",
     );
 
+  const hasHomeLocation =
+    Object.prototype.hasOwnProperty.call(
+      body,
+      "homeLocation",
+    );
+
   if (
     !hasDisplayName &&
     !hasDisplayNameVisibility &&
-    !hasHomeCity
+    !hasHomeCity &&
+    !hasHomeLocation
   ) {
     sendError(
       response,
@@ -930,6 +1048,12 @@ router.patch("/auth/profile", async (request, response) => {
     display_name?: string | null;
     display_name_visibility?: DisplayNameVisibility;
     home_city?: string | null;
+    home_country_code?: string | null;
+    home_country?: string | null;
+    home_region_code?: string | null;
+    home_region?: string | null;
+    home_latitude?: number | null;
+    home_longitude?: number | null;
   } = {};
 
   if (hasDisplayName) {
@@ -975,7 +1099,34 @@ router.patch("/auth/profile", async (request, response) => {
       body.displayNameVisibility;
   }
   
-  if (hasHomeCity) {
+  if (hasHomeLocation) {
+    const parsedHomeLocation = parseHomeLocation(
+      body.homeLocation,
+    );
+
+    if (parsedHomeLocation === undefined) {
+      sendError(
+        response,
+        400,
+        "La ubicación seleccionada no es válida.",
+      );
+      return;
+    }
+
+    updates.home_city = parsedHomeLocation?.city ?? null;
+    updates.home_country_code =
+      parsedHomeLocation?.countryCode ?? null;
+    updates.home_country =
+      parsedHomeLocation?.country ?? null;
+    updates.home_region_code =
+      parsedHomeLocation?.regionCode ?? null;
+    updates.home_region =
+      parsedHomeLocation?.region ?? null;
+    updates.home_latitude =
+      parsedHomeLocation?.latitude ?? null;
+    updates.home_longitude =
+      parsedHomeLocation?.longitude ?? null;
+  } else if (hasHomeCity) {
     if (typeof body.homeCity !== "string") {
       sendError(
         response,
@@ -998,6 +1149,12 @@ router.patch("/auth/profile", async (request, response) => {
 
     updates.home_city =
       homeCity || null;
+    updates.home_country_code = null;
+    updates.home_country = null;
+    updates.home_region_code = null;
+    updates.home_region = null;
+    updates.home_latitude = null;
+    updates.home_longitude = null;
   }
 
   try {
@@ -1020,7 +1177,7 @@ router.patch("/auth/profile", async (request, response) => {
       .update(updates)
       .eq("id", session.user.id)
       .select(
-        "id,username,display_name,display_name_visibility,home_city",
+        "id,username,display_name,display_name_visibility,home_city,home_country_code,home_country,home_region_code,home_region,home_latitude,home_longitude",
       )
       .limit(1);
 
@@ -1059,9 +1216,9 @@ router.patch("/auth/profile", async (request, response) => {
           : "shared_activity",
 
         typeof profile.home_city === "string"
-        ? profile.home_city
-        : null,
-        
+          ? profile.home_city
+          : null,
+        profileHomeLocation(profile),
       ),
     });
   } catch (error) {

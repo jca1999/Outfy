@@ -13,7 +13,11 @@ import { useLocation } from 'wouter';
 
 import { useAuth } from '@/auth/auth-context';
 import { LanguageSwitcher } from '@/components/language-switcher';
-import type { DisplayNameVisibility } from '@/auth/auth-api';
+import {
+  type DisplayNameVisibility,
+  type HomeLocation,
+} from '@/auth/auth-api';
+import { LocationPicker } from '@/components/location-picker';
 
 export function Profile() {
   const { t } = useTranslation('profile');
@@ -34,6 +38,15 @@ export function Profile() {
 
   const [homeCity, setHomeCity] =
     useState('');
+
+  const [homeLocation, setHomeLocation] =
+    useState<HomeLocation | null>(null);
+
+  const [locationValid, setLocationValid] =
+    useState(true);
+
+  const [locationTouched, setLocationTouched] =
+    useState(false);
   
   const [
     displayNameVisibility,
@@ -63,6 +76,13 @@ export function Profile() {
       user?.homeCity ?? '',
     );
 
+    setHomeLocation(
+      user?.homeLocation ?? null,
+    );
+
+    setLocationValid(true);
+    setLocationTouched(false);
+
     setDisplayNameVisibility(
       user?.displayNameVisibility ??
         'shared_activity',
@@ -86,9 +106,6 @@ export function Profile() {
     const normalizedName =
       displayName.trim();
 
-    const normalizedHomeCity =
-      homeCity.trim();
-    
     setError('');
     setNotice('');
 
@@ -99,20 +116,26 @@ export function Profile() {
       return;
     }
 
-    if (normalizedHomeCity.length > 80) {
-      setError(
-        t('messages.cityTooLong'),
-      );
+    if (!locationValid) {
+      setError(t('messages.locationIncomplete'));
       return;
     }
 
     setSaving(true);
 
     try {
-      await updateProfile({
+      const profileUpdate: {
+        displayName: string;
+        homeLocation?: HomeLocation | null;
+      } = {
         displayName: normalizedName,
-        homeCity: normalizedHomeCity,
-      });
+      };
+
+      if (locationTouched) {
+        profileUpdate.homeLocation = homeLocation;
+      }
+
+      await updateProfile(profileUpdate);
 
       setEditing(false);
       setNotice(t('messages.saved'));
@@ -290,28 +313,20 @@ export function Profile() {
               </p>
 
               {editing ? (
-                <>
-                  <input
-                    type="text"
-                    value={homeCity}
-                    maxLength={80}
-                    onChange={(event) =>
-                      setHomeCity(event.target.value)
-                    }
-                    className="auth-input mt-2"
-                    placeholder={t(
-                      'identity.location.placeholder',
-                    )}
-                    autoComplete="address-level2"
-                  />
-
-                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                    {t('identity.location.help')}
-                  </p>
-                </>
+                 <LocationPicker
+                   value={homeLocation}
+                   onChange={(nextLocation) => {
+                     setHomeLocation(nextLocation);
+                     setLocationTouched(true);
+                   }}
+                   onValidityChange={setLocationValid}
+                   disabled={saving}
+                 />
               ) : (
                 <p className="mt-1 text-sm text-foreground">
-                  {user?.homeCity?.trim() ||
+                   {(user?.homeLocation
+                     ? `${user.homeLocation.city}, ${user.homeLocation.country}`
+                     : user?.homeCity?.trim()) ||
                     t('identity.location.notSet')}
                 </p>
               )}

@@ -11,6 +11,7 @@ export * from './authSession';
 export * from './authUser';
 export * from './errorResponse';
 export * from './healthStatus';
+export * from './homeLocation';
 export * from './resendVerificationInput';
 export * from './signInInput';
 export * from './signUpInput';

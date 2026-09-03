@@ -9,6 +9,7 @@ import {
 import type {
   AuthUser,
   DisplayNameVisibility,
+  HomeLocation,
 } from './auth-api';
 import * as authApi from './auth-api';
 
@@ -34,6 +35,7 @@ interface AuthContextValue {
     displayName?: string;
     displayNameVisibility?: DisplayNameVisibility;
     homeCity?: string;
+    homeLocation?: HomeLocation | null;
   }) => Promise<AuthUser>;
 }
 

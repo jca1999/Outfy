@@ -9,9 +9,34 @@ export interface HealthStatus {
   status: string;
 }
 
+export interface HomeLocation {
+  /**
+     * @minLength 2
+     * @maxLength 2
+     */
+  countryCode: string;
+  country: string;
+  /** @nullable */
+  regionCode: string | null;
+  /** @nullable */
+  region: string | null;
+  city: string;
+  /**
+     * @minimum -90
+     * @maximum 90
+     */
+  latitude: number;
+  /**
+     * @minimum -180
+     * @maximum 180
+     */
+  longitude: number;
+}
+
 export interface AuthUser {
   id: string;
   username: string;
+  homeLocation: HomeLocation | null;
 }
 
 export interface AuthSession {
