@@ -403,7 +403,6 @@ async function sessionPayload(user: SupabaseUser) {
     typeof profile?.home_city === "string"
       ? profile.home_city
       : null;
-  const homeLocation = profileHomeLocation(profile);
 
   return {
     authenticated: true,
@@ -413,7 +412,6 @@ async function sessionPayload(user: SupabaseUser) {
       displayName,
       displayNameVisibility,
       homeCity,
-      homeLocation,
     ),
   };
 }
@@ -457,7 +455,9 @@ async function findProfileByUsername(username: string) {
 
   const { data, error } = await getSupabaseAdmin()
     .from("profiles")
-    .select("id,username,display_name,display_name_visibility,home_city")
+    .select(
+      "id,email,username,display_name,display_name_visibility,home_city",
+    )
     .eq("username_normalized", normalizedUsername)
     .limit(1);
 
@@ -470,9 +470,7 @@ async function findProfileByUsername(username: string) {
 async function findProfileByUserId(userId: string) {
   const { data, error } = await getSupabaseAdmin()
     .from("profiles")
-    .select(
-      "id,username,display_name,display_name_visibility,home_city,home_country_code,home_country,home_region_code,home_region,home_latitude,home_longitude",
-    )
+    .select("id,username,display_name,display_name_visibility,home_city")
     .eq("id", userId)
     .limit(1);
 
@@ -499,50 +497,115 @@ router.get("/auth/session", async (request, response) => {
 
 router.post("/auth/sign-in", async (request, response) => {
   const body = bodyOf(request);
-  const username = isUsername(body.username) ? body.username.trim() : "";
-  const password = isNonEmptyString(body.password) ? body.password : "";
 
-  if (!username || !password) {
-    sendError(response, 400, "Introduce tu nombre de usuario y contraseña.");
+  const identifier = isNonEmptyString(body.username)
+    ? body.username.trim()
+    : "";
+
+  const password = isNonEmptyString(body.password)
+    ? body.password
+    : "";
+
+  if (!identifier || !password) {
+    sendError(
+      response,
+      400,
+      "Introduce tu nombre de usuario o correo y contraseña.",
+    );
     return;
   }
 
   try {
-    const profileResult = await findProfileByUsername(username);
-    if (
-      profileResult.error ||
-      !profileResult.data?.[0]?.email ||
-      typeof profileResult.data[0].email !== "string"
-    ) {
-      sendError(response, 400, "No se encontró una cuenta con ese nombre de usuario.");
+    let loginEmail = "";
+
+    if (isEmail(identifier)) {
+      loginEmail = identifier.toLowerCase();
+    } else if (isUsername(identifier)) {
+      const profileResult =
+        await findProfileByUsername(identifier);
+
+      if (
+        profileResult.error ||
+        !profileResult.data?.[0]?.email ||
+        typeof profileResult.data[0].email !== "string"
+      ) {
+        sendError(
+          response,
+          400,
+          "El usuario, correo o contraseña no son correctos.",
+        );
+        return;
+      }
+
+      loginEmail =
+        profileResult.data[0].email
+          .trim()
+          .toLowerCase();
+    } else {
+      sendError(
+        response,
+        400,
+        "El usuario, correo o contraseña no son correctos.",
+      );
       return;
     }
 
-    const loginResult = await supabaseRequest<SupabaseSession>(
-      "/auth/v1/token?grant_type=password",
-      {
-        method: "POST",
-        body: { email: profileResult.data[0].email, password },
-      },
+    const loginResult =
+      await supabaseRequest<SupabaseSession>(
+        "/auth/v1/token?grant_type=password",
+        {
+          method: "POST",
+          body: {
+            email: loginEmail,
+            password,
+          },
+        },
+      );
+
+    if (
+      !loginResult.response.ok ||
+      !loginResult.data?.user
+    ) {
+      const providerError =
+        getSupabaseError(
+          loginResult.data,
+          "El usuario, correo o contraseña no son correctos.",
+        );
+
+      const message =
+        /confirm|verified/i.test(providerError)
+          ? "Confirma tu correo electrónico antes de iniciar sesión."
+          : "El usuario, correo o contraseña no son correctos.";
+
+      sendError(
+        response,
+        400,
+        message,
+      );
+      return;
+    }
+
+    setSession(
+      response,
+      loginResult.data,
     );
 
-    if (!loginResult.response.ok || !loginResult.data?.user) {
-      const providerError = getSupabaseError(
-        loginResult.data,
-        "El nombre de usuario o la contraseña no son correctos.",
-      );
-      const message = /confirm|verified/i.test(providerError)
-        ? "Confirma tu correo electrónico antes de iniciar sesión."
-        : "El nombre de usuario o la contraseña no son correctos.";
-      sendError(response, 400, message);
-      return;
-    }
-
-    setSession(response, loginResult.data);
-    response.json(await sessionPayload(loginResult.data.user));
+    response.json(
+      await sessionPayload(
+        loginResult.data.user,
+      ),
+    );
   } catch (error) {
-    request.log.error({ err: error }, "Supabase sign in failed");
-    sendError(response, 502, "No se ha podido conectar con el servicio de acceso.");
+    request.log.error(
+      { err: error },
+      "Supabase sign in failed",
+    );
+
+    sendError(
+      response,
+      502,
+      "No se ha podido conectar con el servicio de acceso.",
+    );
   }
 });
 
@@ -1024,17 +1087,10 @@ router.patch("/auth/profile", async (request, response) => {
       "homeCity",
     );
 
-  const hasHomeLocation =
-    Object.prototype.hasOwnProperty.call(
-      body,
-      "homeLocation",
-    );
-
   if (
     !hasDisplayName &&
     !hasDisplayNameVisibility &&
-    !hasHomeCity &&
-    !hasHomeLocation
+    !hasHomeCity
   ) {
     sendError(
       response,
@@ -1048,12 +1104,6 @@ router.patch("/auth/profile", async (request, response) => {
     display_name?: string | null;
     display_name_visibility?: DisplayNameVisibility;
     home_city?: string | null;
-    home_country_code?: string | null;
-    home_country?: string | null;
-    home_region_code?: string | null;
-    home_region?: string | null;
-    home_latitude?: number | null;
-    home_longitude?: number | null;
   } = {};
 
   if (hasDisplayName) {
@@ -1099,34 +1149,7 @@ router.patch("/auth/profile", async (request, response) => {
       body.displayNameVisibility;
   }
   
-  if (hasHomeLocation) {
-    const parsedHomeLocation = parseHomeLocation(
-      body.homeLocation,
-    );
-
-    if (parsedHomeLocation === undefined) {
-      sendError(
-        response,
-        400,
-        "La ubicación seleccionada no es válida.",
-      );
-      return;
-    }
-
-    updates.home_city = parsedHomeLocation?.city ?? null;
-    updates.home_country_code =
-      parsedHomeLocation?.countryCode ?? null;
-    updates.home_country =
-      parsedHomeLocation?.country ?? null;
-    updates.home_region_code =
-      parsedHomeLocation?.regionCode ?? null;
-    updates.home_region =
-      parsedHomeLocation?.region ?? null;
-    updates.home_latitude =
-      parsedHomeLocation?.latitude ?? null;
-    updates.home_longitude =
-      parsedHomeLocation?.longitude ?? null;
-  } else if (hasHomeCity) {
+  if (hasHomeCity) {
     if (typeof body.homeCity !== "string") {
       sendError(
         response,
@@ -1149,12 +1172,6 @@ router.patch("/auth/profile", async (request, response) => {
 
     updates.home_city =
       homeCity || null;
-    updates.home_country_code = null;
-    updates.home_country = null;
-    updates.home_region_code = null;
-    updates.home_region = null;
-    updates.home_latitude = null;
-    updates.home_longitude = null;
   }
 
   try {
@@ -1177,7 +1194,7 @@ router.patch("/auth/profile", async (request, response) => {
       .update(updates)
       .eq("id", session.user.id)
       .select(
-        "id,username,display_name,display_name_visibility,home_city,home_country_code,home_country,home_region_code,home_region,home_latitude,home_longitude",
+        "id,username,display_name,display_name_visibility,home_city",
       )
       .limit(1);
 
@@ -1216,9 +1233,9 @@ router.patch("/auth/profile", async (request, response) => {
           : "shared_activity",
 
         typeof profile.home_city === "string"
-          ? profile.home_city
-          : null,
-        profileHomeLocation(profile),
+        ? profile.home_city
+        : null,
+        
       ),
     });
   } catch (error) {
