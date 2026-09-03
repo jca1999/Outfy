@@ -12,6 +12,19 @@ env = { "CI" = "true" }
 runButton = "Project"
 
 [[workflows.workflow]]
+name = "Project"
+author = "agent"
+mode = "parallel"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "artifacts/outfy: web"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "artifacts/api-server: API Server"
+
+[[workflows.workflow]]
 name = "artifacts/outfy: web"
 author = "agent"
 mode = "sequential"
@@ -46,7 +59,7 @@ task = "shell.exec"
 args = "pnpm --filter @workspace/api-server run dev"
 cwd = "./artifacts/api-server"
 waitForPort = 8080
-ensurePreviewReachable = "/"
+ensurePreviewReachable = "/api/healthz"
 router = "path"
 
 [workflows.workflow.tasks.env]
