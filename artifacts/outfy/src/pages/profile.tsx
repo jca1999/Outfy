@@ -32,6 +32,9 @@ export function Profile() {
   const [displayName, setDisplayName] =
     useState('');
 
+  const [homeCity, setHomeCity] =
+    useState('');
+  
   const [
     displayNameVisibility,
     setDisplayNameVisibility,
@@ -54,6 +57,10 @@ export function Profile() {
   useEffect(() => {
     setDisplayName(
       user?.displayName ?? '',
+    );
+
+    setHomeCity(
+      user?.homeCity ?? '',
     );
 
     setDisplayNameVisibility(
@@ -79,6 +86,9 @@ export function Profile() {
     const normalizedName =
       displayName.trim();
 
+    const normalizedHomeCity =
+      homeCity.trim();
+    
     setError('');
     setNotice('');
 
@@ -89,11 +99,19 @@ export function Profile() {
       return;
     }
 
+    if (normalizedHomeCity.length > 80) {
+      setError(
+        t('messages.cityTooLong'),
+      );
+      return;
+    }
+
     setSaving(true);
 
     try {
       await updateProfile({
         displayName: normalizedName,
+        homeCity: normalizedHomeCity,
       });
 
       setEditing(false);
@@ -265,6 +283,38 @@ export function Profile() {
               <p className="mt-1 text-sm text-foreground">
                 @{user?.username}
               </p>
+            </div>
+            <div className="mt-4">
+              <p className="text-xs font-bold text-muted-foreground">
+                {t('identity.location.label')}
+              </p>
+
+              {editing ? (
+                <>
+                  <input
+                    type="text"
+                    value={homeCity}
+                    maxLength={80}
+                    onChange={(event) =>
+                      setHomeCity(event.target.value)
+                    }
+                    className="auth-input mt-2"
+                    placeholder={t(
+                      'identity.location.placeholder',
+                    )}
+                    autoComplete="address-level2"
+                  />
+
+                  <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                    {t('identity.location.help')}
+                  </p>
+                </>
+              ) : (
+                <p className="mt-1 text-sm text-foreground">
+                  {user?.homeCity?.trim() ||
+                    t('identity.location.notSet')}
+                </p>
+              )}
             </div>
             <fieldset className="mt-6">
               <div className="flex items-center gap-2">

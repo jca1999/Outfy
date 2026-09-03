@@ -207,7 +207,7 @@ function publicUser(
   displayUsername?: string,
   displayName?: string | null,
   displayNameVisibility: DisplayNameVisibility = "shared_activity",
-  
+  homeCity?: string | null,
 ) {
   const username = user.user_metadata?.username;
 
@@ -216,13 +216,15 @@ function publicUser(
     username:
       displayUsername ??
       (typeof username === "string" ? username : "usuario"),
-
     displayName:
       typeof displayName === "string" && displayName.trim()
         ? displayName.trim()
         : null,
-
     displayNameVisibility,
+    homeCity:
+      typeof homeCity === "string" && homeCity.trim()
+        ? homeCity.trim()
+        : null,
   };
 }
 
@@ -290,6 +292,11 @@ async function sessionPayload(user: SupabaseUser) {
       ? profile.display_name_visibility
       : "shared_activity";
 
+  const homeCity =
+    typeof profile?.home_city === "string"
+      ? profile.home_city
+      : null;
+
   return {
     authenticated: true,
     user: publicUser(
@@ -297,6 +304,7 @@ async function sessionPayload(user: SupabaseUser) {
       displayUsername,
       displayName,
       displayNameVisibility,
+      homeCity,
     ),
   };
 }
@@ -899,7 +907,17 @@ router.patch("/auth/profile", async (request, response) => {
       "displayNameVisibility",
     );
 
-  if (!hasDisplayName && !hasDisplayNameVisibility) {
+  const hasHomeCity =
+    Object.prototype.hasOwnProperty.call(
+      body,
+      "homeCity",
+    );
+
+  if (
+    !hasDisplayName &&
+    !hasDisplayNameVisibility &&
+    !hasHomeCity
+  ) {
     sendError(
       response,
       400,
@@ -911,6 +929,7 @@ router.patch("/auth/profile", async (request, response) => {
   const updates: {
     display_name?: string | null;
     display_name_visibility?: DisplayNameVisibility;
+    home_city?: string | null;
   } = {};
 
   if (hasDisplayName) {
@@ -954,6 +973,31 @@ router.patch("/auth/profile", async (request, response) => {
 
     updates.display_name_visibility =
       body.displayNameVisibility;
+  }
+  
+  if (hasHomeCity) {
+    if (typeof body.homeCity !== "string") {
+      sendError(
+        response,
+        400,
+        "La ubicación no es válida.",
+      );
+      return;
+    }
+
+    const homeCity = body.homeCity.trim();
+
+    if (homeCity.length > 80) {
+      sendError(
+        response,
+        400,
+        "La ubicación no puede superar los 80 caracteres.",
+      );
+      return;
+    }
+
+    updates.home_city =
+      homeCity || null;
   }
 
   try {
@@ -1013,6 +1057,11 @@ router.patch("/auth/profile", async (request, response) => {
         )
           ? profile.display_name_visibility
           : "shared_activity",
+
+        typeof profile.home_city === "string"
+        ? profile.home_city
+        : null,
+        
       ),
     });
   } catch (error) {

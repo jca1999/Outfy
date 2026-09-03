@@ -47,6 +47,8 @@ export function Home({
 
   const visibleName = user?.displayName?.trim() || user?.username || "";
 
+  const homeCity = user?.homeCity?.trim() || t("hero.locationMissing");
+
   const locale = i18n.resolvedLanguage?.startsWith("en") ? "en-US" : "es-ES";
 
   const currentDate = new Intl.DateTimeFormat(locale, {
@@ -62,7 +64,7 @@ export function Home({
           <div className="absolute -right-10 -top-16 h-56 w-56 rounded-full border-[28px] border-primary/10" />
           <div className="absolute bottom-[-70px] right-20 h-44 w-44 rounded-full border-[20px] border-primary/10" />
           <p className="relative font-mono-ui text-[10px] uppercase tracking-[.2em] text-sidebar-foreground/70">
-            {currentDate} · {t("hero.location")}
+            {currentDate} · {homeCity}
           </p>
           <h1 className="relative mt-8 max-w-[620px] text-[clamp(2.2rem,5vw,4.2rem)] font-bold leading-[.98] tracking-[-.065em]">
             {t("hero.greeting", {
@@ -187,7 +189,7 @@ export function Home({
               </h2>
             </div>
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <MapPin className="h-3.5 w-3.5" /> Zaragoza
+              <MapPin className="h-3.5 w-3.5" /> {homeCity}
             </span>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">

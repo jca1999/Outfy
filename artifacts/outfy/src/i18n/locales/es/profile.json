@@ -21,6 +21,12 @@
       "sharedActivity": "Personas con las que compartas una actividad",
       "friends": "Solo amigos",
       "nobody": "Nadie"
+    },
+    "location": {
+      "label": "Tu ubicación habitual",
+      "placeholder": "Escribe tu ciudad",
+      "help": "La usaremos para mostrarte planes cerca de ti. Podrás explorar otras ubicaciones sin cambiarla.",
+      "notSet": "Sin ubicación configurada"
     }
   },
 
@@ -30,7 +36,8 @@
     "nameTooLong": "El nombre no puede superar los 60 caracteres.",
     "saveError": "No se ha podido guardar el perfil. Inténtalo de nuevo.",
     "visibilitySaved": "Privacidad actualizada.",
-    "visibilitySaveError": "No se ha podido cambiar la privacidad. Inténtalo de nuevo."
+    "visibilitySaveError": "No se ha podido cambiar la privacidad. Inténtalo de nuevo.",
+    "cityTooLong": "La ubicación no puede superar los 80 caracteres."
   },
 
   "stats": {

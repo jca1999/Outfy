@@ -5,6 +5,6 @@
     "description": "Planes reales, gente cercana y una excusa para salir de casa. ¿Qué te apetece?",
     "explore": "Explorar planes",
     "create": "Proponer un plan",
-    "location": "Zaragoza"
+    "locationMissing": "Configura tu ubicación"
   }
 }

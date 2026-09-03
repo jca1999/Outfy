@@ -21,6 +21,12 @@
       "sharedActivity": "People who share an activity with you",
       "friends": "Friends only",
       "nobody": "Nobody"
+    },
+    "location": {
+      "label": "Your usual location",
+      "placeholder": "Enter your city",
+      "help": "We'll use it to show you plans nearby. You can explore other locations without changing it.",
+      "notSet": "No location set"
     }
   },
 
@@ -30,7 +36,8 @@
     "nameTooLong": "Your name can't be longer than 60 characters.",
     "saveError": "We couldn't save your profile. Please try again.",
     "visibilitySaved": "Privacy updated.",
-    "visibilitySaveError": "We couldn't update your privacy settings. Please try again."
+    "visibilitySaveError": "We couldn't update your privacy settings. Please try again.",
+    "cityTooLong": "Your location can't be longer than 80 characters."
   },
 
   "stats": {
