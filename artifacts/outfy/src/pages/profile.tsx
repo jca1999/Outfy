@@ -13,6 +13,7 @@ import { useLocation } from 'wouter';
 
 import { useAuth } from '@/auth/auth-context';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import type { DisplayNameVisibility } from '@/auth/auth-api';
 
 export function Profile() {
   const { t } = useTranslation('profile');
@@ -31,6 +32,11 @@ export function Profile() {
   const [displayName, setDisplayName] =
     useState('');
 
+  const [
+    displayNameVisibility,
+    setDisplayNameVisibility,
+  ] = useState<DisplayNameVisibility>('shared_activity');
+
   const [saving, setSaving] =
     useState(false);
 
@@ -42,9 +48,12 @@ export function Profile() {
 
   useEffect(() => {
     setDisplayName(
-      user?.displayName ??
-        user?.username ??
-        '',
+      user?.displayName ?? '',
+    );
+
+    setDisplayNameVisibility(
+      user?.displayNameVisibility ??
+        'shared_activity',
     );
   }, [user]);
 
@@ -68,13 +77,6 @@ export function Profile() {
     setError('');
     setNotice('');
 
-    if (!normalizedName) {
-      setError(
-        t('messages.nameRequired'),
-      );
-      return;
-    }
-
     if (normalizedName.length > 60) {
       setError(
         t('messages.nameTooLong'),
@@ -87,6 +89,7 @@ export function Profile() {
     try {
       await updateProfile({
         displayName: normalizedName,
+        displayNameVisibility,
       });
 
       setEditing(false);
@@ -199,6 +202,50 @@ export function Profile() {
                     'identity.displayNameHelp',
                   )}
                 </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t('identity.displayNameFallback', {
+                    username: user?.username,
+                  })}
+                </p>
+                <div className="mt-5">
+                  <label
+                    htmlFor="display-name-visibility"
+                    className="mb-2 block text-sm font-bold"
+                  >
+                    {t('identity.visibility.label')}
+                  </label>
+
+                  <select
+                    id="display-name-visibility"
+                    value={displayNameVisibility}
+                    onChange={(event) =>
+                      setDisplayNameVisibility(
+                        event.target.value as DisplayNameVisibility,
+                      )
+                    }
+                    className="auth-input"
+                  >
+                    <option value="everyone">
+                      {t('identity.visibility.everyone')}
+                    </option>
+
+                    <option value="shared_activity">
+                      {t('identity.visibility.sharedActivity')}
+                    </option>
+
+                    <option value="friends">
+                      {t('identity.visibility.friends')}
+                    </option>
+
+                    <option value="nobody">
+                      {t('identity.visibility.nobody')}
+                    </option>
+                  </select>
+
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {t('identity.visibility.help')}
+                  </p>
+                </div>
               </div>
             ) : (
               <h2 className="text-2xl font-bold tracking-[-.04em]">

@@ -21,6 +21,23 @@ const SESSION_COOKIE_OPTIONS = {
   path: "/",
 };
 
+type DisplayNameVisibility =
+  | "everyone"
+  | "shared_activity"
+  | "friends"
+  | "nobody";
+
+function isDisplayNameVisibility(
+  value: unknown,
+): value is DisplayNameVisibility {
+  return (
+    value === "everyone" ||
+    value === "shared_activity" ||
+    value === "friends" ||
+    value === "nobody"
+  );
+}
+
 interface AuthBody {
   username?: unknown;
   email?: unknown;
@@ -29,6 +46,7 @@ interface AuthBody {
   tokenHash?: unknown;
   invitationCode?: unknown;
   displayName?: unknown;
+  displayNameVisibility?: unknown;
 }
 
 interface ProfileLookup {
@@ -37,6 +55,7 @@ interface ProfileLookup {
   username?: string;
   username_normalized?: string;
   display_name?: string | null;
+  display_name_visibility?: DisplayNameVisibility | null;
 }
 
 function bodyOf(request: Request): AuthBody {
@@ -185,6 +204,8 @@ function publicUser(
   user: SupabaseUser,
   displayUsername?: string,
   displayName?: string | null,
+  displayNameVisibility: DisplayNameVisibility = "shared_activity",
+  
 ) {
   const username = user.user_metadata?.username;
 
@@ -193,10 +214,13 @@ function publicUser(
     username:
       displayUsername ??
       (typeof username === "string" ? username : "usuario"),
+
     displayName:
       typeof displayName === "string" && displayName.trim()
         ? displayName.trim()
         : null,
+
+    displayNameVisibility,
   };
 }
 
@@ -259,12 +283,18 @@ async function sessionPayload(user: SupabaseUser) {
       ? profile.display_name
       : null;
 
+  const displayNameVisibility =
+    isDisplayNameVisibility(profile?.display_name_visibility)
+      ? profile.display_name_visibility
+      : "shared_activity";
+
   return {
     authenticated: true,
     user: publicUser(
       user,
       displayUsername,
       displayName,
+      displayNameVisibility,
     ),
   };
 }
@@ -321,7 +351,7 @@ async function findProfileByUsername(username: string) {
 async function findProfileByUserId(userId: string) {
   const { data, error } = await getSupabaseAdmin()
     .from("profiles")
-    .select("id,username,display_name")
+    .select("id,username,display_name,display_name_visibility")
     .eq("id", userId)
     .limit(1);
 
@@ -857,17 +887,24 @@ router.post("/auth/reset-password", async (request, response) => {
 
 router.patch("/auth/profile", async (request, response) => {
   const body = bodyOf(request);
-
   const displayName =
     typeof body.displayName === "string"
       ? body.displayName.trim()
       : "";
 
-  if (!displayName) {
+  const displayNameValue =
+    displayName || null;
+
+  const displayNameVisibility =
+    isDisplayNameVisibility(body.displayNameVisibility)
+      ? body.displayNameVisibility
+      : null;
+
+  if (!displayNameVisibility) {
     sendError(
       response,
       400,
-      "El nombre no puede estar vacío.",
+      "La configuración de privacidad no es válida.",
     );
     return;
   }
@@ -899,10 +936,13 @@ router.patch("/auth/profile", async (request, response) => {
     const { data, error } = await getSupabaseAdmin()
       .from("profiles")
       .update({
-        display_name: displayName,
+        display_name: displayNameValue,
+        display_name_visibility: displayNameVisibility,
       })
       .eq("id", session.user.id)
-      .select("id,username,display_name")
+      .select(
+        "id,username,display_name,display_name_visibility",
+      )
       .limit(1);
 
     if (error || !data?.[0]) {
@@ -930,6 +970,9 @@ router.patch("/auth/profile", async (request, response) => {
         typeof profile.display_name === "string"
           ? profile.display_name
           : null,
+        isDisplayNameVisibility(profile.display_name_visibility)
+        ? profile.display_name_visibility
+        : "shared_activity",
       ),
     });
   } catch (error) {

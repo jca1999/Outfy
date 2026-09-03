@@ -6,8 +6,11 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import type {
+  AuthUser,
+  DisplayNameVisibility,
+} from './auth-api';
 import * as authApi from './auth-api';
-import type { AuthUser } from './auth-api';
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -29,6 +32,7 @@ interface AuthContextValue {
   signOut: () => Promise<void>;
   updateProfile: (input: {
     displayName: string;
+    displayNameVisibility: DisplayNameVisibility;
   }) => Promise<AuthUser>;
 }
 

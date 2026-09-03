@@ -9,10 +9,19 @@
   },
 
   "identity": {
-    "displayName": "Name",
-    "displayNamePlaceholder": "Your name",
+    "displayName": "What should we call you?",
+    "displayNamePlaceholder": "Javier, Javi, Minihades...",
     "username": "Username",
-    "displayNameHelp": "This is the name other people will see on Outfy."
+    "displayNameHelp": "It can be your name, nickname or whatever you'd like people to call you on Outfy.",
+    "displayNameFallback": "If you leave it empty, we'll use @{{username}}.",
+    "visibility": {
+      "label": "Who can see this name",
+      "help": "This doesn't change how Outfy addresses you inside your own account.",
+      "everyone": "Everyone",
+      "sharedActivity": "People who share an activity with you",
+      "friends": "Friends only",
+      "nobody": "Nobody"
+    }
   },
 
   "messages": {

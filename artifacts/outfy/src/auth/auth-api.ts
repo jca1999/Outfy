@@ -1,7 +1,14 @@
+export type DisplayNameVisibility =
+  | 'everyone'
+  | 'shared_activity'
+  | 'friends'
+  | 'nobody';
+
 export interface AuthUser {
   id: string;
   username: string;
   displayName: string | null;
+  displayNameVisibility: DisplayNameVisibility;
 }
 
 export interface UpdateProfileResponse {
@@ -116,6 +123,7 @@ export function resetPassword(input: {
 
 export function updateProfile(input: {
   displayName: string;
+  displayNameVisibility: DisplayNameVisibility;
 }) {
   return request<UpdateProfileResponse>('/profile', {
     method: 'PATCH',
