@@ -1,6 +1,11 @@
 export interface AuthUser {
   id: string;
   username: string;
+  displayName: string | null;
+}
+
+export interface UpdateProfileResponse {
+  user: AuthUser;
 }
 
 export interface AuthSessionResponse {
@@ -105,6 +110,15 @@ export function resetPassword(input: {
 }) {
   return request<AuthMessageResponse>('/reset-password', {
     method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateProfile(input: {
+  displayName: string;
+}) {
+  return request<UpdateProfileResponse>('/profile', {
+    method: 'PATCH',
     body: JSON.stringify(input),
   });
 }

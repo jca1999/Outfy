@@ -1,0 +1,88 @@
+{
+  "header": {
+    "eyebrow": "Your account",
+    "title": "My profile",
+    "edit": "Edit profile",
+    "save": "Save",
+    "saving": "Saving…",
+    "signOut": "Sign out"
+  },
+
+  "identity": {
+    "displayName": "Name",
+    "displayNamePlaceholder": "Your name",
+    "username": "Username",
+    "displayNameHelp": "This is the name other people will see on Outfy."
+  },
+
+  "messages": {
+    "saved": "Profile updated.",
+    "nameRequired": "Enter your name.",
+    "nameTooLong": "Your name can't be longer than 60 characters.",
+    "saveError": "We couldn't save your profile. Please try again."
+  },
+
+  "stats": {
+    "plans": "plans completed",
+    "connections": "connections",
+    "rating": "rating"
+  },
+
+  "interests": {
+    "eyebrow": "Your mix",
+    "title": "Interests",
+    "selected_one": "{{count}} selected",
+    "selected_other": "{{count}} selected",
+    "description": "Your interests help us organize plans and connect you with people who enjoy similar things.",
+
+    "categories": {
+      "football": "Football",
+      "cinema": "Cinema",
+      "boardGames": "Board games",
+      "drinks": "Drinks",
+      "hiking": "Hiking",
+      "creative": "Creative",
+      "cooking": "Cooking"
+    },
+
+    "short": {
+      "football": "FB",
+      "cinema": "CI",
+      "boardGames": "BG",
+      "drinks": "DR",
+      "hiking": "HI",
+      "creative": "CR",
+      "cooking": "CO"
+    }
+  },
+
+  "completed": {
+    "eyebrow": "Small victories",
+    "title": "Completed activities",
+    "total": "{{count}} total",
+
+    "relativeDates": {
+      "twoDaysAgo": "2 days ago",
+      "lastWeek": "Last week",
+      "threeWeeksAgo": "3 weeks ago"
+    },
+
+    "activityTitles": {
+      "futbol-parque": "Sunset football game",
+      "cine-verdi": "A movie and a chat afterwards",
+      "juegos-centro": "Discover new board games"
+    }
+  },
+
+  "editing": {
+    "title": "Profile updated",
+    "description": "Your changes are only saved for this test session.",
+    "done": "Done"
+  },
+
+  "story": {
+    "title": "Your profile tells a story.",
+    "description": "Every plan you make opens a new door.",
+    "addInterest": "Add interest"
+  }
+}

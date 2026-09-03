@@ -28,6 +28,7 @@ interface AuthBody {
   token?: unknown;
   tokenHash?: unknown;
   invitationCode?: unknown;
+  displayName?: unknown;
 }
 
 interface ProfileLookup {
@@ -35,6 +36,7 @@ interface ProfileLookup {
   email?: string;
   username?: string;
   username_normalized?: string;
+  display_name?: string | null;
 }
 
 function bodyOf(request: Request): AuthBody {
@@ -179,13 +181,22 @@ function sendError(response: Response, status: number, message: string) {
   response.status(status).json({ error: message });
 }
 
-function publicUser(user: SupabaseUser, displayUsername?: string) {
+function publicUser(
+  user: SupabaseUser,
+  displayUsername?: string,
+  displayName?: string | null,
+) {
   const username = user.user_metadata?.username;
+
   return {
     id: user.id,
     username:
       displayUsername ??
       (typeof username === "string" ? username : "usuario"),
+    displayName:
+      typeof displayName === "string" && displayName.trim()
+        ? displayName.trim()
+        : null,
   };
 }
 
@@ -233,14 +244,27 @@ function setSession(response: Response, session: SupabaseSession) {
 
 async function sessionPayload(user: SupabaseUser) {
   const profileResult = await findProfileByUserId(user.id);
+  const profile =
+    !profileResult.error
+      ? profileResult.data?.[0]
+      : undefined;
+
   const displayUsername =
-    !profileResult.error && profileResult.data?.[0]?.username;
+    typeof profile?.username === "string"
+      ? profile.username
+      : undefined;
+
+  const displayName =
+    typeof profile?.display_name === "string"
+      ? profile.display_name
+      : null;
 
   return {
     authenticated: true,
     user: publicUser(
       user,
-      typeof displayUsername === "string" ? displayUsername : undefined,
+      displayUsername,
+      displayName,
     ),
   };
 }
@@ -297,7 +321,7 @@ async function findProfileByUsername(username: string) {
 async function findProfileByUserId(userId: string) {
   const { data, error } = await getSupabaseAdmin()
     .from("profiles")
-    .select("id,username")
+    .select("id,username,display_name")
     .eq("id", userId)
     .limit(1);
 
@@ -827,6 +851,97 @@ router.post("/auth/reset-password", async (request, response) => {
       response,
       502,
       "No se ha podido cambiar la contraseña.",
+    );
+  }
+});
+
+router.patch("/auth/profile", async (request, response) => {
+  const body = bodyOf(request);
+
+  const displayName =
+    typeof body.displayName === "string"
+      ? body.displayName.trim()
+      : "";
+
+  if (!displayName) {
+    sendError(
+      response,
+      400,
+      "El nombre no puede estar vacío.",
+    );
+    return;
+  }
+
+  if (displayName.length > 60) {
+    sendError(
+      response,
+      400,
+      "El nombre no puede superar los 60 caracteres.",
+    );
+    return;
+  }
+
+  try {
+    const session = await currentSession(
+      request,
+      response,
+    );
+
+    if (!session) {
+      sendError(
+        response,
+        401,
+        "Debes iniciar sesión.",
+      );
+      return;
+    }
+
+    const { data, error } = await getSupabaseAdmin()
+      .from("profiles")
+      .update({
+        display_name: displayName,
+      })
+      .eq("id", session.user.id)
+      .select("id,username,display_name")
+      .limit(1);
+
+    if (error || !data?.[0]) {
+      request.log.error(
+        { err: error, userId: session.user.id },
+        "Unable to update profile",
+      );
+
+      sendError(
+        response,
+        500,
+        "No se ha podido actualizar el perfil.",
+      );
+      return;
+    }
+
+    const profile = data[0];
+
+    response.json({
+      user: publicUser(
+        session.user,
+        typeof profile.username === "string"
+          ? profile.username
+          : undefined,
+        typeof profile.display_name === "string"
+          ? profile.display_name
+          : null,
+      ),
+    });
+  } catch (error) {
+    request.log.error(
+      { err: error },
+      "Profile update failed",
+    );
+
+    sendError(
+      response,
+      500,
+      "No se ha podido actualizar el perfil.",
     );
   }
 });

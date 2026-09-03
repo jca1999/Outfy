@@ -1,0 +1,10 @@
+{
+  "hero": {
+    "greeting": "Hi, {{name}}.",
+    "subtitle": "Something's happening today.",
+    "description": "Real plans, nearby people and a reason to get out. What are you in the mood for?",
+    "explore": "Explore plans",
+    "create": "Suggest a plan",
+    "location": "Zaragoza"
+  }
+}

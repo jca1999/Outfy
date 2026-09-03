@@ -27,6 +27,9 @@ interface AuthContextValue {
     input: { email: string },
   ) => Promise<authApi.AuthMessageResponse>;
   signOut: () => Promise<void>;
+  updateProfile: (input: {
+    displayName: string;
+  }) => Promise<AuthUser>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -74,6 +77,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return nextUser;
       },
       resendVerificationCode: authApi.resendVerificationCode,
+      async updateProfile(input) {
+        const result =
+          await authApi.updateProfile(input);
+
+        setUser(result.user);
+
+        return result.user;
+      },
       async signOut() {
         await authApi.signOut();
         setUser(null);

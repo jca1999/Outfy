@@ -1,0 +1,88 @@
+{
+  "header": {
+    "eyebrow": "Tu cuenta",
+    "title": "Mi perfil",
+    "edit": "Editar perfil",
+    "save": "Guardar",
+    "saving": "Guardando…",
+    "signOut": "Cerrar sesión"
+  },
+
+  "identity": {
+    "displayName": "Nombre",
+    "displayNamePlaceholder": "Tu nombre",
+    "username": "Nombre de usuario",
+    "displayNameHelp": "Este es el nombre que verán las demás personas en Outfy."
+  },
+
+  "messages": {
+    "saved": "Perfil actualizado.",
+    "nameRequired": "Introduce tu nombre.",
+    "nameTooLong": "El nombre no puede superar los 60 caracteres.",
+    "saveError": "No se ha podido guardar el perfil. Inténtalo de nuevo."
+  },
+
+  "stats": {
+    "plans": "planes hechos",
+    "connections": "conexiones",
+    "rating": "valoración"
+  },
+
+  "interests": {
+    "eyebrow": "Tu mezcla",
+    "title": "Intereses",
+    "selected_one": "{{count}} elegido",
+    "selected_other": "{{count}} elegidos",
+    "description": "Tus intereses ayudan a ordenar los planes y acercarte a gente con ganas parecidas.",
+
+    "categories": {
+      "football": "Fútbol",
+      "cinema": "Cine",
+      "boardGames": "Juegos de mesa",
+      "drinks": "Cañas",
+      "hiking": "Senderismo",
+      "creative": "Creativo",
+      "cooking": "Cocina"
+    },
+
+    "short": {
+      "football": "FÚ",
+      "cinema": "CI",
+      "boardGames": "JM",
+      "drinks": "CA",
+      "hiking": "SE",
+      "creative": "CR",
+      "cooking": "CO"
+    }
+  },
+
+  "completed": {
+    "eyebrow": "Pequeñas victorias",
+    "title": "Actividades completadas",
+    "total": "{{count}} en total",
+
+    "relativeDates": {
+      "twoDaysAgo": "Hace 2 días",
+      "lastWeek": "La semana pasada",
+      "threeWeeksAgo": "Hace 3 semanas"
+    },
+
+    "activityTitles": {
+      "futbol-parque": "Partidito de fútbol al atardecer",
+      "cine-verdi": "Una peli y comentarla después",
+      "juegos-centro": "Juegos de mesa para descubrir"
+    }
+  },
+
+  "editing": {
+    "title": "Perfil actualizado",
+    "description": "Tus cambios se guardan solo en esta sesión de prueba.",
+    "done": "Listo"
+  },
+
+  "story": {
+    "title": "Tu perfil cuenta una historia.",
+    "description": "Cada plan que haces abre una puerta nueva.",
+    "addInterest": "Añadir interés"
+  }
+}
