@@ -28,7 +28,9 @@
     "saved": "Profile updated.",
     "nameRequired": "Enter your name.",
     "nameTooLong": "Your name can't be longer than 60 characters.",
-    "saveError": "We couldn't save your profile. Please try again."
+    "saveError": "We couldn't save your profile. Please try again.",
+    "visibilitySaved": "Privacy updated.",
+    "visibilitySaveError": "We couldn't update your privacy settings. Please try again."
   },
 
   "stats": {

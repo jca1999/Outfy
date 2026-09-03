@@ -40,6 +40,11 @@ export function Profile() {
   const [saving, setSaving] =
     useState(false);
 
+  const [
+    savingVisibility,
+    setSavingVisibility,
+  ] = useState(false);
+
   const [error, setError] =
     useState('');
 
@@ -89,7 +94,6 @@ export function Profile() {
     try {
       await updateProfile({
         displayName: normalizedName,
-        displayNameVisibility,
       });
 
       setEditing(false);
@@ -101,6 +105,45 @@ export function Profile() {
     }
   }
 
+  async function handleVisibilityChange(
+    nextVisibility: DisplayNameVisibility,
+  ) {
+    if (
+      nextVisibility === displayNameVisibility ||
+      savingVisibility
+    ) {
+      return;
+    }
+
+    const previousVisibility =
+      displayNameVisibility;
+
+    setDisplayNameVisibility(nextVisibility);
+    setSavingVisibility(true);
+    setError('');
+    setNotice('');
+
+    try {
+      await updateProfile({
+        displayNameVisibility: nextVisibility,
+      });
+
+      setNotice(
+        t('messages.visibilitySaved'),
+      );
+    } catch {
+      setDisplayNameVisibility(
+        previousVisibility,
+      );
+
+      setError(
+        t('messages.visibilitySaveError'),
+      );
+    } finally {
+      setSavingVisibility(false);
+    }
+  }
+  
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -207,45 +250,6 @@ export function Profile() {
                     username: user?.username,
                   })}
                 </p>
-                <div className="mt-5">
-                  <label
-                    htmlFor="display-name-visibility"
-                    className="mb-2 block text-sm font-bold"
-                  >
-                    {t('identity.visibility.label')}
-                  </label>
-
-                  <select
-                    id="display-name-visibility"
-                    value={displayNameVisibility}
-                    onChange={(event) =>
-                      setDisplayNameVisibility(
-                        event.target.value as DisplayNameVisibility,
-                      )
-                    }
-                    className="auth-input"
-                  >
-                    <option value="everyone">
-                      {t('identity.visibility.everyone')}
-                    </option>
-
-                    <option value="shared_activity">
-                      {t('identity.visibility.sharedActivity')}
-                    </option>
-
-                    <option value="friends">
-                      {t('identity.visibility.friends')}
-                    </option>
-
-                    <option value="nobody">
-                      {t('identity.visibility.nobody')}
-                    </option>
-                  </select>
-
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {t('identity.visibility.help')}
-                  </p>
-                </div>
               </div>
             ) : (
               <h2 className="text-2xl font-bold tracking-[-.04em]">
@@ -262,6 +266,93 @@ export function Profile() {
                 @{user?.username}
               </p>
             </div>
+            <fieldset className="mt-6">
+              <div className="flex items-center gap-2">
+                <legend className="text-sm font-bold">
+                  {t('identity.visibility.label')}
+                </legend>
+
+                {savingVisibility && (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                )}
+              </div>
+
+              <div className="mt-3 space-y-2">
+                {(
+                  [
+                    {
+                      value: 'everyone',
+                      label: t(
+                        'identity.visibility.everyone',
+                      ),
+                    },
+                    {
+                      value: 'shared_activity',
+                      label: t(
+                        'identity.visibility.sharedActivity',
+                      ),
+                    },
+                    {
+                      value: 'friends',
+                      label: t(
+                        'identity.visibility.friends',
+                      ),
+                    },
+                    {
+                      value: 'nobody',
+                      label: t(
+                        'identity.visibility.nobody',
+                      ),
+                    },
+                  ] as {
+                    value: DisplayNameVisibility;
+                    label: string;
+                  }[]
+                ).map((option) => {
+                  const selected =
+                    displayNameVisibility === option.value;
+
+                  return (
+                    <label
+                      key={option.value}
+                      className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 transition ${
+                        selected
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-primary/40'
+                      }`}
+                    >
+                      <input
+                        type="radio"
+                        name="display-name-visibility"
+                        value={option.value}
+                        checked={selected}
+                        disabled={savingVisibility}
+                        onChange={() => {
+                          void handleVisibilityChange(
+                            option.value,
+                          );
+                        }}
+                        className="h-4 w-4 accent-primary"
+                      />
+
+                      <span
+                        className={`text-sm ${
+                          selected
+                            ? 'font-bold text-foreground'
+                            : 'font-medium text-muted-foreground'
+                        }`}
+                      >
+                        {option.label}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+
+              <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+                {t('identity.visibility.help')}
+              </p>
+            </fieldset>
           </div>
         </div>
 

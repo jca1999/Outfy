@@ -887,35 +887,71 @@ router.post("/auth/reset-password", async (request, response) => {
 
 router.patch("/auth/profile", async (request, response) => {
   const body = bodyOf(request);
-  const displayName =
-    typeof body.displayName === "string"
-      ? body.displayName.trim()
-      : "";
 
-  const displayNameValue =
-    displayName || null;
+  const hasDisplayName =
+    Object.prototype.hasOwnProperty.call(body, "displayName");
 
-  const displayNameVisibility =
-    isDisplayNameVisibility(body.displayNameVisibility)
-      ? body.displayNameVisibility
-      : null;
+  const hasDisplayNameVisibility =
+    Object.prototype.hasOwnProperty.call(
+      body,
+      "displayNameVisibility",
+    );
 
-  if (!displayNameVisibility) {
+  if (!hasDisplayName && !hasDisplayNameVisibility) {
     sendError(
       response,
       400,
-      "La configuración de privacidad no es válida.",
+      "No se ha indicado ningún cambio.",
     );
     return;
   }
 
-  if (displayName.length > 60) {
-    sendError(
-      response,
-      400,
-      "El nombre no puede superar los 60 caracteres.",
-    );
-    return;
+  const updates: {
+    display_name?: string | null;
+    display_name_visibility?: DisplayNameVisibility;
+  } = {};
+
+  if (hasDisplayName) {
+    if (typeof body.displayName !== "string") {
+      sendError(
+        response,
+        400,
+        "El nombre no es válido.",
+      );
+      return;
+    }
+
+    const displayName = body.displayName.trim();
+
+    if (displayName.length > 60) {
+      sendError(
+        response,
+        400,
+        "El nombre no puede superar los 60 caracteres.",
+      );
+      return;
+    }
+
+    updates.display_name =
+      displayName || null;
+  }
+
+  if (hasDisplayNameVisibility) {
+    if (
+      !isDisplayNameVisibility(
+        body.displayNameVisibility,
+      )
+    ) {
+      sendError(
+        response,
+        400,
+        "La configuración de privacidad no es válida.",
+      );
+      return;
+    }
+
+    updates.display_name_visibility =
+      body.displayNameVisibility;
   }
 
   try {
@@ -935,10 +971,7 @@ router.patch("/auth/profile", async (request, response) => {
 
     const { data, error } = await getSupabaseAdmin()
       .from("profiles")
-      .update({
-        display_name: displayNameValue,
-        display_name_visibility: displayNameVisibility,
-      })
+      .update(updates)
       .eq("id", session.user.id)
       .select(
         "id,username,display_name,display_name_visibility",
@@ -947,7 +980,10 @@ router.patch("/auth/profile", async (request, response) => {
 
     if (error || !data?.[0]) {
       request.log.error(
-        { err: error, userId: session.user.id },
+        {
+          err: error,
+          userId: session.user.id,
+        },
         "Unable to update profile",
       );
 
@@ -970,9 +1006,11 @@ router.patch("/auth/profile", async (request, response) => {
         typeof profile.display_name === "string"
           ? profile.display_name
           : null,
-        isDisplayNameVisibility(profile.display_name_visibility)
-        ? profile.display_name_visibility
-        : "shared_activity",
+        isDisplayNameVisibility(
+          profile.display_name_visibility,
+        )
+          ? profile.display_name_visibility
+          : "shared_activity",
       ),
     });
   } catch (error) {

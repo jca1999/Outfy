@@ -31,8 +31,8 @@ interface AuthContextValue {
   ) => Promise<authApi.AuthMessageResponse>;
   signOut: () => Promise<void>;
   updateProfile: (input: {
-    displayName: string;
-    displayNameVisibility: DisplayNameVisibility;
+    displayName?: string;
+    displayNameVisibility?: DisplayNameVisibility;
   }) => Promise<AuthUser>;
 }
 

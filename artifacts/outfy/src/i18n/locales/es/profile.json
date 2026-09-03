@@ -28,7 +28,9 @@
     "saved": "Perfil actualizado.",
     "nameRequired": "Introduce tu nombre.",
     "nameTooLong": "El nombre no puede superar los 60 caracteres.",
-    "saveError": "No se ha podido guardar el perfil. Inténtalo de nuevo."
+    "saveError": "No se ha podido guardar el perfil. Inténtalo de nuevo.",
+    "visibilitySaved": "Privacidad actualizada.",
+    "visibilitySaveError": "No se ha podido cambiar la privacidad. Inténtalo de nuevo."
   },
 
   "stats": {

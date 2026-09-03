@@ -122,8 +122,8 @@ export function resetPassword(input: {
 }
 
 export function updateProfile(input: {
-  displayName: string;
-  displayNameVisibility: DisplayNameVisibility;
+  displayName?: string;
+  displayNameVisibility?: DisplayNameVisibility;
 }) {
   return request<UpdateProfileResponse>('/profile', {
     method: 'PATCH',
