@@ -10,7 +10,7 @@
 
   "identity": {
     "displayName": "What should we call you?",
-    "displayNamePlaceholder": "Javier, Javi, Minihades...",
+    "displayNamePlaceholder": "Enter your name or nickname",
     "username": "Username",
     "displayNameHelp": "It can be your name, nickname or whatever you'd like people to call you on Outfy.",
     "displayNameFallback": "If you leave it empty, we'll use @{{username}}.",
