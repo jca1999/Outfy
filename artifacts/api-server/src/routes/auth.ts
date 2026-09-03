@@ -47,6 +47,7 @@ interface AuthBody {
   invitationCode?: unknown;
   displayName?: unknown;
   displayNameVisibility?: unknown;
+  homeCity?: unknown;
 }
 
 interface ProfileLookup {
@@ -56,6 +57,7 @@ interface ProfileLookup {
   username_normalized?: string;
   display_name?: string | null;
   display_name_visibility?: DisplayNameVisibility | null;
+  home_city?: string | null;
 }
 
 function bodyOf(request: Request): AuthBody {
@@ -338,7 +340,7 @@ async function findProfileByUsername(username: string) {
 
   const { data, error } = await getSupabaseAdmin()
     .from("profiles")
-    .select("id,email,username,username_normalized")
+    .select("id,username,display_name,display_name_visibility,home_city")
     .eq("username_normalized", normalizedUsername)
     .limit(1);
 
@@ -351,7 +353,7 @@ async function findProfileByUsername(username: string) {
 async function findProfileByUserId(userId: string) {
   const { data, error } = await getSupabaseAdmin()
     .from("profiles")
-    .select("id,username,display_name,display_name_visibility")
+    .select("id,username,display_name,display_name_visibility,home_city")
     .eq("id", userId)
     .limit(1);
 
@@ -974,7 +976,7 @@ router.patch("/auth/profile", async (request, response) => {
       .update(updates)
       .eq("id", session.user.id)
       .select(
-        "id,username,display_name,display_name_visibility",
+        "id,username,display_name,display_name_visibility,home_city",
       )
       .limit(1);
 

@@ -9,6 +9,7 @@ export interface AuthUser {
   username: string;
   displayName: string | null;
   displayNameVisibility: DisplayNameVisibility;
+  homeCity: string | null;
 }
 
 export interface UpdateProfileResponse {
@@ -124,6 +125,7 @@ export function resetPassword(input: {
 export function updateProfile(input: {
   displayName?: string;
   displayNameVisibility?: DisplayNameVisibility;
+  homeCity?: string;
 }) {
   return request<UpdateProfileResponse>('/profile', {
     method: 'PATCH',

@@ -33,6 +33,7 @@ interface AuthContextValue {
   updateProfile: (input: {
     displayName?: string;
     displayNameVisibility?: DisplayNameVisibility;
+    homeCity?: string;
   }) => Promise<AuthUser>;
 }
 
