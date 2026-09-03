@@ -15,8 +15,8 @@
     "displayNameHelp": "It can be your name, nickname or whatever you'd like people to call you on Outfy.",
     "displayNameFallback": "If you leave it empty, we'll use @{{username}}.",
     "visibility": {
-      "label": "Who can see this name",
-      "help": "This doesn't change how Outfy addresses you inside your own account.",
+      "label": "Who can see your name or nickname",
+      "help": "Choose who can see the name or nickname you entered above.",
       "everyone": "Everyone",
       "sharedActivity": "People who share an activity with you",
       "friends": "Friends only",

@@ -15,8 +15,8 @@
     "displayNameHelp": "Puede ser tu nombre, apodo o como prefieras que te llamen en Outfy.",
     "displayNameFallback": "Si lo dejas vacío, usaremos @{{username}}.",
     "visibility": {
-      "label": "Quién puede ver este nombre",
-      "help": "Esto no cambia cómo te llamamos dentro de tu propia cuenta.",
+      "label": "Quién puede ver tu nombre o apodo",
+      "help": "Elige quién puede ver el nombre o apodo que has indicado arriba.",
       "everyone": "Todo el mundo",
       "sharedActivity": "Personas con las que compartas una actividad",
       "friends": "Solo amigos",
