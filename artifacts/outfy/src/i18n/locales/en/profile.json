@@ -47,6 +47,13 @@
       "geolocationUnsupported": "Your browser can't detect your location. You can choose it manually.",
       "permissionDenied": "Location permission was denied. You can choose your city manually.",
       "detectionFailed": "We couldn't determine your city. You can choose it manually."
+    },
+    "profilePrivacy": {
+      "label": "Profile privacy",
+      "privateProfile": "Private profile",
+      "help": "Turn this on if you want to limit who can view your profile.",
+      "publicStatus": "Your profile is public.",
+      "privateStatus": "Your profile is private."
     }
   },
 
@@ -58,7 +65,9 @@
     "visibilitySaved": "Privacy updated.",
     "visibilitySaveError": "We couldn't update your privacy settings. Please try again.",
     "cityTooLong": "Your location can't be longer than 80 characters.",
-    "locationIncomplete": "Complete the country, region, and city selection before saving."
+    "locationIncomplete": "Complete the country, region, and city selection before saving.",
+    "profilePrivacySaved": "Profile privacy updated.",
+    "profilePrivacySaveError": "We couldn't update your profile privacy. Please try again."
   },
 
   "stats": {

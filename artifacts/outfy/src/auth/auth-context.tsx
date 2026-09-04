@@ -36,6 +36,7 @@ interface AuthContextValue {
     displayNameVisibility?: DisplayNameVisibility;
     homeCity?: string;
     homeLocation?: HomeLocation | null;
+    isProfilePrivate?: boolean;
   }) => Promise<AuthUser>;
 }
 

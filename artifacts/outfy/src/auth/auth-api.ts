@@ -21,6 +21,7 @@ export interface AuthUser {
   displayNameVisibility: DisplayNameVisibility;
   homeCity: string | null;
   homeLocation: HomeLocation | null;
+  isProfilePrivate: boolean;
 }
 
 export interface UpdateProfileResponse {
@@ -138,6 +139,7 @@ export function updateProfile(input: {
   displayNameVisibility?: DisplayNameVisibility;
   homeCity?: string;
   homeLocation?: HomeLocation | null;
+  isProfilePrivate?: boolean;
 }) {
   return request<UpdateProfileResponse>('/profile', {
     method: 'PATCH',

@@ -61,6 +61,16 @@ export function Profile() {
     setSavingVisibility,
   ] = useState(false);
 
+  const [
+    isProfilePrivate,
+    setIsProfilePrivate,
+  ] = useState(false);
+
+  const [
+    savingProfilePrivacy,
+    setSavingProfilePrivacy,
+  ] = useState(false);
+
   const [error, setError] =
     useState('');
 
@@ -86,6 +96,10 @@ export function Profile() {
     setDisplayNameVisibility(
       user?.displayNameVisibility ??
         'shared_activity',
+    );
+
+    setIsProfilePrivate(
+      user?.isProfilePrivate ?? false,
     );
   }, [user]);
 
@@ -182,6 +196,43 @@ export function Profile() {
       );
     } finally {
       setSavingVisibility(false);
+    }
+  }
+
+  async function handleProfilePrivacyChange() {
+    if (savingProfilePrivacy) {
+      return;
+    }
+
+    const previousValue =
+      isProfilePrivate;
+
+    const nextValue =
+      !isProfilePrivate;
+
+    setIsProfilePrivate(nextValue);
+    setSavingProfilePrivacy(true);
+    setError('');
+    setNotice('');
+
+    try {
+      await updateProfile({
+        isProfilePrivate: nextValue,
+      });
+
+      setNotice(
+        t('messages.profilePrivacySaved'),
+      );
+    } catch {
+      setIsProfilePrivate(
+        previousValue,
+      );
+
+      setError(
+        t('messages.profilePrivacySaveError'),
+      );
+    } finally {
+      setSavingProfilePrivacy(false);
     }
   }
   
@@ -418,6 +469,69 @@ export function Profile() {
                 {t('identity.visibility.help')}
               </p>
             </fieldset>
+
+            <div className="mt-6 border-t border-border pt-6">
+              <div className="flex items-start justify-between gap-5">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold">
+                    {t(
+                      'identity.profilePrivacy.label',
+                    )}
+                  </p>
+
+                  <p className="mt-1 text-sm font-semibold text-foreground">
+                    {t(
+                      'identity.profilePrivacy.privateProfile',
+                    )}
+                  </p>
+
+                  <p className="mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">
+                    {t(
+                      'identity.profilePrivacy.help',
+                    )}
+                  </p>
+
+                  <p className="mt-2 text-xs font-semibold text-primary">
+                    {isProfilePrivate
+                      ? t(
+                          'identity.profilePrivacy.privateStatus',
+                        )
+                      : t(
+                          'identity.profilePrivacy.publicStatus',
+                        )}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {savingProfilePrivacy && (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  )}
+
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={isProfilePrivate}
+                    disabled={savingProfilePrivacy}
+                    onClick={() => {
+                      void handleProfilePrivacyChange();
+                    }}
+                    className={`relative h-7 w-12 shrink-0 rounded-full p-1 transition ${
+                      isProfilePrivate
+                        ? 'bg-primary'
+                        : 'bg-muted'
+                    } disabled:opacity-60`}
+                  >
+                    <span
+                      className={`block h-5 w-5 rounded-full transition-transform ${
+                        isProfilePrivate
+                          ? 'translate-x-5 bg-primary-foreground'
+                          : 'translate-x-0 bg-foreground'
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

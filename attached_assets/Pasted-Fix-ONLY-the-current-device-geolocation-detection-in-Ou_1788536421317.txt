@@ -1,0 +1,177 @@
+Fix ONLY the current-device geolocation detection in Outfy.
+
+IMPORTANT:
+- Inspect the current code before changing anything.
+- Do NOT rewrite the location picker unnecessarily.
+- Preserve the existing manual Country -> Region -> City searchable selectors.
+- Preserve all currently working Profile, Auth, Home, ES/EN and display-name privacy functionality.
+- Do NOT deploy or publish.
+- Do NOT modify `.replit`.
+- Do NOT modify Replit workflows, Run button configuration, ports, health checks, deployment configuration, runtime configuration or startup commands.
+- If you believe any of those execution/configuration files need to change, STOP and tell me instead.
+
+CURRENT FILE:
+artifacts/outfy/src/components/location-picker.tsx
+
+CURRENT PROBLEM:
+Clicking "Usar mi ubicación actual" successfully gets through the browser geolocation flow, but Outfy then shows:
+
+"No hemos podido determinar tu ciudad. Puedes elegirla manualmente."
+
+The current implementation uses the public Nominatim/OpenStreetMap reverse-geocoding endpoint and then requires exact text matches between the reverse-geocoder result and @countrystatecity/countries-browser.
+
+This is too brittle.
+
+GOAL:
+Make "Use my current location" reliably determine the user's Country / Region / City while preserving the existing manual location picker.
+
+1. REVERSE GEOCODING
+
+Replace the current Nominatim reverse-geocoding call with BigDataCloud's FREE CLIENT-SIDE reverse-geocoding endpoint:
+
+https://api.bigdatacloud.net/data/reverse-geocode-client
+
+This endpoint:
+- is intended for client-side browser/mobile use
+- does not require an API key
+- must be called directly from the browser
+- must use the CURRENT coordinates obtained from navigator.geolocation
+
+Pass:
+- latitude
+- longitude
+- localityLanguage based on the current Outfy language (es/en)
+
+Do NOT call the endpoint without GPS coordinates as an IP fallback.
+If the user denies GPS permission, keep the existing manual-selection behaviour.
+
+Expected useful response fields include:
+- countryCode
+- countryName
+- principalSubdivision
+- principalSubdivisionCode
+- city
+- locality
+
+2. ROBUST COUNTRY MATCHING
+
+Match the country primarily using the ISO country code returned by BigDataCloud.
+
+Do not depend on translated country names.
+
+3. ROBUST REGION MATCHING
+
+Use principalSubdivisionCode first when possible.
+
+For example, if it returns something like:
+ES-AR
+
+compare the subdivision portion to the state/region codes available from @countrystatecity/countries-browser.
+
+If that does not match, fall back to normalized-name matching.
+
+Name matching must:
+- ignore case
+- ignore accents/diacritics
+- trim whitespace
+
+Do not fail immediately merely because the reverse-geocoder and the local dataset use slightly different spellings.
+
+4. ROBUST CITY MATCHING
+
+After loading cities for the matched region:
+
+First try a normalized match using:
+- BigDataCloud `city`
+- then `locality`
+
+Ignore case and accents.
+
+If there is no exact normalized match, find the NEAREST city in the loaded @countrystatecity dataset using the device GPS coordinates and each city's latitude/longitude.
+
+Use a Haversine distance helper.
+
+Do NOT save the user's exact GPS coordinates.
+
+Once a city is matched, save the latitude and longitude belonging to the MATCHED CITY from the local city dataset.
+
+If no reasonable city can be determined, show the translated detection error and leave the manual selectors usable.
+
+Do not silently choose a clearly incorrect distant city.
+
+5. UI STATE
+
+When location detection succeeds:
+- populate Country
+- populate Province / Region
+- populate City
+- mark the location valid
+- clear the error
+- keep the normal Profile Save button behaviour
+
+The user must still press Save to persist the location.
+
+6. PRIVACY
+
+The exact device latitude/longitude must only be held temporarily in memory to perform the lookup.
+
+Do not:
+- send exact GPS coordinates to the Outfy backend
+- save exact GPS coordinates in Supabase
+- expose exact GPS coordinates in the UI
+
+Only the third-party client-side reverse-geocoder receives the current coordinates.
+
+Keep or improve the existing translated privacy explanation so it clearly says that Outfy does not store the exact position and only uses it temporarily to determine the city.
+
+7. ERRORS
+
+Preserve separate translated handling for:
+- permission denied
+- geolocation unsupported
+- device geolocation timeout/failure
+- reverse-geocoding failure
+- unable to match a valid city
+
+Manual Country -> Region -> City selection must remain available after ANY GPS error.
+
+Add ES and EN translation keys if needed.
+Be extremely careful with JSON commas.
+
+8. DO NOT CHANGE
+
+Do NOT modify:
+- backend auth/profile architecture unless absolutely necessary
+- Supabase schema
+- Home behaviour
+- manual location picker UX
+- display-name privacy radio buttons
+- authentication
+- `.replit`
+- workflows
+- ports
+- deployment settings
+
+This should mainly be a frontend fix inside location-picker.tsx and translation files if needed.
+
+9. TESTING
+
+After the change run:
+
+pnpm --filter @workspace/outfy run typecheck
+
+and:
+
+PORT=5173 BASE_PATH=/ pnpm --filter @workspace/outfy run build
+
+Fix only errors introduced by this change.
+
+Do not deploy.
+
+At the end report:
+1. files changed
+2. exactly why GPS detection was failing
+3. how the new matching works
+4. typecheck result
+5. build result
+6. manual tests I should perform

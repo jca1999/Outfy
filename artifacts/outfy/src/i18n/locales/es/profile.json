@@ -47,6 +47,13 @@
       "geolocationUnsupported": "Tu navegador no permite detectar la ubicación. Puedes elegirla manualmente.",
       "permissionDenied": "Has denegado el permiso de ubicación. Puedes elegir tu ciudad manualmente.",
       "detectionFailed": "No hemos podido determinar tu ciudad. Puedes elegirla manualmente."
+    },
+    "profilePrivacy": {
+      "label": "Privacidad del perfil",
+      "privateProfile": "Perfil privado",
+      "help": "Actívalo si quieres limitar quién puede ver tu perfil.",
+      "publicStatus": "Tu perfil es público.",
+      "privateStatus": "Tu perfil es privado."
     }
   },
 
@@ -58,7 +65,9 @@
     "visibilitySaved": "Privacidad actualizada.",
     "visibilitySaveError": "No se ha podido cambiar la privacidad. Inténtalo de nuevo.",
     "cityTooLong": "La ubicación no puede superar los 80 caracteres.",
-    "locationIncomplete": "Completa la selección de país, región y ciudad antes de guardar."
+    "locationIncomplete": "Completa la selección de país, región y ciudad antes de guardar.",
+    "profilePrivacySaved": "Privacidad del perfil actualizada.",
+    "profilePrivacySaveError": "No se ha podido cambiar la privacidad del perfil. Inténtalo de nuevo."
   },
 
   "stats": {

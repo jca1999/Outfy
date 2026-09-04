@@ -49,6 +49,7 @@ interface AuthBody {
   displayNameVisibility?: unknown;
   homeCity?: unknown;
   homeLocation?: unknown;
+  isProfilePrivate?: unknown;
 }
 
 interface ProfileLookup {
@@ -65,6 +66,7 @@ interface ProfileLookup {
   home_region?: string | null;
   home_latitude?: number | null;
   home_longitude?: number | null;
+  is_profile_private?: boolean | null;
 }
 
 interface HomeLocation {
@@ -89,8 +91,7 @@ function isNonEmptyString(value: unknown): value is string {
 
 function isEmail(value: unknown): value is string {
   return (
-    isNonEmptyString(value) &&
-    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+    isNonEmptyString(value) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
   );
 }
 
@@ -102,9 +103,7 @@ function isUsername(value: unknown): value is string {
   );
 }
 
-function parseHomeLocation(
-  value: unknown,
-): HomeLocation | null | undefined {
+function parseHomeLocation(value: unknown): HomeLocation | null | undefined {
   if (value === null) {
     return null;
   }
@@ -119,13 +118,8 @@ function parseHomeLocation(
       ? location.countryCode.trim().toUpperCase()
       : "";
   const country =
-    typeof location.country === "string"
-      ? location.country.trim()
-      : "";
-  const city =
-    typeof location.city === "string"
-      ? location.city.trim()
-      : "";
+    typeof location.country === "string" ? location.country.trim() : "";
+  const city = typeof location.city === "string" ? location.city.trim() : "";
   const regionCode =
     location.regionCode === undefined || location.regionCode === null
       ? null
@@ -220,7 +214,8 @@ function isSupabaseSession(value: unknown): value is SupabaseSession {
     value &&
       typeof value === "object" &&
       typeof (value as { access_token?: unknown }).access_token === "string" &&
-      typeof (value as { refresh_token?: unknown }).refresh_token === "string" &&
+      typeof (value as { refresh_token?: unknown }).refresh_token ===
+        "string" &&
       isSupabaseUser((value as { user?: unknown }).user),
   );
 }
@@ -314,24 +309,23 @@ function publicUser(
   displayNameVisibility: DisplayNameVisibility = "shared_activity",
   homeCity?: string | null,
   homeLocation: HomeLocation | null = null,
+  isProfilePrivate = false,
 ) {
   const username = user.user_metadata?.username;
 
   return {
     id: user.id,
     username:
-      displayUsername ??
-      (typeof username === "string" ? username : "usuario"),
+      displayUsername ?? (typeof username === "string" ? username : "usuario"),
     displayName:
       typeof displayName === "string" && displayName.trim()
         ? displayName.trim()
         : null,
     displayNameVisibility,
     homeCity:
-      typeof homeCity === "string" && homeCity.trim()
-        ? homeCity.trim()
-        : null,
+      typeof homeCity === "string" && homeCity.trim() ? homeCity.trim() : null,
     homeLocation,
+    isProfilePrivate,
   };
 }
 
@@ -379,30 +373,24 @@ function setSession(response: Response, session: SupabaseSession) {
 
 async function sessionPayload(user: SupabaseUser) {
   const profileResult = await findProfileByUserId(user.id);
-  const profile =
-    !profileResult.error
-      ? profileResult.data?.[0]
-      : undefined;
+  const profile = !profileResult.error ? profileResult.data?.[0] : undefined;
 
   const displayUsername =
-    typeof profile?.username === "string"
-      ? profile.username
-      : undefined;
+    typeof profile?.username === "string" ? profile.username : undefined;
 
   const displayName =
-    typeof profile?.display_name === "string"
-      ? profile.display_name
-      : null;
+    typeof profile?.display_name === "string" ? profile.display_name : null;
 
-  const displayNameVisibility =
-    isDisplayNameVisibility(profile?.display_name_visibility)
-      ? profile.display_name_visibility
-      : "shared_activity";
+  const displayNameVisibility = isDisplayNameVisibility(
+    profile?.display_name_visibility,
+  )
+    ? profile.display_name_visibility
+    : "shared_activity";
 
   const homeCity =
-    typeof profile?.home_city === "string"
-      ? profile.home_city
-      : null;
+    typeof profile?.home_city === "string" ? profile.home_city : null;
+
+  const isProfilePrivate = profile?.is_profile_private === true;
 
   return {
     authenticated: true,
@@ -412,6 +400,8 @@ async function sessionPayload(user: SupabaseUser) {
       displayName,
       displayNameVisibility,
       homeCity,
+      null,
+      isProfilePrivate,
     ),
   };
 }
@@ -447,7 +437,9 @@ async function currentSession(request: Request, response: Response) {
   }
 
   const refreshed = await refreshSession(request, response);
-  return refreshed?.user ? { accessToken: refreshed.access_token, user: refreshed.user } : null;
+  return refreshed?.user
+    ? { accessToken: refreshed.access_token, user: refreshed.user }
+    : null;
 }
 
 async function findProfileByUsername(username: string) {
@@ -455,9 +447,7 @@ async function findProfileByUsername(username: string) {
 
   const { data, error } = await getSupabaseAdmin()
     .from("profiles")
-    .select(
-      "id,email,username,display_name,display_name_visibility,home_city",
-    )
+    .select("id,email,username,display_name,display_name_visibility,home_city")
     .eq("username_normalized", normalizedUsername)
     .limit(1);
 
@@ -470,7 +460,9 @@ async function findProfileByUsername(username: string) {
 async function findProfileByUserId(userId: string) {
   const { data, error } = await getSupabaseAdmin()
     .from("profiles")
-    .select("id,username,display_name,display_name_visibility,home_city")
+    .select(
+      "id,username,display_name,display_name_visibility,home_city,is_profile_private",
+    )
     .eq("id", userId)
     .limit(1);
 
@@ -502,9 +494,7 @@ router.post("/auth/sign-in", async (request, response) => {
     ? body.username.trim()
     : "";
 
-  const password = isNonEmptyString(body.password)
-    ? body.password
-    : "";
+  const password = isNonEmptyString(body.password) ? body.password : "";
 
   if (!identifier || !password) {
     sendError(
@@ -521,8 +511,7 @@ router.post("/auth/sign-in", async (request, response) => {
     if (isEmail(identifier)) {
       loginEmail = identifier.toLowerCase();
     } else if (isUsername(identifier)) {
-      const profileResult =
-        await findProfileByUsername(identifier);
+      const profileResult = await findProfileByUsername(identifier);
 
       if (
         profileResult.error ||
@@ -537,10 +526,7 @@ router.post("/auth/sign-in", async (request, response) => {
         return;
       }
 
-      loginEmail =
-        profileResult.data[0].email
-          .trim()
-          .toLowerCase();
+      loginEmail = profileResult.data[0].email.trim().toLowerCase();
     } else {
       sendError(
         response,
@@ -550,56 +536,36 @@ router.post("/auth/sign-in", async (request, response) => {
       return;
     }
 
-    const loginResult =
-      await supabaseRequest<SupabaseSession>(
-        "/auth/v1/token?grant_type=password",
-        {
-          method: "POST",
-          body: {
-            email: loginEmail,
-            password,
-          },
+    const loginResult = await supabaseRequest<SupabaseSession>(
+      "/auth/v1/token?grant_type=password",
+      {
+        method: "POST",
+        body: {
+          email: loginEmail,
+          password,
         },
+      },
+    );
+
+    if (!loginResult.response.ok || !loginResult.data?.user) {
+      const providerError = getSupabaseError(
+        loginResult.data,
+        "El usuario, correo o contraseña no son correctos.",
       );
 
-    if (
-      !loginResult.response.ok ||
-      !loginResult.data?.user
-    ) {
-      const providerError =
-        getSupabaseError(
-          loginResult.data,
-          "El usuario, correo o contraseña no son correctos.",
-        );
+      const message = /confirm|verified/i.test(providerError)
+        ? "Confirma tu correo electrónico antes de iniciar sesión."
+        : "El usuario, correo o contraseña no son correctos.";
 
-      const message =
-        /confirm|verified/i.test(providerError)
-          ? "Confirma tu correo electrónico antes de iniciar sesión."
-          : "El usuario, correo o contraseña no son correctos.";
-
-      sendError(
-        response,
-        400,
-        message,
-      );
+      sendError(response, 400, message);
       return;
     }
 
-    setSession(
-      response,
-      loginResult.data,
-    );
+    setSession(response, loginResult.data);
 
-    response.json(
-      await sessionPayload(
-        loginResult.data.user,
-      ),
-    );
+    response.json(await sessionPayload(loginResult.data.user));
   } catch (error) {
-    request.log.error(
-      { err: error },
-      "Supabase sign in failed",
-    );
+    request.log.error({ err: error }, "Supabase sign in failed");
 
     sendError(
       response,
@@ -619,7 +585,11 @@ router.post("/auth/sign-up", async (request, response) => {
     : "";
 
   if (!username) {
-    sendError(response, 400, "El nombre de usuario es obligatorio y no puede contener espacios.");
+    sendError(
+      response,
+      400,
+      "El nombre de usuario es obligatorio y no puede contener espacios.",
+    );
     return;
   }
   if (!email) {
@@ -650,7 +620,7 @@ router.post("/auth/sign-up", async (request, response) => {
       return;
     }
     if (existingProfile.data?.length) {
-       sendError(response, 409, "Este nombre de usuario ya está en uso");
+      sendError(response, 409, "Este nombre de usuario ya está en uso");
       return;
     }
 
@@ -696,10 +666,7 @@ router.post("/auth/sign-up", async (request, response) => {
         return;
       }
 
-      const providerError = getSupabaseError(
-        signupResult.data,
-        "",
-      );
+      const providerError = getSupabaseError(signupResult.data, "");
       request.log.warn(
         {
           status: signupResult.response.status,
@@ -790,7 +757,11 @@ router.post("/auth/sign-up", async (request, response) => {
     });
   } catch (error) {
     request.log.error({ err: error }, "Supabase sign up failed");
-    sendError(response, 502, "No se ha podido conectar con el servicio de registro.");
+    sendError(
+      response,
+      502,
+      "No se ha podido conectar con el servicio de registro.",
+    );
   }
 });
 
@@ -800,7 +771,11 @@ router.post("/auth/verify-email", async (request, response) => {
   const token = typeof body.token === "string" ? body.token.trim() : "";
 
   if (!email || !/^\d{6}$/.test(token)) {
-    sendError(response, 400, "Introduce el código de seis cifras que has recibido.");
+    sendError(
+      response,
+      400,
+      "Introduce el código de seis cifras que has recibido.",
+    );
     return;
   }
 
@@ -815,9 +790,13 @@ router.post("/auth/verify-email", async (request, response) => {
         verificationResult.data,
         "El código no es válido o ha caducado.",
       );
-      sendError(response, 400, /expired|invalid|token/i.test(message)
-        ? "El código no es válido o ha caducado."
-        : message);
+      sendError(
+        response,
+        400,
+        /expired|invalid|token/i.test(message)
+          ? "El código no es válido o ha caducado."
+          : message,
+      );
       return;
     }
 
@@ -825,7 +804,11 @@ router.post("/auth/verify-email", async (request, response) => {
     response.json(await sessionPayload(verificationResult.data.user));
   } catch (error) {
     request.log.error({ err: error }, "Supabase email verification failed");
-    sendError(response, 502, "No se ha podido verificar el correo electrónico.");
+    sendError(
+      response,
+      502,
+      "No se ha podido verificar el correo electrónico.",
+    );
   }
 });
 
@@ -839,10 +822,10 @@ router.post("/auth/resend-code", async (request, response) => {
   }
 
   try {
-    const resendResult = await supabaseRequest(
-      "/auth/v1/resend",
-      { method: "POST", body: { type: "signup", email } },
-    );
+    const resendResult = await supabaseRequest("/auth/v1/resend", {
+      method: "POST",
+      body: { type: "signup", email },
+    });
 
     if (!resendResult.response.ok) {
       sendError(response, 400, "No se ha podido reenviar el código.");
@@ -858,9 +841,7 @@ router.post("/auth/resend-code", async (request, response) => {
 
 router.post("/auth/forgot-password", async (request, response) => {
   const body = bodyOf(request);
-  const email = isEmail(body.email)
-    ? body.email.trim().toLowerCase()
-    : "";
+  const email = isEmail(body.email) ? body.email.trim().toLowerCase() : "";
 
   if (!email) {
     sendError(response, 400, "Introduce un correo electrónico válido.");
@@ -908,10 +889,7 @@ router.post("/auth/forgot-password", async (request, response) => {
         "Si existe una cuenta asociada a ese correo, recibirás un enlace para restablecer tu contraseña.",
     });
   } catch (error) {
-    request.log.error(
-      { err: error },
-      "Password recovery request failed",
-    );
+    request.log.error({ err: error }, "Password recovery request failed");
 
     sendError(
       response,
@@ -928,16 +906,10 @@ router.post("/auth/reset-password", async (request, response) => {
     ? body.tokenHash.trim()
     : "";
 
-  const password = isNonEmptyString(body.password)
-    ? body.password
-    : "";
+  const password = isNonEmptyString(body.password) ? body.password : "";
 
   if (password.length < 8) {
-    sendError(
-      response,
-      400,
-      "La contraseña debe tener al menos 8 caracteres.",
-    );
+    sendError(response, 400, "La contraseña debe tener al menos 8 caracteres.");
     return;
   }
 
@@ -954,17 +926,16 @@ router.post("/auth/reset-password", async (request, response) => {
         return;
       }
 
-      const verificationResult =
-        await supabaseRequest<SupabaseSession>(
-          "/auth/v1/verify",
-          {
-            method: "POST",
-            body: {
-              type: "recovery",
-              token_hash: tokenHash,
-            },
+      const verificationResult = await supabaseRequest<SupabaseSession>(
+        "/auth/v1/verify",
+        {
+          method: "POST",
+          body: {
+            type: "recovery",
+            token_hash: tokenHash,
           },
-        );
+        },
+      );
 
       if (
         !verificationResult.response.ok ||
@@ -980,29 +951,21 @@ router.post("/auth/reset-password", async (request, response) => {
         return;
       }
 
-      recoveryAccessToken =
-        verificationResult.data.access_token;
+      recoveryAccessToken = verificationResult.data.access_token;
 
-      setRecoverySession(
-        response,
-        recoveryAccessToken,
-      );
+      setRecoverySession(response, recoveryAccessToken);
     }
 
-    const updateResult = await supabaseRequest<SupabaseUser>(
-      "/auth/v1/user",
-      {
-        method: "PUT",
-        authorization: `Bearer ${recoveryAccessToken}`,
-        body: {
-          password,
-        },
+    const updateResult = await supabaseRequest<SupabaseUser>("/auth/v1/user", {
+      method: "PUT",
+      authorization: `Bearer ${recoveryAccessToken}`,
+      body: {
+        password,
       },
-    );
+    });
 
     if (!updateResult.response.ok || !updateResult.data?.id) {
-      const errorCode =
-        getSupabaseErrorCode(updateResult.data);
+      const errorCode = getSupabaseErrorCode(updateResult.data);
 
       request.log.warn(
         {
@@ -1030,11 +993,7 @@ router.post("/auth/reset-password", async (request, response) => {
         return;
       }
 
-      sendError(
-        response,
-        400,
-        "No se ha podido guardar la nueva contraseña.",
-      );
+      sendError(response, 400, "No se ha podido guardar la nueva contraseña.");
       return;
     }
 
@@ -1054,49 +1013,41 @@ router.post("/auth/reset-password", async (request, response) => {
       message: "Tu contraseña se ha actualizado correctamente.",
     });
   } catch (error) {
-    request.log.error(
-      { err: error },
-      "Password reset failed",
-    );
+    request.log.error({ err: error }, "Password reset failed");
 
     clearRecoverySession(response);
 
-    sendError(
-      response,
-      502,
-      "No se ha podido cambiar la contraseña.",
-    );
+    sendError(response, 502, "No se ha podido cambiar la contraseña.");
   }
 });
 
 router.patch("/auth/profile", async (request, response) => {
   const body = bodyOf(request);
 
-  const hasDisplayName =
-    Object.prototype.hasOwnProperty.call(body, "displayName");
+  const hasDisplayName = Object.prototype.hasOwnProperty.call(
+    body,
+    "displayName",
+  );
 
-  const hasDisplayNameVisibility =
-    Object.prototype.hasOwnProperty.call(
-      body,
-      "displayNameVisibility",
-    );
+  const hasDisplayNameVisibility = Object.prototype.hasOwnProperty.call(
+    body,
+    "displayNameVisibility",
+  );
 
-  const hasHomeCity =
-    Object.prototype.hasOwnProperty.call(
-      body,
-      "homeCity",
-    );
+  const hasHomeCity = Object.prototype.hasOwnProperty.call(body, "homeCity");
+
+  const hasProfilePrivacy = Object.prototype.hasOwnProperty.call(
+    body,
+    "isProfilePrivate",
+  );
 
   if (
     !hasDisplayName &&
     !hasDisplayNameVisibility &&
-    !hasHomeCity
+    !hasHomeCity &&
+    !hasProfilePrivacy
   ) {
-    sendError(
-      response,
-      400,
-      "No se ha indicado ningún cambio.",
-    );
+    sendError(response, 400, "No se ha indicado ningún cambio.");
     return;
   }
 
@@ -1104,58 +1055,37 @@ router.patch("/auth/profile", async (request, response) => {
     display_name?: string | null;
     display_name_visibility?: DisplayNameVisibility;
     home_city?: string | null;
+    is_profile_private?: boolean;
   } = {};
 
   if (hasDisplayName) {
     if (typeof body.displayName !== "string") {
-      sendError(
-        response,
-        400,
-        "El nombre no es válido.",
-      );
+      sendError(response, 400, "El nombre no es válido.");
       return;
     }
 
     const displayName = body.displayName.trim();
 
     if (displayName.length > 60) {
-      sendError(
-        response,
-        400,
-        "El nombre no puede superar los 60 caracteres.",
-      );
+      sendError(response, 400, "El nombre no puede superar los 60 caracteres.");
       return;
     }
 
-    updates.display_name =
-      displayName || null;
+    updates.display_name = displayName || null;
   }
 
   if (hasDisplayNameVisibility) {
-    if (
-      !isDisplayNameVisibility(
-        body.displayNameVisibility,
-      )
-    ) {
-      sendError(
-        response,
-        400,
-        "La configuración de privacidad no es válida.",
-      );
+    if (!isDisplayNameVisibility(body.displayNameVisibility)) {
+      sendError(response, 400, "La configuración de privacidad no es válida.");
       return;
     }
 
-    updates.display_name_visibility =
-      body.displayNameVisibility;
+    updates.display_name_visibility = body.displayNameVisibility;
   }
-  
+
   if (hasHomeCity) {
     if (typeof body.homeCity !== "string") {
-      sendError(
-        response,
-        400,
-        "La ubicación no es válida.",
-      );
+      sendError(response, 400, "La ubicación no es válida.");
       return;
     }
 
@@ -1170,22 +1100,23 @@ router.patch("/auth/profile", async (request, response) => {
       return;
     }
 
-    updates.home_city =
-      homeCity || null;
+    updates.home_city = homeCity || null;
+  }
+
+  if (hasProfilePrivacy) {
+    if (typeof body.isProfilePrivate !== "boolean") {
+      sendError(response, 400, "La privacidad del perfil no es válida.");
+      return;
+    }
+
+    updates.is_profile_private = body.isProfilePrivate;
   }
 
   try {
-    const session = await currentSession(
-      request,
-      response,
-    );
+    const session = await currentSession(request, response);
 
     if (!session) {
-      sendError(
-        response,
-        401,
-        "Debes iniciar sesión.",
-      );
+      sendError(response, 401, "Debes iniciar sesión.");
       return;
     }
 
@@ -1194,7 +1125,7 @@ router.patch("/auth/profile", async (request, response) => {
       .update(updates)
       .eq("id", session.user.id)
       .select(
-        "id,username,display_name,display_name_visibility,home_city",
+        "id,username,display_name,display_name_visibility,home_city,is_profile_private",
       )
       .limit(1);
 
@@ -1207,11 +1138,7 @@ router.patch("/auth/profile", async (request, response) => {
         "Unable to update profile",
       );
 
-      sendError(
-        response,
-        500,
-        "No se ha podido actualizar el perfil.",
-      );
+      sendError(response, 500, "No se ha podido actualizar el perfil.");
       return;
     }
 
@@ -1220,35 +1147,21 @@ router.patch("/auth/profile", async (request, response) => {
     response.json({
       user: publicUser(
         session.user,
-        typeof profile.username === "string"
-          ? profile.username
-          : undefined,
-        typeof profile.display_name === "string"
-          ? profile.display_name
-          : null,
-        isDisplayNameVisibility(
-          profile.display_name_visibility,
-        )
+        typeof profile.username === "string" ? profile.username : undefined,
+        typeof profile.display_name === "string" ? profile.display_name : null,
+        isDisplayNameVisibility(profile.display_name_visibility)
           ? profile.display_name_visibility
           : "shared_activity",
 
-        typeof profile.home_city === "string"
-        ? profile.home_city
-        : null,
-        
+        typeof profile.home_city === "string" ? profile.home_city : null,
+        null,
+        profile.is_profile_private === true,
       ),
     });
   } catch (error) {
-    request.log.error(
-      { err: error },
-      "Profile update failed",
-    );
+    request.log.error({ err: error }, "Profile update failed");
 
-    sendError(
-      response,
-      500,
-      "No se ha podido actualizar el perfil.",
-    );
+    sendError(response, 500, "No se ha podido actualizar el perfil.");
   }
 });
 
