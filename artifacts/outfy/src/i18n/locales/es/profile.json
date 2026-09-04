@@ -57,6 +57,27 @@
     }
   },
 
+  "notifications": {
+    "title": "Notificaciones",
+    "help": "Elige qué tipos de avisos quieres recibir en Outfy.",
+    "activities": {
+      "label": "Actividades",
+      "help": "Cambios, solicitudes y avisos relacionados con tus planes."
+    },
+    "connections": {
+      "label": "Conexiones",
+      "help": "Solicitudes y novedades relacionadas con tus conexiones."
+    },
+    "messages": {
+      "label": "Mensajes",
+      "help": "Avisos cuando recibas nuevos mensajes."
+    },
+    "reminders": {
+      "label": "Recordatorios",
+      "help": "Recordatorios de actividades próximas."
+    }
+  },
+
   "messages": {
     "saved": "Perfil actualizado.",
     "nameRequired": "Introduce tu nombre.",
@@ -67,7 +88,9 @@
     "cityTooLong": "La ubicación no puede superar los 80 caracteres.",
     "locationIncomplete": "Completa la selección de país, región y ciudad antes de guardar.",
     "profilePrivacySaved": "Privacidad del perfil actualizada.",
-    "profilePrivacySaveError": "No se ha podido cambiar la privacidad del perfil. Inténtalo de nuevo."
+    "profilePrivacySaveError": "No se ha podido cambiar la privacidad del perfil. Inténtalo de nuevo.",
+    "notificationsSaved": "Preferencias de notificaciones actualizadas.",
+    "notificationsSaveError": "No se han podido actualizar las notificaciones. Inténtalo de nuevo."
   },
 
   "stats": {

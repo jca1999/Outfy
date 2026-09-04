@@ -10,6 +10,7 @@ import type {
   AuthUser,
   DisplayNameVisibility,
   HomeLocation,
+  NotificationPreferences,
 } from './auth-api';
 import * as authApi from './auth-api';
 
@@ -37,6 +38,7 @@ interface AuthContextValue {
     homeCity?: string;
     homeLocation?: HomeLocation | null;
     isProfilePrivate?: boolean;
+    notificationPreferences?: Partial<NotificationPreferences>;
   }) => Promise<AuthUser>;
 }
 

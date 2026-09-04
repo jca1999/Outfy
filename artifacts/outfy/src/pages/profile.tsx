@@ -16,6 +16,7 @@ import { LanguageSwitcher } from '@/components/language-switcher';
 import {
   type DisplayNameVisibility,
   type HomeLocation,
+  type NotificationPreferences,
 } from '@/auth/auth-api';
 import { LocationPicker } from '@/components/location-picker';
 
@@ -71,6 +72,23 @@ export function Profile() {
     setSavingProfilePrivacy,
   ] = useState(false);
 
+  const [
+    notificationPreferences,
+    setNotificationPreferences,
+  ] = useState<NotificationPreferences>({
+    activities: true,
+    connections: true,
+    messages: true,
+    reminders: true,
+  });
+
+  const [
+    savingNotification,
+    setSavingNotification,
+  ] = useState<
+    keyof NotificationPreferences | null
+  >(null);
+
   const [error, setError] =
     useState('');
 
@@ -100,6 +118,15 @@ export function Profile() {
 
     setIsProfilePrivate(
       user?.isProfilePrivate ?? false,
+    );
+
+    setNotificationPreferences(
+      user?.notificationPreferences ?? {
+        activities: true,
+        connections: true,
+        messages: true,
+        reminders: true,
+      },
     );
   }, [user]);
 
@@ -233,6 +260,59 @@ export function Profile() {
       );
     } finally {
       setSavingProfilePrivacy(false);
+    }
+  }
+
+  async function handleNotificationChange(
+    preference: keyof NotificationPreferences,
+  ) {
+    if (savingNotification) {
+      return;
+    }
+
+    const previousPreferences =
+      notificationPreferences;
+
+    const nextValue =
+      !notificationPreferences[preference];
+
+    const nextPreferences = {
+      ...notificationPreferences,
+      [preference]: nextValue,
+    };
+
+    setNotificationPreferences(
+      nextPreferences,
+    );
+
+    setSavingNotification(preference);
+    setError('');
+    setNotice('');
+
+    try {
+      const change: Partial<NotificationPreferences> = {
+        [preference]: nextValue,
+      };
+
+      await updateProfile({
+        notificationPreferences: change,
+      });
+
+      setNotice(
+        t('messages.notificationsSaved'),
+      );
+    } catch {
+      setNotificationPreferences(
+        previousPreferences,
+      );
+
+      setError(
+        t(
+          'messages.notificationsSaveError',
+        ),
+      );
+    } finally {
+      setSavingNotification(null);
     }
   }
   
@@ -530,6 +610,123 @@ export function Profile() {
                     />
                   </button>
                 </div>
+              </div>
+            </div>
+            <div className="mt-6 border-t border-border pt-6">
+              <div>
+                <p className="text-sm font-bold">
+                  {t('notifications.title')}
+                </p>
+
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {t('notifications.help')}
+                </p>
+              </div>
+
+              <div className="mt-4 divide-y divide-border">
+                {(
+                  [
+                    {
+                      key: 'activities',
+                      label: t(
+                        'notifications.activities.label',
+                      ),
+                      help: t(
+                        'notifications.activities.help',
+                      ),
+                    },
+                    {
+                      key: 'connections',
+                      label: t(
+                        'notifications.connections.label',
+                      ),
+                      help: t(
+                        'notifications.connections.help',
+                      ),
+                    },
+                    {
+                      key: 'messages',
+                      label: t(
+                        'notifications.messages.label',
+                      ),
+                      help: t(
+                        'notifications.messages.help',
+                      ),
+                    },
+                    {
+                      key: 'reminders',
+                      label: t(
+                        'notifications.reminders.label',
+                      ),
+                      help: t(
+                        'notifications.reminders.help',
+                      ),
+                    },
+                  ] as {
+                    key: keyof NotificationPreferences;
+                    label: string;
+                    help: string;
+                  }[]
+                ).map((option) => {
+                  const enabled =
+                    notificationPreferences[
+                      option.key
+                    ];
+
+                  const savingThis =
+                    savingNotification ===
+                    option.key;
+
+                  return (
+                    <div
+                      key={option.key}
+                      className="flex items-center justify-between gap-5 py-4"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-foreground">
+                          {option.label}
+                        </p>
+
+                        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                          {option.help}
+                        </p>
+                      </div>
+
+                      <div className="flex shrink-0 items-center gap-2">
+                        {savingThis && (
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                        )}
+
+                        <button
+                          type="button"
+                          role="switch"
+                          aria-checked={enabled}
+                          disabled={
+                            savingNotification !== null
+                          }
+                          onClick={() => {
+                            void handleNotificationChange(
+                              option.key,
+                            );
+                          }}
+                          className={`relative h-7 w-12 rounded-full p-1 transition ${
+                            enabled
+                              ? 'bg-primary'
+                              : 'bg-muted'
+                          } disabled:opacity-60`}
+                        >
+                          <span
+                            className={`block h-5 w-5 rounded-full transition-transform ${
+                              enabled
+                                ? 'translate-x-5 bg-primary-foreground'
+                                : 'translate-x-0 bg-foreground'
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>

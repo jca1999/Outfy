@@ -57,6 +57,27 @@
     }
   },
 
+  "notifications": {
+    "title": "Notifications",
+    "help": "Choose which types of notifications you want to receive on Outfy.",
+    "activities": {
+      "label": "Activities",
+      "help": "Changes, requests and updates related to your plans."
+    },
+    "connections": {
+      "label": "Connections",
+      "help": "Requests and updates related to your connections."
+    },
+    "messages": {
+      "label": "Messages",
+      "help": "Notifications when you receive new messages."
+    },
+    "reminders": {
+      "label": "Reminders",
+      "help": "Reminders about upcoming activities."
+    }
+  },
+
   "messages": {
     "saved": "Profile updated.",
     "nameRequired": "Enter your name.",
@@ -67,7 +88,9 @@
     "cityTooLong": "Your location can't be longer than 80 characters.",
     "locationIncomplete": "Complete the country, region, and city selection before saving.",
     "profilePrivacySaved": "Profile privacy updated.",
-    "profilePrivacySaveError": "We couldn't update your profile privacy. Please try again."
+    "profilePrivacySaveError": "We couldn't update your profile privacy. Please try again.",
+    "notificationsSaved": "Notification preferences updated.",
+    "notificationsSaveError": "We couldn't update your notification preferences. Please try again."
   },
 
   "stats": {

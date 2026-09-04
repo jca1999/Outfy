@@ -14,6 +14,13 @@ export interface HomeLocation {
   longitude: number;
 }
 
+export interface NotificationPreferences {
+  activities: boolean;
+  connections: boolean;
+  messages: boolean;
+  reminders: boolean;
+}
+
 export interface AuthUser {
   id: string;
   username: string;
@@ -22,6 +29,7 @@ export interface AuthUser {
   homeCity: string | null;
   homeLocation: HomeLocation | null;
   isProfilePrivate: boolean;
+  notificationPreferences: NotificationPreferences;
 }
 
 export interface UpdateProfileResponse {
@@ -140,6 +148,7 @@ export function updateProfile(input: {
   homeCity?: string;
   homeLocation?: HomeLocation | null;
   isProfilePrivate?: boolean;
+  notificationPreferences?: Partial<NotificationPreferences>;
 }) {
   return request<UpdateProfileResponse>('/profile', {
     method: 'PATCH',

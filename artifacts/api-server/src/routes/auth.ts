@@ -27,6 +27,13 @@ type DisplayNameVisibility =
   | "friends"
   | "nobody";
 
+type NotificationPreferences = {
+  activities: boolean;
+  connections: boolean;
+  messages: boolean;
+  reminders: boolean;
+};
+
 function isDisplayNameVisibility(
   value: unknown,
 ): value is DisplayNameVisibility {
@@ -50,6 +57,7 @@ interface AuthBody {
   homeCity?: unknown;
   homeLocation?: unknown;
   isProfilePrivate?: unknown;
+  notificationPreferences?: unknown;
 }
 
 interface ProfileLookup {
@@ -67,6 +75,10 @@ interface ProfileLookup {
   home_latitude?: number | null;
   home_longitude?: number | null;
   is_profile_private?: boolean | null;
+  notify_activities?: boolean | null;
+  notify_connections?: boolean | null;
+  notify_messages?: boolean | null;
+  notify_reminders?: boolean | null;
 }
 
 interface HomeLocation {
@@ -302,6 +314,21 @@ function sendError(response: Response, status: number, message: string) {
   response.status(status).json({ error: message });
 }
 
+function profileNotificationPreferences(
+  profile?: ProfileLookup,
+): NotificationPreferences {
+  return {
+    activities:
+      profile?.notify_activities !== false,
+    connections:
+      profile?.notify_connections !== false,
+    messages:
+      profile?.notify_messages !== false,
+    reminders:
+      profile?.notify_reminders !== false,
+  };
+}
+
 function publicUser(
   user: SupabaseUser,
   displayUsername?: string,
@@ -310,6 +337,12 @@ function publicUser(
   homeCity?: string | null,
   homeLocation: HomeLocation | null = null,
   isProfilePrivate = false,
+  notificationPreferences: NotificationPreferences = {
+    activities: true,
+    connections: true,
+    messages: true,
+    reminders: true,
+  },
 ) {
   const username = user.user_metadata?.username;
 
@@ -326,6 +359,7 @@ function publicUser(
       typeof homeCity === "string" && homeCity.trim() ? homeCity.trim() : null,
     homeLocation,
     isProfilePrivate,
+    notificationPreferences,
   };
 }
 
@@ -392,6 +426,9 @@ async function sessionPayload(user: SupabaseUser) {
 
   const isProfilePrivate = profile?.is_profile_private === true;
 
+  const notificationPreferences =
+    profileNotificationPreferences(profile);
+
   return {
     authenticated: true,
     user: publicUser(
@@ -402,6 +439,7 @@ async function sessionPayload(user: SupabaseUser) {
       homeCity,
       null,
       isProfilePrivate,
+      notificationPreferences,
     ),
   };
 }
@@ -461,7 +499,7 @@ async function findProfileByUserId(userId: string) {
   const { data, error } = await getSupabaseAdmin()
     .from("profiles")
     .select(
-      "id,username,display_name,display_name_visibility,home_city,is_profile_private",
+      "id,username,display_name,display_name_visibility,home_city,is_profile_private,notify_activities,notify_connections,notify_messages,notify_reminders",
     )
     .eq("id", userId)
     .limit(1);
@@ -1041,11 +1079,18 @@ router.patch("/auth/profile", async (request, response) => {
     "isProfilePrivate",
   );
 
+  const hasNotificationPreferences =
+    Object.prototype.hasOwnProperty.call(
+      body,
+      "notificationPreferences",
+    );
+
   if (
     !hasDisplayName &&
     !hasDisplayNameVisibility &&
     !hasHomeCity &&
-    !hasProfilePrivacy
+    !hasProfilePrivacy &&
+    !hasNotificationPreferences
   ) {
     sendError(response, 400, "No se ha indicado ningún cambio.");
     return;
@@ -1056,6 +1101,10 @@ router.patch("/auth/profile", async (request, response) => {
     display_name_visibility?: DisplayNameVisibility;
     home_city?: string | null;
     is_profile_private?: boolean;
+    notify_activities?: boolean;
+    notify_connections?: boolean;
+    notify_messages?: boolean;
+    notify_reminders?: boolean;
   } = {};
 
   if (hasDisplayName) {
@@ -1112,6 +1161,135 @@ router.patch("/auth/profile", async (request, response) => {
     updates.is_profile_private = body.isProfilePrivate;
   }
 
+  if (hasNotificationPreferences) {
+    const preferences =
+      body.notificationPreferences;
+
+    if (
+      !preferences ||
+      typeof preferences !== "object" ||
+      Array.isArray(preferences)
+    ) {
+      sendError(
+        response,
+        400,
+        "Las preferencias de notificaciones no son válidas.",
+      );
+      return;
+    }
+
+    const values =
+      preferences as Record<string, unknown>;
+
+    const allowedKeys = [
+      "activities",
+      "connections",
+      "messages",
+      "reminders",
+    ];
+
+    if (
+      Object.keys(values).some(
+        (key) => !allowedKeys.includes(key),
+      )
+    ) {
+      sendError(
+        response,
+        400,
+        "Las preferencias de notificaciones no son válidas.",
+      );
+      return;
+    }
+
+    if (
+      Object.prototype.hasOwnProperty.call(
+        values,
+        "activities",
+      )
+    ) {
+      if (
+        typeof values.activities !==
+        "boolean"
+      ) {
+        sendError(
+          response,
+          400,
+          "Las preferencias de notificaciones no son válidas.",
+        );
+        return;
+      }
+
+      updates.notify_activities =
+        values.activities;
+    }
+
+    if (
+      Object.prototype.hasOwnProperty.call(
+        values,
+        "connections",
+      )
+    ) {
+      if (
+        typeof values.connections !==
+        "boolean"
+      ) {
+        sendError(
+          response,
+          400,
+          "Las preferencias de notificaciones no son válidas.",
+        );
+        return;
+      }
+
+      updates.notify_connections =
+        values.connections;
+    }
+
+    if (
+      Object.prototype.hasOwnProperty.call(
+        values,
+        "messages",
+      )
+    ) {
+      if (
+        typeof values.messages !==
+        "boolean"
+      ) {
+        sendError(
+          response,
+          400,
+          "Las preferencias de notificaciones no son válidas.",
+        );
+        return;
+      }
+
+      updates.notify_messages =
+        values.messages;
+    }
+
+    if (
+      Object.prototype.hasOwnProperty.call(
+        values,
+        "reminders",
+      )
+    ) {
+      if (
+        typeof values.reminders !==
+        "boolean"
+      ) {
+        sendError(
+          response,
+          400,
+          "Las preferencias de notificaciones no son válidas.",
+        );
+        return;
+      }
+
+      updates.notify_reminders =
+        values.reminders;
+    }
+  }
+  
   try {
     const session = await currentSession(request, response);
 
@@ -1125,7 +1303,7 @@ router.patch("/auth/profile", async (request, response) => {
       .update(updates)
       .eq("id", session.user.id)
       .select(
-        "id,username,display_name,display_name_visibility,home_city,is_profile_private",
+        "id,username,display_name,display_name_visibility,home_city,is_profile_private,notify_activities,notify_connections,notify_messages,notify_reminders",
       )
       .limit(1);
 
@@ -1156,6 +1334,9 @@ router.patch("/auth/profile", async (request, response) => {
         typeof profile.home_city === "string" ? profile.home_city : null,
         null,
         profile.is_profile_private === true,
+        profileNotificationPreferences(
+          profile as ProfileLookup,
+        ),
       ),
     });
   } catch (error) {
