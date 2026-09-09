@@ -5,11 +5,13 @@ import esCommon from './locales/es/common.json';
 import esAuth from './locales/es/auth.json';
 import esProfile from './locales/es/profile.json';
 import esHome from './locales/es/home.json';
+import esActivities from './locales/es/activities.json';
 
 import enCommon from './locales/en/common.json';
 import enAuth from './locales/en/auth.json';
 import enProfile from './locales/en/profile.json';
 import enHome from './locales/en/home.json';
+import enActivities from './locales/en/activities.json';
 
 export type OutfyLanguage = 'es' | 'en';
 
@@ -39,12 +41,14 @@ void i18n
         auth: esAuth,
         profile: esProfile,
         home: esHome,
+        activities: esActivities,
       },
       en: {
         common: enCommon,
         auth: enAuth,
         profile: enProfile,
         home: enHome,
+        activities: enActivities,
       },
     },
 

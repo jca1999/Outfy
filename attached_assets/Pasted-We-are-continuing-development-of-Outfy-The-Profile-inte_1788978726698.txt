@@ -1,0 +1,548 @@
+We are continuing development of Outfy.
+
+The Profile internationalization cleanup is complete and working correctly.
+
+This task is ONLY to create and register the Spanish/English internationalization resources for the NEW activity taxonomy that already exists in:
+
+artifacts/outfy/src/activity-taxonomy.ts
+
+IMPORTANT:
+The new taxonomy is not yet connected to the current activity UI.
+Do NOT migrate the current mock activities or existing category system in this task.
+
+--------------------------------------------------
+STRICT SAFETY SCOPE
+--------------------------------------------------
+
+You may create or modify ONLY:
+
+1. artifacts/outfy/src/i18n/index.ts
+2. artifacts/outfy/src/i18n/locales/es/activities.json
+3. artifacts/outfy/src/i18n/locales/en/activities.json
+
+You may READ:
+
+artifacts/outfy/src/activity-taxonomy.ts
+
+but DO NOT modify it.
+
+DO NOT modify any other file.
+
+In particular, DO NOT modify:
+
+- .replit
+- workflows
+- ports
+- deployment
+- backend/API
+- Supabase
+- authentication
+- Home
+- Profile
+- LocationPicker
+- package.json
+- dependencies
+- constants.ts
+- types.ts
+- mock-data.ts
+- ActivityCard
+- routing
+- activity-taxonomy.ts
+- environment variables
+
+DO NOT publish or redeploy.
+
+If the existing i18n architecture makes it impossible to register the new namespace using only the allowed files, STOP and explain why instead of modifying additional files.
+
+--------------------------------------------------
+GOAL
+--------------------------------------------------
+
+Create a new i18n namespace called:
+
+activities
+
+It must contain translations for every category, subcategory and location type currently defined in activity-taxonomy.ts.
+
+Internal taxonomy IDs MUST remain language-independent.
+
+For example:
+
+sports -> Deportes / Sports
+football -> Fútbol / Football
+
+Never use translated labels as internal IDs.
+
+--------------------------------------------------
+EXPECTED STRUCTURE
+--------------------------------------------------
+
+Use a clear structure similar to:
+
+{
+  "categories": {
+    ...
+  },
+  "subcategories": {
+    ...
+  },
+  "locationTypes": {
+    ...
+  }
+}
+
+Follow the existing project's i18n conventions where appropriate.
+
+--------------------------------------------------
+CATEGORY TRANSLATIONS
+--------------------------------------------------
+
+Use these exact category translations:
+
+sports
+ES: Deportes
+EN: Sports
+
+music
+ES: Música
+EN: Music
+
+movies
+ES: Cine y series
+EN: Movies & TV
+
+outdoors
+ES: Aire libre
+EN: Outdoors
+
+social
+ES: Social
+EN: Social
+
+food
+ES: Comida y bebida
+EN: Food & Drink
+
+gaming
+ES: Videojuegos
+EN: Gaming
+
+board_games
+ES: Juegos de mesa
+EN: Board Games
+
+culture
+ES: Cultura
+EN: Culture
+
+travel
+ES: Viajes y escapadas
+EN: Travel
+
+learning
+ES: Aprender
+EN: Learning
+
+other
+ES: Otros
+EN: Other
+
+--------------------------------------------------
+SUBCATEGORY TRANSLATIONS
+--------------------------------------------------
+
+SPORTS
+
+football
+ES: Fútbol
+EN: Football
+
+padel
+ES: Pádel
+EN: Padel
+
+basketball
+ES: Baloncesto
+EN: Basketball
+
+tennis
+ES: Tenis
+EN: Tennis
+
+running
+ES: Running
+EN: Running
+
+gym
+ES: Gimnasio
+EN: Gym
+
+cycling
+ES: Ciclismo
+EN: Cycling
+
+other_sport
+ES: Otro deporte
+EN: Other sport
+
+
+MUSIC
+
+concert
+ES: Concierto
+EN: Concert
+
+festival
+ES: Festival
+EN: Festival
+
+live_music
+ES: Música en directo
+EN: Live music
+
+karaoke
+ES: Karaoke
+EN: Karaoke
+
+jam_session
+ES: Jam session
+EN: Jam session
+
+other_music
+ES: Otra actividad musical
+EN: Other music
+
+
+MOVIES
+
+cinema
+ES: Cine
+EN: Cinema
+
+movie_night
+ES: Noche de películas
+EN: Movie night
+
+series_watch
+ES: Ver series
+EN: Watch a series
+
+other_movies
+ES: Otro plan de cine y series
+EN: Other movies & TV
+
+
+OUTDOORS
+
+hiking
+ES: Senderismo
+EN: Hiking
+
+walking
+ES: Pasear
+EN: Walking
+
+beach
+ES: Playa
+EN: Beach
+
+picnic
+ES: Pícnic
+EN: Picnic
+
+nature
+ES: Naturaleza
+EN: Nature
+
+camping
+ES: Acampada
+EN: Camping
+
+other_outdoors
+ES: Otro plan al aire libre
+EN: Other outdoors
+
+
+SOCIAL
+
+drinks
+ES: Tomar algo
+EN: Drinks
+
+city_walk
+ES: Dar una vuelta por la ciudad
+EN: City walk
+
+meet_people
+ES: Conocer gente
+EN: Meet people
+
+party
+ES: Fiesta
+EN: Party
+
+conversation
+ES: Charlar
+EN: Conversation
+
+nightlife
+ES: Salir de noche
+EN: Nightlife
+
+other_social
+ES: Otro plan social
+EN: Other social
+
+
+FOOD
+
+breakfast
+ES: Desayuno
+EN: Breakfast
+
+brunch
+ES: Brunch
+EN: Brunch
+
+lunch
+ES: Comer
+EN: Lunch
+
+dinner
+ES: Cenar
+EN: Dinner
+
+coffee
+ES: Tomar un café
+EN: Coffee
+
+restaurant
+ES: Ir a un restaurante
+EN: Restaurant
+
+cooking
+ES: Cocinar
+EN: Cooking
+
+other_food
+ES: Otro plan gastronómico
+EN: Other food & drink
+
+
+GAMING
+
+pc
+ES: PC
+EN: PC
+
+playstation
+ES: PlayStation
+EN: PlayStation
+
+xbox
+ES: Xbox
+EN: Xbox
+
+nintendo
+ES: Nintendo
+EN: Nintendo
+
+mobile
+ES: Móvil
+EN: Mobile
+
+retro
+ES: Retro
+EN: Retro
+
+lan_party
+ES: LAN party
+EN: LAN party
+
+other_gaming
+ES: Otro plan gaming
+EN: Other gaming
+
+
+BOARD GAMES
+
+board_games
+ES: Juegos de mesa
+EN: Board games
+
+cards
+ES: Cartas
+EN: Card games
+
+role_playing
+ES: Rol
+EN: Role-playing
+
+chess
+ES: Ajedrez
+EN: Chess
+
+puzzles
+ES: Puzles
+EN: Puzzles
+
+other_tabletop
+ES: Otro juego de mesa
+EN: Other tabletop
+
+
+CULTURE
+
+museum
+ES: Museo
+EN: Museum
+
+theatre
+ES: Teatro
+EN: Theatre
+
+exhibition
+ES: Exposición
+EN: Exhibition
+
+photography
+ES: Fotografía
+EN: Photography
+
+monuments
+ES: Monumentos
+EN: Monuments
+
+literature
+ES: Literatura
+EN: Literature
+
+other_culture
+ES: Otro plan cultural
+EN: Other culture
+
+
+TRAVEL
+
+day_trip
+ES: Excursión de un día
+EN: Day trip
+
+weekend_trip
+ES: Escapada de fin de semana
+EN: Weekend trip
+
+road_trip
+ES: Viaje por carretera
+EN: Road trip
+
+tourism
+ES: Turismo
+EN: Tourism
+
+other_travel
+ES: Otro viaje
+EN: Other travel
+
+
+LEARNING
+
+languages
+ES: Idiomas
+EN: Languages
+
+study
+ES: Estudiar
+EN: Study
+
+programming
+ES: Programación
+EN: Programming
+
+workshop
+ES: Taller
+EN: Workshop
+
+other_learning
+ES: Otro plan de aprendizaje
+EN: Other learning
+
+
+OTHER
+
+other
+ES: Otros
+EN: Other
+
+--------------------------------------------------
+LOCATION TYPE TRANSLATIONS
+--------------------------------------------------
+
+physical
+ES: Presencial
+EN: In person
+
+online
+ES: Online
+EN: Online
+
+--------------------------------------------------
+I18N REGISTRATION
+--------------------------------------------------
+
+Register the new "activities" namespace in the existing i18n configuration following exactly the same pattern already used by the other namespaces.
+
+Do NOT change the behavior or contents of existing namespaces.
+
+Do not change the default language.
+
+Do not change language detection or persistence.
+
+--------------------------------------------------
+IMPORTANT
+--------------------------------------------------
+
+This task is preparation only.
+
+DO NOT:
+
+- display these categories in the UI yet
+- change Home categories
+- change Explore
+- change mock activity data
+- change ActivityCard
+- change existing category filters
+- create database tables
+- connect to Supabase
+- create the Create Activity page
+- implement activity logic
+
+Those will be separate tasks later.
+
+--------------------------------------------------
+VALIDATION
+--------------------------------------------------
+
+After implementing:
+
+1. Review git diff.
+2. Confirm ONLY the three allowed files were created/modified.
+3. Confirm every category in activity-taxonomy.ts has an ES and EN translation.
+4. Confirm every subcategory in activity-taxonomy.ts has an ES and EN translation.
+5. Confirm both location types have translations.
+6. Confirm Spanish and English files have exactly equivalent key structures.
+7. Confirm the "activities" namespace is registered correctly.
+8. Run the existing frontend TypeScript/typecheck/build validation.
+9. Do not change project configuration if validation fails because of the Replit environment.
+
+Report:
+- exactly which files changed
+- whether the activities namespace was registered
+- number of categories translated
+- number of subcategories translated
+- validation result
+- any remaining limitation
+
+DO NOT publish.
+DO NOT redeploy.
+DO NOT modify any other file.
