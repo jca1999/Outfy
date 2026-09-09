@@ -1,0 +1,159 @@
+We are continuing development of Outfy.
+
+The GPS location picker and the dynamic Home page are now working correctly.
+
+This task is ONLY to finish the existing Profile page internationalization and clean up any remaining hardcoded user-visible text.
+
+STRICT SAFETY SCOPE
+
+You may modify ONLY:
+
+1. artifacts/outfy/src/pages/profile.tsx
+2. artifacts/outfy/src/i18n/locales/es/profile.json
+3. artifacts/outfy/src/i18n/locales/en/profile.json
+
+If the Profile page is located at a different existing path, STOP and report the actual path instead of modifying another file.
+
+DO NOT modify any other file.
+
+In particular, DO NOT modify:
+- .replit
+- workflows
+- ports
+- deployment
+- backend/API
+- Supabase
+- authentication logic
+- auth-api.ts
+- auth-context.tsx
+- LocationPicker
+- Home
+- package.json
+- dependencies
+- constants.ts
+- types.ts
+- mock-data.ts
+- activity-taxonomy.ts
+- routing
+- environment variables
+
+DO NOT publish or redeploy.
+
+--------------------------------------------------
+GOAL
+--------------------------------------------------
+
+Review the CURRENT Profile page and move ALL remaining user-visible hardcoded text to the existing "profile" i18n namespace.
+
+The Profile page must work completely in:
+
+- Spanish
+- English
+
+Do NOT add new functionality.
+Do NOT redesign Profile.
+Do NOT change existing saved data structures.
+Do NOT change Supabase.
+Do NOT change authentication.
+
+--------------------------------------------------
+PRESERVE EXISTING PROFILE FEATURES
+--------------------------------------------------
+
+Preserve all existing behavior, including where currently implemented:
+
+- display name
+- username fallback
+- email
+- profile visibility preference
+- display-name visibility preference
+- saved home location
+- language selector
+- theme preference
+- edit/save/cancel behavior
+- password/security sections
+- logout
+- existing validation
+- existing responsive layout
+
+Do NOT remove or replace working functionality.
+
+--------------------------------------------------
+INTERNATIONALIZATION
+--------------------------------------------------
+
+Inspect profile.tsx for every visible string.
+
+Move remaining hardcoded UI strings into:
+
+artifacts/outfy/src/i18n/locales/es/profile.json
+artifacts/outfy/src/i18n/locales/en/profile.json
+
+Both locale files must have equivalent keys.
+
+Examples include, only if they currently exist:
+
+- section titles
+- field labels
+- descriptions
+- placeholders
+- buttons
+- privacy options
+- validation messages
+- success/error messages
+- language/theme labels
+- security/password labels
+- location labels
+- edit/cancel/save text
+
+Do not translate user-generated values such as:
+- username
+- display name
+- city
+- email
+
+Do not hardcode new visible text in profile.tsx.
+
+--------------------------------------------------
+IMPORTANT
+--------------------------------------------------
+
+Do NOT change the current LocationPicker implementation.
+
+The GPS behavior is working and must not be touched.
+
+Do NOT modify profile data persistence.
+
+Do NOT change database columns.
+
+Do NOT refactor unrelated code.
+
+Do NOT install packages.
+
+Do NOT change design, colors, spacing or layout except where strictly necessary to replace text with i18n calls.
+
+--------------------------------------------------
+VALIDATION
+--------------------------------------------------
+
+After implementing:
+
+1. Review git diff.
+2. Confirm ONLY the three allowed files changed.
+3. Run the existing frontend TypeScript/typecheck/build validation.
+4. Do not modify project configuration if validation fails because of the Replit environment.
+5. Search profile.tsx for remaining user-visible hardcoded Spanish or English strings.
+6. Confirm Spanish and English translation files have equivalent keys.
+7. Confirm GPS/location code was not modified.
+8. Confirm Profile behavior remains unchanged.
+
+Report:
+- exactly which files changed
+- which hardcoded strings were moved to i18n
+- whether any hardcoded visible strings remain and why
+- validation result
+- any limitation found
+
+DO NOT publish.
+DO NOT redeploy.
+DO NOT modify anything outside the allowed scope.
