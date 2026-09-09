@@ -42,19 +42,20 @@ interface LocationPickerProps {
   disabled?: boolean;
 }
 
-interface ReverseGeocodeAddress {
-  country_code?: string;
-  state?: string;
-  province?: string;
-  region?: string;
-  city?: string;
-  town?: string;
-  village?: string;
-  municipality?: string;
-}
-
 interface ReverseGeocodeResponse {
-  address?: ReverseGeocodeAddress;
+  countryCode?: string;
+  countryName?: string;
+  principalSubdivision?: string;
+  principalSubdivisionCode?: string;
+  city?: string;
+  locality?: string;
+  localityInfo?: {
+    administrative?: Array<{
+      name?: string;
+      isoName?: string;
+      order?: number;
+    }>;
+  };
 }
 
 interface SelectOption {
@@ -67,8 +68,13 @@ function normalizeLabel(value: string) {
   return value
     .normalize('NFD')
     .replace(/\p{Diacritic}/gu, '')
+    .replace(/[^\p{L}\p{N}]+/gu, ' ')
     .trim()
     .toLocaleLowerCase();
+}
+
+function normalizeRegionCode(value: string) {
+  return value.trim().toLocaleUpperCase().replace(/[^A-Z0-9]/g, '');
 }
 
 function cityCoordinates(city: ICity) {
@@ -175,9 +181,15 @@ function reverseGeocodeErrorMessage(
   error: { code: number },
   t: (key: string) => string,
 ) {
-  return error.code === 1
-    ? t('identity.location.permissionDenied')
-    : t('identity.location.detectionFailed');
+  if (error.code === 1) {
+    return t('identity.location.permissionDenied');
+  }
+
+  if (error.code === 3) {
+    return t('identity.location.geolocationTimeout');
+  }
+
+  return t('identity.location.geolocationFailed');
 }
 
 function isGeolocationError(
@@ -191,22 +203,70 @@ function isGeolocationError(
   );
 }
 
-async function reverseGeocode(latitude: number, longitude: number) {
-  const response = await fetch(
-    `https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=10&lat=${latitude}&lon=${longitude}`,
-    {
-      headers: {
-        Accept: 'application/json',
-        'Accept-Language': document.documentElement.lang || 'es',
-      },
-    },
+async function reverseGeocode(
+  latitude: number,
+  longitude: number,
+  localityLanguage: 'es' | 'en',
+) {
+  const endpoint = new URL(
+    'https://api.bigdatacloud.net/data/reverse-geocode-client',
+  );
+  endpoint.searchParams.set('latitude', String(latitude));
+  endpoint.searchParams.set('longitude', String(longitude));
+  endpoint.searchParams.set(
+    'localityLanguage',
+    localityLanguage,
   );
 
-  if (!response.ok) {
+  try {
+    const response = await fetch(endpoint);
+
+    if (!response.ok) {
+      throw new Error('reverse-geocoding-failed');
+    }
+
+    return (await response.json()) as ReverseGeocodeResponse;
+  } catch {
     throw new Error('reverse-geocoding-failed');
   }
+}
 
-  return (await response.json()) as ReverseGeocodeResponse;
+function stateMatchesCode(
+  state: IState,
+  subdivisionCode: string,
+  countryCode: string,
+) {
+  const normalizedSubdivisionCode =
+    normalizeRegionCode(subdivisionCode);
+  const normalizedStateCode = normalizeRegionCode(state.iso2);
+  const normalizedCountryCode =
+    normalizeRegionCode(countryCode);
+
+  return (
+    normalizedSubdivisionCode === normalizedStateCode ||
+    normalizedSubdivisionCode ===
+      `${normalizedCountryCode}${normalizedStateCode}`
+  );
+}
+
+function findState(
+  states: IState[],
+  countryCode: string,
+  subdivisionCode: string | undefined,
+  subdivisionName: string | undefined,
+) {
+  const stateByCode = subdivisionCode
+    ? states.find((state) =>
+        stateMatchesCode(state, subdivisionCode, countryCode),
+      )
+    : undefined;
+
+  return (
+    stateByCode ??
+    (subdivisionName
+      ? findExactOption(states, [subdivisionName])
+      : undefined)
+  );
 }
 
 function findExactOption<T extends { name: string }>(
@@ -222,13 +282,70 @@ function findExactOption<T extends { name: string }>(
   );
 }
 
+function haversineDistanceKm(
+  latitudeA: number,
+  longitudeA: number,
+  latitudeB: number,
+  longitudeB: number,
+) {
+  const earthRadiusKm = 6371;
+  const latitudeDelta = ((latitudeB - latitudeA) * Math.PI) / 180;
+  const longitudeDelta = ((longitudeB - longitudeA) * Math.PI) / 180;
+  const latitudeARadians = (latitudeA * Math.PI) / 180;
+  const latitudeBRadians = (latitudeB * Math.PI) / 180;
+  const haversine =
+    Math.sin(latitudeDelta / 2) ** 2 +
+    Math.cos(latitudeARadians) *
+      Math.cos(latitudeBRadians) *
+      Math.sin(longitudeDelta / 2) ** 2;
+
+  return (
+    2 *
+    earthRadiusKm *
+    Math.asin(Math.sqrt(Math.min(1, haversine)))
+  );
+}
+
+function findNearestCity(
+  cities: ICity[],
+  latitude: number,
+  longitude: number,
+) {
+  const maxReasonableDistanceKm = 75;
+  let nearestCity: ICity | undefined;
+  let nearestDistanceKm = Number.POSITIVE_INFINITY;
+
+  for (const city of cities) {
+    const coordinates = cityCoordinates(city);
+    if (!coordinates) {
+      continue;
+    }
+
+    const distanceKm = haversineDistanceKm(
+      latitude,
+      longitude,
+      coordinates.latitude,
+      coordinates.longitude,
+    );
+
+    if (distanceKm < nearestDistanceKm) {
+      nearestCity = city;
+      nearestDistanceKm = distanceKm;
+    }
+  }
+
+  return nearestDistanceKm <= maxReasonableDistanceKm
+    ? nearestCity
+    : undefined;
+}
+
 export function LocationPicker({
   value,
   onChange,
   onValidityChange,
   disabled = false,
 }: LocationPickerProps) {
-  const { t } = useTranslation('profile');
+  const { t, i18n } = useTranslation('profile');
   const [countries, setCountries] = useState<ICountry[]>([]);
   const [states, setStates] = useState<IState[]>([]);
   const [cities, setCities] = useState<ICity[]>([]);
@@ -497,9 +614,11 @@ export function LocationPicker({
       const reverseResult = await reverseGeocode(
         position.coords.latitude,
         position.coords.longitude,
+        i18n.language.toLocaleLowerCase().startsWith('en')
+          ? 'en'
+          : 'es',
       );
-      const address = reverseResult.address;
-      const reverseCountryCode = address?.country_code
+      const reverseCountryCode = reverseResult.countryCode
         ?.trim()
         .toUpperCase();
 
@@ -517,14 +636,14 @@ export function LocationPicker({
       const loadedStates = await getStatesOfCountry(
         country.iso2,
       );
-      const regionNames = [
-        address?.state,
-        address?.province,
-        address?.region,
-      ].filter((name): name is string => Boolean(name));
       const state =
         loadedStates.length > 0
-          ? findExactOption(loadedStates, regionNames)
+          ? findState(
+              loadedStates,
+              country.iso2,
+              reverseResult.principalSubdivisionCode,
+              reverseResult.principalSubdivision,
+            )
           : undefined;
 
       if (loadedStates.length > 0 && !state) {
@@ -535,12 +654,16 @@ export function LocationPicker({
         ? await getCitiesOfState(country.iso2, state.iso2)
         : await getAllCitiesOfCountry(country.iso2);
       const cityNames = [
-        address?.city,
-        address?.town,
-        address?.village,
-        address?.municipality,
+        reverseResult.city,
+        reverseResult.locality,
       ].filter((name): name is string => Boolean(name));
-      const city = findExactOption(loadedCities, cityNames);
+      const city =
+        findExactOption(loadedCities, cityNames) ??
+        findNearestCity(
+          loadedCities,
+          position.coords.latitude,
+          position.coords.longitude,
+        );
 
       if (!city) {
         throw new Error('city-not-found');
@@ -566,8 +689,15 @@ export function LocationPicker({
     } catch (error) {
       if (isGeolocationError(error)) {
         setLocationError(reverseGeocodeErrorMessage(error, t));
+      } else if (
+        error instanceof Error &&
+        error.message === 'reverse-geocoding-failed'
+      ) {
+        setLocationError(
+          t('identity.location.reverseGeocodingFailed'),
+        );
       } else {
-        setLocationError(t('identity.location.detectionFailed'));
+        setLocationError(t('identity.location.cityMatchFailed'));
       }
     } finally {
       setDetecting(false);
@@ -590,7 +720,7 @@ export function LocationPicker({
         onClick={() => {
           void useCurrentLocation();
         }}
-        disabled={disabled || detecting}
+        disabled={disabled || detecting || countriesLoading}
       >
         {detecting ? (
           <Loader2 className="animate-spin" />

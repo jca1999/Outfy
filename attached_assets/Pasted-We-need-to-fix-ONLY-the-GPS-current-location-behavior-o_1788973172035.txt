@@ -1,0 +1,163 @@
+We need to fix ONLY the GPS/current-location behavior of the existing Outfy location picker.
+
+STRICT SAFETY SCOPE
+
+You are allowed to modify ONLY these files:
+
+1. artifacts/outfy/src/components/location-picker.tsx
+2. artifacts/outfy/src/i18n/locales/es/profile.json
+3. artifacts/outfy/src/i18n/locales/en/profile.json
+
+DO NOT modify any other file.
+
+In particular, DO NOT modify:
+- .replit
+- workflows
+- ports
+- health checks
+- deployment configuration
+- startup commands
+- backend/API code
+- authentication
+- Supabase schema
+- Home
+- auth-api.ts
+- auth-context.tsx
+- package.json
+- dependencies
+- secrets or environment variables
+
+Do not publish or redeploy the application.
+
+If the requested fix would require modifying any file outside the three explicitly allowed files, STOP and explain why instead of making the change.
+
+GOAL
+
+Fix the existing "Use my current location" button inside the location picker.
+
+The existing manual Country -> Region/Province -> City selector must continue working exactly as it currently does.
+
+Do NOT redesign the component.
+
+Do NOT change the database structure or the way the selected HomeLocation is saved.
+
+GPS must only be requested after the user explicitly presses the current-location button.
+
+PRIVACY REQUIREMENT
+
+The exact device latitude and longitude obtained from browser geolocation must be used only temporarily in memory to identify the user's city.
+
+Never save the exact device coordinates.
+
+Once the city has been matched, continue using the coordinates of the matched city already provided by the existing country/state/city dataset.
+
+REVERSE GEOCODING
+
+Replace the brittle current reverse-geocoding / exact-text matching behavior with a more robust client-side approach.
+
+Use the free BigDataCloud reverse geocoding client endpoint:
+
+https://api.bigdatacloud.net/data/reverse-geocode-client
+
+Do not add an API key.
+Do not add a paid service.
+Do not add dependencies.
+
+Use the browser GPS coordinates only when calling the reverse-geocoding service.
+
+MATCHING LOGIC
+
+The reverse-geocoding response may not use exactly the same spelling as our existing location dataset.
+
+Implement robust matching in this order:
+
+1. Match country primarily using ISO country code when available.
+
+2. Match region/state/province using available ISO/admin codes when possible.
+
+3. If codes are not sufficient, use normalized text comparison:
+   - lowercase
+   - trim whitespace
+   - remove accents/diacritics
+   - normalize common punctuation differences
+
+4. Match city/locality using normalized values from suitable BigDataCloud fields such as:
+   - city
+   - locality
+   - principalSubdivision
+
+Use the most appropriate values from the actual response.
+
+5. If the exact locality cannot be found in the existing city list, choose the closest suitable city from the already loaded cities for the matched region by comparing the temporary GPS coordinates with the city coordinates.
+
+Do not persist the GPS coordinates used for this calculation.
+
+USER EXPERIENCE
+
+While GPS detection is running:
+- show a clear loading state
+- prevent repeated GPS requests
+
+If browser geolocation permission is denied:
+- show a translated friendly error
+- keep manual selection fully usable
+
+If the browser does not support geolocation:
+- show a translated friendly error
+- keep manual selection usable
+
+If reverse geocoding fails:
+- show a translated friendly error
+- do not destroy the user's existing manual selection
+
+If a country/region/city can successfully be resolved:
+- populate the existing country selector
+- populate the region selector
+- populate the city selector
+- preserve the existing save behavior
+
+INTERNATIONALIZATION
+
+Any new visible text must use i18n.
+
+Add/update translations ONLY in:
+
+artifacts/outfy/src/i18n/locales/es/profile.json
+artifacts/outfy/src/i18n/locales/en/profile.json
+
+Provide equivalent Spanish and English messages.
+
+Do not hardcode visible text in location-picker.tsx.
+
+PRESERVE EXISTING BEHAVIOR
+
+Do not break:
+- manual country selection
+- manual region/province selection
+- manual city selection
+- searchable selectors
+- clearing the location
+- existing saved HomeLocation behavior
+- existing profile functionality
+- existing authentication
+- existing Spanish/English switching
+
+VALIDATION
+
+After implementing the change:
+
+1. Review the diff and verify that ONLY the three allowed files were modified.
+
+2. Run the relevant frontend TypeScript/typecheck/build validation using the existing project configuration.
+
+3. Do NOT modify Replit configuration if a validation command fails because of the environment.
+
+4. Report:
+   - exactly which files changed
+   - what GPS matching logic was changed
+   - whether validation passed
+   - any remaining limitation
+
+DO NOT publish or redeploy.
+
+Stop immediately if modifying files outside the allowed scope becomes necessary.

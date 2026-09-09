@@ -28,7 +28,7 @@
       "notSet": "No location set",
       "useCurrent": "Use my current location",
       "detecting": "Detecting location…",
-      "privacy": "We'll only ask for permission when you press this button. Outfy doesn't store your exact position; it stores the selected city.",
+      "privacy": "We'll only ask for permission when you press this button. We'll use your exact position temporarily to find your city, but Outfy only stores the selected city.",
       "or": "or choose manually",
       "country": "Country",
       "region": "State / region",
@@ -46,6 +46,10 @@
       "cityDataError": "This city does not have valid coordinates.",
       "geolocationUnsupported": "Your browser can't detect your location. You can choose it manually.",
       "permissionDenied": "Location permission was denied. You can choose your city manually.",
+      "geolocationTimeout": "Location detection took too long. You can choose your city manually.",
+      "geolocationFailed": "We couldn't get your current location. You can choose your city manually.",
+      "reverseGeocodingFailed": "We couldn't look up your current location. You can choose your city manually.",
+      "cityMatchFailed": "We couldn't determine your city. You can choose it manually.",
       "detectionFailed": "We couldn't determine your city. You can choose it manually."
     },
     "profilePrivacy": {
