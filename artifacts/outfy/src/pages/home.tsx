@@ -45,9 +45,13 @@ export function Home({
   const { user } = useAuth();
   const { t, i18n } = useTranslation("home");
 
-  const visibleName = user?.displayName?.trim() || user?.username || "";
+  const visibleName =
+    user?.displayName?.trim() || user?.username?.trim() || "";
 
-  const homeCity = user?.homeCity?.trim() || t("hero.locationMissing");
+  const homeCity =
+    user?.homeLocation?.city?.trim() ||
+    user?.homeCity?.trim() ||
+    t("hero.locationMissing");
 
   const locale = i18n.resolvedLanguage?.startsWith("en") ? "en-US" : "es-ES";
 
@@ -105,26 +109,25 @@ export function Home({
           <div className="relative flex h-full flex-col justify-between">
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-2 font-mono-ui text-[10px] uppercase tracking-[.16em] text-sidebar-foreground/55">
-                <Sparkles className="h-3.5 w-3.5 text-accent" /> Plan destacado
+                <Sparkles className="h-3.5 w-3.5 text-accent" />{" "}
+                {t("featured.eyebrow")}
               </span>
               <span className="rounded-full bg-sidebar-accent px-2.5 py-1 font-mono-ui text-[9px] text-sidebar-foreground/70">
-                HOY
+                {t("featured.today")}
               </span>
             </div>
             <div className="mt-12">
               <p className="text-3xl font-bold leading-tight tracking-[-.04em]">
-                Partidito al
-                <br />
-                atardecer
+                {t("featured.title")}
               </p>
               <div className="mt-5 space-y-2 text-xs text-sidebar-foreground/65">
                 <p className="flex items-center gap-2">
                   <CalendarDays className="h-3.5 w-3.5 text-primary" />
-                  19:30 · Romareda
+                  {t("featured.timeLocation")}
                 </p>
                 <p className="flex items-center gap-2">
-                  <Users className="h-3.5 w-3.5 text-primary" />8 personas ya
-                  dentro
+                  <Users className="h-3.5 w-3.5 text-primary" />
+                  {t("featured.participants")}
                 </p>
               </div>
             </div>
@@ -133,7 +136,7 @@ export function Home({
               className="mt-8 flex items-center justify-between rounded-xl bg-sidebar-primary/15 px-4 py-3 text-xs font-bold text-primary transition hover:bg-sidebar-primary/25"
               data-testid="link-featured-plan"
             >
-              Ver el plan <ArrowRight className="h-4 w-4" />
+              {t("featured.view")} <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
@@ -143,10 +146,10 @@ export function Home({
         <div className="mb-4 flex items-end justify-between">
           <div>
             <p className="font-mono-ui text-[10px] uppercase tracking-[.18em] text-primary">
-              Tu radar
+                {t("recommended.eyebrow")}
             </p>
             <h2 className="mt-1 text-2xl font-bold tracking-[-.04em]">
-              Puede encajarte
+                {t("recommended.title")}
             </h2>
           </div>
           <Link
@@ -154,7 +157,8 @@ export function Home({
             className="flex items-center gap-1 text-xs font-bold text-muted-foreground hover:text-primary"
             data-testid="link-see-recommended"
           >
-            Ver todos <ChevronRight className="h-4 w-4" />
+              {t("recommended.viewAll")}{" "}
+              <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
         <div className="flex gap-4 overflow-x-auto px-1 pb-3">
@@ -182,10 +186,10 @@ export function Home({
           <div className="mb-4 flex items-end justify-between">
             <div>
               <p className="font-mono-ui text-[10px] uppercase tracking-[.18em] text-primary">
-                A dos pasos
+                {t("nearby.eyebrow")}
               </p>
               <h2 className="mt-1 text-2xl font-bold tracking-[-.04em]">
-                Cerca de ti
+                {t("nearby.title")}
               </h2>
             </div>
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -207,10 +211,10 @@ export function Home({
         </div>
         <aside className="rounded-[22px] border border-border bg-secondary/55 p-5">
           <p className="font-mono-ui text-[10px] uppercase tracking-[.18em] text-secondary-foreground/60">
-            ¿Sin plan?
+            {t("createPrompt.eyebrow")}
           </p>
           <h3 className="mt-3 text-xl font-bold leading-tight tracking-[-.04em] text-secondary-foreground">
-            Empieza por lo que ya te gusta.
+            {t("createPrompt.title")}
           </h3>
           <div className="mt-5 space-y-2">
             {categories.map((category) => {
@@ -238,10 +242,10 @@ export function Home({
       <section className="flex flex-col items-start justify-between gap-4 rounded-[22px] border border-dashed border-primary/40 bg-primary/5 p-5 sm:flex-row sm:items-center sm:px-6">
         <div>
           <p className="text-sm font-bold">
-            Lo mejor de Outfy lo propone la gente.
+            {t("createPrompt.description")}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            ¿Tienes una idea sencilla para esta semana?
+            {t("createPrompt.question")}
           </p>
         </div>
         <button
@@ -250,7 +254,7 @@ export function Home({
           className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground"
           data-testid="button-create-bottom"
         >
-          <Plus className="h-3.5 w-3.5" /> Crear un plan
+          <Plus className="h-3.5 w-3.5" /> {t("createPrompt.action")}
         </button>
       </section>
     </div>

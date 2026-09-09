@@ -5,6 +5,30 @@
     "description": "Real plans, nearby people and a reason to get out. What are you in the mood for?",
     "explore": "Explore plans",
     "create": "Suggest a plan",
-    "locationMissing": "Set your location"
+    "locationMissing": "Location not set"
+  },
+  "featured": {
+    "eyebrow": "Featured plan",
+    "today": "TODAY",
+    "title": "Sunset football game",
+    "timeLocation": "7:30 PM · Romareda",
+    "participants": "8 people already in",
+    "view": "View plan"
+  },
+  "recommended": {
+    "eyebrow": "Your radar",
+    "title": "You might like",
+    "viewAll": "See all"
+  },
+  "nearby": {
+    "eyebrow": "A short walk away",
+    "title": "Near you"
+  },
+  "createPrompt": {
+    "eyebrow": "No plan?",
+    "title": "Start with what you already like.",
+    "description": "The best of Outfy comes from its people.",
+    "question": "Have a simple idea for this week?",
+    "action": "Create a plan"
   }
 }

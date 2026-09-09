@@ -1,0 +1,206 @@
+We are continuing development of Outfy.
+
+The GPS/location picker is now working correctly.
+
+This task is ONLY to finish the existing Home page dynamic header behavior and complete its Spanish/English internationalization.
+
+STRICT SAFETY SCOPE
+
+You may modify ONLY these files:
+
+1. artifacts/outfy/src/pages/home.tsx
+2. artifacts/outfy/src/i18n/locales/es/home.json
+3. artifacts/outfy/src/i18n/locales/en/home.json
+
+DO NOT modify any other file.
+
+In particular, DO NOT modify:
+- .replit
+- workflows
+- ports
+- health checks
+- deployment
+- backend/API
+- Supabase
+- authentication
+- auth-api.ts
+- auth-context.tsx
+- Profile
+- LocationPicker
+- package.json
+- dependencies
+- constants.ts
+- types.ts
+- mock-data.ts
+- activity-taxonomy.ts
+- ActivityCard
+- routing
+- environment variables
+
+Do NOT publish or redeploy.
+
+If the requested task requires modifying anything outside the three allowed files, STOP and explain why instead of changing it.
+
+--------------------------------------------------
+CURRENT HOME BEHAVIOR TO PRESERVE
+--------------------------------------------------
+
+The existing Home page already obtains the logged-in user through useAuth().
+
+Preserve the existing name logic:
+
+displayName -> username
+
+The Home page already obtains the user's saved home city.
+
+Preserve this behavior.
+
+The Home page already formats the real current date using Intl.DateTimeFormat according to the selected language.
+
+Preserve this behavior.
+
+DO NOT request GPS from Home.
+
+DO NOT add browser geolocation to Home.
+
+Home must only display the location already saved in the user's profile.
+
+--------------------------------------------------
+GOAL 1 — REAL USER HEADER
+--------------------------------------------------
+
+Keep the top Home header dynamically displaying:
+
+- the current real date
+- the user's saved city
+- the user's visible name
+
+Example Spanish:
+
+miércoles, 9 de septiembre · Zaragoza
+
+Hola, Javier.
+
+Example English:
+
+Wednesday, September 9 · Zaragoza
+
+Hi, Javier.
+
+The actual browser date must be used.
+Do not hardcode any date.
+
+For the name:
+1. use displayName when present and non-empty
+2. otherwise use username
+
+Do not change authentication or profile data structures.
+
+If no saved home city exists, show a translated friendly fallback instead of a hardcoded city or raw translation key.
+
+Spanish example:
+"Ubicación sin configurar"
+
+English example:
+"Location not set"
+
+--------------------------------------------------
+GOAL 2 — REMOVE HARDCODED HOME UI TEXT
+--------------------------------------------------
+
+The Home page currently still contains several visible Spanish strings directly inside home.tsx.
+
+Move ALL user-visible Home-specific text in home.tsx to the existing "home" i18n namespace.
+
+This includes, where present:
+
+- "Plan destacado"
+- "HOY"
+- featured mock-plan title text
+- featured mock-plan participant text
+- "Ver el plan"
+- "Tu radar"
+- "Puede encajarte"
+- "Ver todos"
+- "A dos pasos"
+- "Cerca de ti"
+- "¿Sin plan?"
+- "Empieza por lo que ya te gusta."
+- "Lo mejor de Outfy lo propone la gente."
+- "¿Tienes una idea sencilla para esta semana?"
+- "Crear un plan"
+
+Also move any other user-visible Home-specific hardcoded Spanish text you find in home.tsx.
+
+Add equivalent translations to:
+
+artifacts/outfy/src/i18n/locales/es/home.json
+artifacts/outfy/src/i18n/locales/en/home.json
+
+Do not hardcode visible UI text in home.tsx.
+
+--------------------------------------------------
+GOAL 3 — DO NOT MIGRATE ACTIVITIES YET
+--------------------------------------------------
+
+Do NOT change the current activity categories, mock activity data, ActivityCard, constants.ts or types.ts in this task.
+
+The new activity taxonomy will be integrated later.
+
+Do not change filtering behavior.
+
+Do not change links.
+
+Do not change saved/interested behavior.
+
+Do not implement real activities.
+
+This task is only Home dynamic data + Home i18n cleanup.
+
+--------------------------------------------------
+DESIGN / UI
+--------------------------------------------------
+
+Do NOT redesign Home.
+
+Preserve:
+- current layout
+- spacing
+- colors
+- responsive behavior
+- desktop layout
+- mobile layout
+- animations
+- buttons
+- links
+- activity cards
+
+Only replace hardcoded strings with translation keys and make the existing dynamic header robust.
+
+--------------------------------------------------
+VALIDATION
+--------------------------------------------------
+
+After implementing:
+
+1. Review git diff.
+2. Confirm ONLY the three allowed files changed.
+3. Run the existing frontend TypeScript/typecheck/build validation.
+4. Do not change configuration if validation fails because of the Replit environment.
+5. Confirm there are no visible hardcoded Home-specific Spanish strings remaining in home.tsx.
+6. Confirm Spanish and English JSON files contain equivalent keys.
+7. Confirm the date changes language correctly.
+8. Confirm the city comes only from the user's saved HomeLocation/profile data.
+9. Confirm Home does NOT request GPS.
+
+Report:
+- exactly which files changed
+- which Home strings were moved to i18n
+- how name fallback works
+- how location fallback works
+- validation result
+- any remaining limitation
+
+DO NOT publish.
+DO NOT redeploy.
+DO NOT modify any other file.

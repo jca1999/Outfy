@@ -5,6 +5,30 @@
     "description": "Planes reales, gente cercana y una excusa para salir de casa. ¿Qué te apetece?",
     "explore": "Explorar planes",
     "create": "Proponer un plan",
-    "locationMissing": "Configura tu ubicación"
+    "locationMissing": "Ubicación sin configurar"
+  },
+  "featured": {
+    "eyebrow": "Plan destacado",
+    "today": "HOY",
+    "title": "Partidito al atardecer",
+    "timeLocation": "19:30 · Romareda",
+    "participants": "8 personas ya dentro",
+    "view": "Ver el plan"
+  },
+  "recommended": {
+    "eyebrow": "Tu radar",
+    "title": "Puede encajarte",
+    "viewAll": "Ver todos"
+  },
+  "nearby": {
+    "eyebrow": "A dos pasos",
+    "title": "Cerca de ti"
+  },
+  "createPrompt": {
+    "eyebrow": "¿Sin plan?",
+    "title": "Empieza por lo que ya te gusta.",
+    "description": "Lo mejor de Outfy lo propone la gente.",
+    "question": "¿Tienes una idea sencilla para esta semana?",
+    "action": "Crear un plan"
   }
 }
