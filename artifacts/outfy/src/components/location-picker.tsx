@@ -636,23 +636,9 @@ export function LocationPicker({
       const loadedStates = await getStatesOfCountry(
         country.iso2,
       );
-      const state =
-        loadedStates.length > 0
-          ? findState(
-              loadedStates,
-              country.iso2,
-              reverseResult.principalSubdivisionCode,
-              reverseResult.principalSubdivision,
-            )
-          : undefined;
-
-      if (loadedStates.length > 0 && !state) {
-        throw new Error('region-not-found');
-      }
-
-      const loadedCities = state
-        ? await getCitiesOfState(country.iso2, state.iso2)
-        : await getAllCitiesOfCountry(country.iso2);
+      const loadedCities = await getAllCitiesOfCountry(
+        country.iso2,
+      );
       const cityNames = [
         reverseResult.city,
         reverseResult.locality,
@@ -668,6 +654,26 @@ export function LocationPicker({
       if (!city) {
         throw new Error('city-not-found');
       }
+
+      const stateFromCity = city.state_code
+        ? loadedStates.find((item) =>
+            stateMatchesCode(
+              item,
+              city.state_code,
+              country.iso2,
+            ),
+          )
+        : undefined;
+      const state =
+        stateFromCity ??
+        (loadedStates.length > 0
+          ? findState(
+              loadedStates,
+              country.iso2,
+              reverseResult.principalSubdivisionCode,
+              reverseResult.principalSubdivision,
+            )
+          : undefined);
 
       const coordinates = cityCoordinates(city);
       if (!coordinates) {

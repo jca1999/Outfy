@@ -1,0 +1,142 @@
+We have identified the actual cause of the GPS location matching failure in Outfy.
+
+STRICT SCOPE
+
+You may modify ONLY:
+
+artifacts/outfy/src/components/location-picker.tsx
+
+Do NOT modify any other file.
+
+Do NOT modify:
+- translations
+- Supabase
+- authentication
+- Profile
+- Home
+- package.json
+- dependencies
+- .replit
+- workflows
+- ports
+- deployment
+- backend
+- environment variables
+
+Do NOT publish or redeploy.
+
+IMPORTANT:
+The existing BigDataCloud reverse geocoding implementation is correct and must remain.
+
+The manual Country -> Region -> City selector must continue working exactly as it does now.
+
+PROBLEM
+
+The current GPS flow resolves BigDataCloud principalSubdivision first and then calls:
+
+getCitiesOfState(country.iso2, state.iso2)
+
+This is not reliable because geographic hierarchy levels can differ between BigDataCloud and @countrystatecity/countries-browser.
+
+For example in Spain:
+
+BigDataCloud may return:
+
+principalSubdivision = Aragon
+principalSubdivisionCode = ES-AR
+
+But the city Zaragoza can belong in the existing dataset to the province/state code:
+
+Z
+
+rather than directly to:
+
+AR
+
+Therefore selecting AR first can make the subsequent city lookup fail.
+
+REQUIRED FIX
+
+Change ONLY the GPS matching algorithm inside useCurrentLocation.
+
+New matching order:
+
+1. Obtain the device coordinates using the existing browser geolocation implementation.
+
+2. Reverse geocode them using the EXISTING BigDataCloud implementation.
+
+3. Resolve the country from BigDataCloud countryCode exactly as currently done.
+
+4. DO NOT require principalSubdivision to be resolved before finding the city.
+
+5. Load all cities for the detected country using:
+
+getAllCitiesOfCountry(country.iso2)
+
+6. Try to find the city using normalized BigDataCloud names:
+- city
+- locality
+
+Use the existing normalized string comparison.
+
+7. If no matching city is found by name, use the existing Haversine/nearest-city logic against ALL cities in the detected country.
+
+Use the temporary GPS coordinates only for this calculation.
+
+8. Once a city has been found, resolve its region/state using the city's own state_code.
+
+Example:
+
+city.state_code -> find corresponding state in getStatesOfCountry(country.iso2)
+
+This state from the city dataset should be preferred over BigDataCloud principalSubdivision.
+
+9. Only if the matched city does not provide a usable state_code should BigDataCloud principalSubdivisionCode/principalSubdivision be used as a fallback.
+
+10. Save the HomeLocation using:
+- country from the existing dataset
+- region/state resolved from the matched city
+- city from the existing dataset
+- latitude/longitude belonging to the matched city from the existing dataset
+
+NEVER persist the exact GPS coordinates.
+
+IMPORTANT PRIVACY REQUIREMENT
+
+Device GPS latitude and longitude must remain temporary variables used only during detection.
+
+They must NEVER be passed to onChange() or persisted.
+
+Continue storing only the coordinates belonging to the matched dataset city.
+
+PRESERVE EXISTING FUNCTIONALITY
+
+Do not change:
+- manual country selection
+- manual state/region selection
+- manual city selection
+- searchable dropdowns
+- clearing location
+- existing HomeLocation structure
+- BigDataCloud endpoint
+- existing UI
+- i18n
+- Profile behavior
+
+Do not redesign anything.
+
+VALIDATION
+
+After implementing the change:
+
+1. Verify that only location-picker.tsx changed.
+2. Run the existing frontend TypeScript/typecheck validation.
+3. Confirm BigDataCloud is still being used.
+4. Confirm getAllCitiesOfCountry() is used before restricting by region during GPS detection.
+5. Confirm the matched city's state_code is used to determine the final region.
+6. Confirm exact GPS coordinates are never saved.
+7. Report exactly what changed.
+
+Do not modify anything else.
+Do not publish.
+Do not redeploy.
