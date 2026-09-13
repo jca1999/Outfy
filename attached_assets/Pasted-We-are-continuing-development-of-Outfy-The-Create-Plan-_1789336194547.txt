@@ -1,0 +1,260 @@
+We are continuing development of Outfy.
+
+The Create Plan prototype is working correctly.
+
+This task is ONLY a small UX refinement of the existing Create Plan page.
+
+Do NOT connect the form to Supabase yet.
+Do NOT create database tables yet.
+Do NOT implement real publishing yet.
+
+==================================================
+STRICT SAFETY SCOPE
+==================================================
+
+You may modify ONLY:
+
+1. artifacts/outfy/src/pages/create-activity.tsx
+2. artifacts/outfy/src/i18n/locales/es/activities.json
+3. artifacts/outfy/src/i18n/locales/en/activities.json
+
+You may READ but MUST NOT modify:
+
+- auth-context.tsx
+- auth-api.ts
+- activity-taxonomy.ts
+
+DO NOT modify any other file.
+
+In particular DO NOT modify:
+
+- .replit
+- workflows
+- ports
+- deployment
+- Supabase
+- database schema
+- authentication logic
+- LocationPicker
+- Profile
+- Edit Profile
+- Settings
+- Home
+- Explore
+- App.tsx
+- outfy-shell.tsx
+- package.json
+- dependencies
+- environment variables
+
+DO NOT publish or redeploy.
+
+==================================================
+GOAL 1 — QUICKLY USE SAVED CITY
+==================================================
+
+For PHYSICAL activities, the form already contains a City field.
+
+Add a small convenient action near that field:
+
+Spanish:
+"Usar mi ciudad"
+
+English:
+"Use my city"
+
+This action must use the CURRENT authenticated user's already saved HomeLocation city.
+
+Read it from the existing useAuth() user data.
+
+Do NOT request GPS.
+
+Do NOT use browser geolocation.
+
+Do NOT modify the user's saved HomeLocation.
+
+Do NOT modify LocationPicker.
+
+When pressed:
+
+- if the user has a saved home city, populate the activity City field with that city.
+- if the user has no saved home city, show a friendly translated message explaining that they need to enter a city manually.
+
+This is only a convenience for filling the activity form.
+
+The City field must remain manually editable afterwards.
+
+==================================================
+GOAL 2 — IMPROVE COST WORDING
+==================================================
+
+The current cost section wording feels too technical.
+
+Change the section heading/concept to a more natural question.
+
+Spanish:
+
+"¿Hay que pagar algo?"
+
+English:
+
+"Does this plan cost anything?"
+
+Keep the existing three options, but use these labels:
+
+FREE
+
+Spanish:
+"Gratis"
+
+English:
+"Free"
+
+PAID
+
+Spanish:
+"Tiene un precio"
+
+English:
+"Has a price"
+
+EACH OWN
+
+Spanish:
+"Cada uno paga lo suyo"
+
+English:
+"Everyone pays their own"
+
+If PAID is selected, continue showing:
+
+- estimated price
+- currency
+
+Use:
+
+Spanish:
+"Precio aproximado"
+
+English:
+"Estimated price"
+
+Do not change the internal IDs:
+- free
+- paid
+- each_own
+
+==================================================
+GOAL 3 — REVIEW STEP PREPARED FOR PUBLISHING
+==================================================
+
+Keep the existing Review Plan step.
+
+The summary should remain editable through:
+
+Spanish:
+"Volver a editar"
+
+English:
+"Back to edit"
+
+At the bottom of the preview, add a clearly visible PRIMARY action:
+
+Spanish:
+"Publicar plan"
+
+English:
+"Publish plan"
+
+IMPORTANT:
+
+This button must NOT persist anything yet.
+
+Because Supabase activity persistence has not been implemented, clicking it should NOT fake a successful publication.
+
+For now, keep the button disabled and show a subtle translated explanatory text such as:
+
+Spanish:
+"Podrás publicarlo cuando terminemos de conectar los planes."
+
+English:
+"You'll be able to publish it once plan creation is connected."
+
+Do not use technical terms such as Supabase, backend, database, prototype or development in user-visible UI.
+
+This disabled button is temporary and will become functional in the next implementation phase.
+
+==================================================
+SHARING
+==================================================
+
+Do NOT add a Share button yet.
+
+We want sharing to happen AFTER a plan has actually been published so that Outfy can share the real plan URL.
+
+Do not implement navigator.share, clipboard sharing, social integrations or placeholder sharing in this task.
+
+==================================================
+INTERNATIONALIZATION
+==================================================
+
+All new visible text must use the existing activities namespace.
+
+Modify only:
+
+- es/activities.json
+- en/activities.json
+
+Do not delete or rename existing taxonomy translation keys.
+
+Spanish and English structures must remain equivalent.
+
+Do not hardcode visible text.
+
+==================================================
+PRESERVE EVERYTHING ELSE
+==================================================
+
+Do NOT redesign the Create Plan page.
+
+Preserve:
+
+- title
+- description
+- category
+- subcategory
+- date
+- start/end time
+- physical/online selector
+- meeting point
+- online platform
+- participant limit
+- Review Plan flow
+- local state
+- validation
+- current responsive behavior
+
+Do not change the activity taxonomy.
+
+==================================================
+VALIDATION
+==================================================
+
+After implementation:
+
+1. Review git diff.
+2. Confirm ONLY the three allowed files changed.
+3. Run existing TypeScript/frontend validation.
+4. Confirm no GPS/geolocation code was added.
+5. Confirm no Supabase/database code was added.
+6. Confirm "Use my city" reads only the existing saved HomeLocation.
+7. Confirm the City field remains manually editable.
+8. Confirm cost internal IDs remain unchanged.
+9. Confirm Publish Plan exists in preview but does not persist or fake publication.
+10. Confirm no Share button was added yet.
+11. Confirm ES/EN works correctly.
+
+Report exactly what changed and validation results.
+
+DO NOT publish.
+DO NOT redeploy.

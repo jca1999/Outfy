@@ -101,7 +101,7 @@
       "when": "When",
       "where": "Where",
       "people": "People",
-      "cost": "Cost"
+      "cost": "Does this plan cost anything?"
     },
     "what": {
       "titleLabel": "Title",
@@ -122,6 +122,9 @@
       "typeLabel": "Plan type",
       "cityLabel": "City",
       "cityPlaceholder": "e.g. Zaragoza",
+      "useSavedCity": "Use my city",
+      "savedCityUsed": "We used your saved city.",
+      "noSavedCity": "Add a city to your profile to use it here.",
       "meetingPointLabel": "Meeting point or area (optional)",
       "meetingPointPlaceholder": "e.g. Central Park",
       "onlinePlatformLabel": "Online platform or place (optional)",
@@ -135,11 +138,11 @@
       "maxParticipantsPlaceholder": "Minimum 2"
     },
     "cost": {
-      "typeLabel": "How will the cost work?",
+      "typeLabel": "Choose an option",
       "free": "Free",
-      "paid": "Has a cost",
+      "paid": "Has a price",
       "eachOwn": "Everyone pays their own",
-      "estimatedCostLabel": "Estimated cost",
+      "estimatedCostLabel": "Estimated price",
       "estimatedCostPlaceholder": "e.g. 12.50",
       "currencyLabel": "Currency",
       "currencies": {
@@ -149,7 +152,8 @@
     },
     "actions": {
       "review": "Review plan",
-      "backToEdit": "Back to edit"
+      "backToEdit": "Back to edit",
+      "publish": "Publish plan"
     },
     "preview": {
       "eyebrow": "PREVIEW",
@@ -165,7 +169,8 @@
       "participantsLimited": "Up to {{count}} people",
       "participantsUnlimited": "No limit on people",
       "cost": "Cost",
-      "onlineNoPlatform": "Online, platform to be decided"
+      "onlineNoPlatform": "Online, platform to be decided",
+      "publishHelp": "You'll be able to publish it once plan creation is connected."
     },
     "validation": {
       "title": "Add a title for the plan.",

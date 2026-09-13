@@ -9,6 +9,7 @@ import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'wouter';
 
+import { useAuth } from '@/auth/auth-context';
 import {
   activityTaxonomy,
   type ActivityCategoryId,
@@ -66,9 +67,11 @@ const choiceLabelClassName =
 
 export function CreateActivity() {
   const { t, i18n } = useTranslation('activities');
+  const { user } = useAuth();
   const [, navigate] = useLocation();
   const [form, setForm] = useState<ActivityForm>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [cityMessage, setCityMessage] = useState('');
   const [isPreview, setIsPreview] = useState(false);
 
   const categoryIds = Object.keys(
@@ -100,6 +103,29 @@ export function CreateActivity() {
       [key]: value,
     }));
     clearError(String(key));
+
+    if (key === 'city') {
+      setCityMessage('');
+    }
+  }
+
+  function handleUseSavedCity() {
+    const savedCity =
+      user?.homeLocation?.city?.trim() ||
+      user?.homeCity?.trim() ||
+      '';
+
+    if (!savedCity) {
+      setCityMessage(
+        t('create.where.noSavedCity'),
+      );
+      return;
+    }
+
+    updateForm('city', savedCity);
+    setCityMessage(
+      t('create.where.savedCityUsed'),
+    );
   }
 
   function validateForm() {
@@ -419,6 +445,20 @@ export function CreateActivity() {
               {t('create.actions.backToEdit')}
             </button>
           </div>
+
+          <div className="mt-6 flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <p className="max-w-md text-xs leading-relaxed text-muted-foreground">
+              {t('create.preview.publishHelp')}
+            </p>
+
+            <button
+              type="button"
+              disabled
+              className="inline-flex w-full cursor-not-allowed items-center justify-center rounded-full bg-primary/45 px-5 py-3 text-sm font-bold text-primary-foreground/75 sm:w-auto"
+            >
+              {t('create.actions.publish')}
+            </button>
+          </div>
         </section>
       ) : (
         <form
@@ -701,12 +741,22 @@ export function CreateActivity() {
               {form.locationType === 'physical' ? (
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div>
-                    <label
-                      htmlFor="activity-city"
-                      className="text-sm font-bold"
-                    >
-                      {t('create.where.cityLabel')}
-                    </label>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <label
+                        htmlFor="activity-city"
+                        className="text-sm font-bold"
+                      >
+                        {t('create.where.cityLabel')}
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={handleUseSavedCity}
+                        className="text-xs font-bold text-primary transition hover:text-primary/75"
+                      >
+                        {t('create.where.useSavedCity')}
+                      </button>
+                    </div>
                     <input
                       id="activity-city"
                       type="text"
@@ -724,6 +774,14 @@ export function CreateActivity() {
                       className={`${inputClassName} mt-2`}
                     />
                     {renderError('city')}
+                    {cityMessage && (
+                      <p
+                        className="mt-2 text-xs font-semibold text-primary"
+                        role="status"
+                      >
+                        {cityMessage}
+                      </p>
+                    )}
                   </div>
 
                   <div>
