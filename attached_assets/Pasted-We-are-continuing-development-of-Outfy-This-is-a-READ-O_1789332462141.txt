@@ -1,0 +1,106 @@
+We are continuing development of Outfy.
+
+This is a READ-ONLY PLANNING TASK.
+
+DO NOT modify, create, delete, rename or move any file.
+DO NOT run migrations.
+DO NOT change Supabase.
+DO NOT publish or redeploy.
+DO NOT install dependencies.
+DO NOT make any code changes.
+
+GOAL
+
+We want to reorganize the existing Profile area without changing any existing functionality.
+
+The desired future structure is:
+
+1. PROFILE
+   - Social/user-facing profile screen
+   - Profile picture / avatar if currently available
+   - display name
+   - username
+   - bio if currently available
+   - home location
+   - interests when implemented later
+   - activities proposed / upcoming / history will be added later
+   - "Edit profile" action
+   - Settings gear icon/action
+
+2. EDIT PROFILE
+   This should contain ONLY information that defines how the user appears to other users, using existing functionality where available:
+   - display name
+   - profile photo/avatar if currently implemented
+   - bio if currently implemented
+   - home location
+   - interests later
+
+3. SETTINGS
+   A new dedicated settings screen.
+
+   Existing settings that are currently mixed into Profile should eventually be moved here, preserving their current logic.
+
+   Examples, ONLY when they already exist:
+   - profile privacy
+   - display-name visibility/privacy
+   - language
+   - light/dark theme or appearance
+   - password/security
+   - logout
+
+   IMPORTANT:
+   Do NOT invent notification settings yet if notification preferences do not currently exist.
+   We will implement notifications separately later.
+
+IMPORTANT PRINCIPLE
+
+We want to MOVE and REUSE existing working functionality, not rewrite it.
+
+The GPS/location picker currently works correctly.
+Authentication works correctly.
+Profile persistence works correctly.
+Spanish/English switching works correctly.
+Password/security behavior works correctly.
+
+These must not be broken.
+
+READ AND INSPECT
+
+Inspect the current project and identify:
+
+- the current Profile page file
+- the current routing configuration
+- any existing edit-profile route/page
+- authentication/context files used by Profile
+- relevant profile i18n files
+- theme/language handling used by Profile
+- logout implementation
+- password/security implementation
+- profile privacy implementation
+- location picker integration
+
+You may read any files necessary to understand these relationships.
+
+DO NOT CHANGE ANYTHING.
+
+REPORT BACK WITH:
+
+1. Exact path of the current Profile page.
+2. Exact path/file that controls routing.
+3. Whether an Edit Profile screen already exists.
+4. Which settings currently live inside Profile.
+5. Which existing settings can safely be moved to a new Settings page without changing their underlying logic.
+6. Exact list of files that would need to be:
+   - modified
+   - created
+7. A proposed route structure, preferably:
+   - /profile
+   - /profile/edit
+   - /settings
+   unless the current routing architecture suggests a safer equivalent.
+8. Any functionality that is tightly coupled to Profile and would require special care.
+9. Confirmation that NO files were changed during this task.
+
+Do not implement the change yet.
+
+This task is inspection and planning only.
