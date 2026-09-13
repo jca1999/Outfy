@@ -3,9 +3,32 @@
     "eyebrow": "Your account",
     "title": "My profile",
     "edit": "Edit profile",
+    "settings": "Settings",
+    "settingsAriaLabel": "Open settings",
     "save": "Save",
     "saving": "Saving…",
     "signOut": "Sign out"
+  },
+
+  "navigation": {
+    "backToProfile": "Back to profile"
+  },
+
+  "editProfile": {
+    "eyebrow": "Your profile",
+    "title": "Edit profile",
+    "description": "Update the name and location shown on your profile.",
+    "cancel": "Cancel"
+  },
+
+  "settings": {
+    "eyebrow": "Your account",
+    "title": "Settings",
+    "privacy": "Privacy",
+    "notifications": "Notifications",
+    "language": "Language",
+    "languageHelp": "Choose the language you want to use for Outfy.",
+    "account": "Account"
   },
 
   "identity": {

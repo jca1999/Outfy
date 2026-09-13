@@ -1,0 +1,342 @@
+We are continuing development of Outfy.
+
+The previous task was read-only and identified the exact current Profile structure.
+
+This task is to SPLIT the current Profile page into:
+
+1. Social Profile
+2. Edit Profile
+3. Settings
+
+We must REUSE existing working logic and preserve all existing behavior.
+
+==================================================
+STRICT SAFETY SCOPE
+==================================================
+
+You may modify ONLY:
+
+1. artifacts/outfy/src/App.tsx
+2. artifacts/outfy/src/pages/profile.tsx
+3. artifacts/outfy/src/i18n/locales/es/profile.json
+4. artifacts/outfy/src/i18n/locales/en/profile.json
+
+You may create ONLY:
+
+5. artifacts/outfy/src/pages/profile-edit.tsx
+6. artifacts/outfy/src/pages/settings.tsx
+
+DO NOT modify or create any other file.
+
+In particular, DO NOT modify:
+
+- .replit
+- workflows
+- ports
+- health checks
+- startup commands
+- deployment configuration
+- backend/API
+- Supabase
+- database schema
+- auth-api.ts
+- auth-context.tsx
+- LocationPicker
+- i18n/index.ts
+- Home
+- Explore
+- Matches
+- Chats
+- outfy-shell.tsx
+- constants.ts
+- types.ts
+- mock-data.ts
+- activity-taxonomy.ts
+- package.json
+- dependencies
+- environment variables
+
+DO NOT publish or redeploy.
+
+If this change cannot be completed safely using only the six allowed files, STOP and explain why instead of modifying anything else.
+
+==================================================
+IMPORTANT PRINCIPLE
+==================================================
+
+MOVE and REUSE existing working functionality.
+
+Do NOT rewrite:
+- profile persistence
+- authentication
+- GPS/location logic
+- notification preference persistence
+- privacy persistence
+- language persistence
+- logout logic
+
+Use the existing useAuth(), updateProfile(), signOut(), LocationPicker and LanguageSwitcher behavior exactly as the current Profile page already does.
+
+==================================================
+ROUTES
+==================================================
+
+Preserve:
+
+/profile
+
+Add:
+
+/profile/edit
+/settings
+
+Register both new routes in the same existing authenticated OutfyShell route branch as /profile.
+
+Do not change the authentication guard.
+
+Do not change primary bottom/desktop navigation.
+
+The existing Profile navigation item must continue linking to:
+
+/profile
+
+==================================================
+1. SOCIAL PROFILE — /profile
+==================================================
+
+Convert the existing Profile page into a clean social/user-facing profile screen.
+
+It should display existing available user information only:
+
+- existing avatar/initials representation
+- display name
+- username
+- saved home location
+
+Do NOT invent:
+- bio
+- profile photo upload
+- activity statistics
+- interests
+- activity history
+
+Those features will be implemented later.
+
+Remove all inline settings/edit controls from the social Profile page.
+
+Add two clear actions:
+
+1. "Editar perfil" / "Edit profile"
+   -> navigate to /profile/edit
+
+2. Settings gear icon/button
+   -> navigate to /settings
+
+The gear should be visually understandable and accessible with a translated aria-label/title.
+
+Keep the existing visual style of Outfy.
+
+Do not redesign the whole page.
+
+The Profile page should now primarily represent:
+"Who I am in Outfy"
+
+rather than account settings.
+
+==================================================
+2. EDIT PROFILE — /profile/edit
+==================================================
+
+Create:
+
+artifacts/outfy/src/pages/profile-edit.tsx
+
+Move/reuse the existing editing functionality from Profile for:
+
+- display name
+- home location
+
+Use the existing LocationPicker component WITHOUT modifying it.
+
+Preserve:
+- current display-name validation
+- current HomeLocation structure
+- GPS behavior
+- manual location selection
+- save behavior
+- updateProfile persistence
+- existing error handling
+
+The page should have:
+
+- clear page title
+- back navigation to /profile
+- display-name editing
+- existing location editing
+- Save action
+- Cancel/back action
+
+After a successful save, navigate back to /profile.
+
+Do NOT add:
+- bio
+- photo upload
+- interests
+
+Those will come later.
+
+==================================================
+3. SETTINGS — /settings
+==================================================
+
+Create:
+
+artifacts/outfy/src/pages/settings.tsx
+
+Move/reuse the CURRENT existing settings functionality from Profile:
+
+A. Privacy
+- display-name visibility
+- profile privacy
+
+B. Notifications
+- all notification preferences that currently exist in Profile
+
+C. Language
+- existing LanguageSwitcher / language logic
+
+D. Account
+- logout
+
+Preserve the current persistence logic and optimistic rollback behavior exactly where currently used.
+
+Do NOT implement new notification types.
+
+Do NOT implement:
+- theme/appearance
+- authenticated password change
+- blocked users
+- account deletion
+- Premium
+- new privacy settings
+
+These are future tasks.
+
+The Settings screen should be organized into clear visual sections:
+
+- Privacy
+- Notifications
+- Language
+- Account
+
+Use the existing Outfy design language.
+
+Add a clear back action to /profile.
+
+Logout must continue to:
+- call the existing signOut()
+- navigate to /sign-in
+
+==================================================
+INTERNATIONALIZATION
+==================================================
+
+Use ONLY the existing "profile" namespace.
+
+Update:
+
+artifacts/outfy/src/i18n/locales/es/profile.json
+artifacts/outfy/src/i18n/locales/en/profile.json
+
+Add only the translations necessary for:
+
+- Edit profile
+- Settings
+- Settings accessibility label
+- Edit Profile page title
+- Settings page title
+- Back
+- Cancel
+- Save if a reusable key does not already exist
+- section headings if needed
+
+Reuse existing translation keys wherever suitable.
+
+DO NOT delete or rename existing keys used by LocationPicker or other Profile functionality.
+
+Spanish and English structures must remain equivalent.
+
+Do not hardcode new visible strings.
+
+==================================================
+DESIGN / RESPONSIVE
+==================================================
+
+Preserve the existing Outfy look and feel.
+
+Both new pages must work correctly on:
+
+- mobile
+- desktop
+
+Do not change:
+- global navigation
+- global colors
+- AppShell layout
+- unrelated page spacing
+- authentication UI
+
+==================================================
+PRESERVE WORKING FEATURES
+==================================================
+
+After this refactor, all of these must still work:
+
+- Profile loads correctly
+- display name displays correctly
+- username displays correctly
+- saved location displays correctly
+- Edit Profile saves display name
+- Edit Profile saves location
+- GPS still works
+- manual location selection still works
+- display-name visibility persists
+- profile privacy persists
+- notification preferences persist
+- ES/EN language switching works
+- logout works
+- authentication remains unchanged
+
+==================================================
+VALIDATION
+==================================================
+
+After implementing:
+
+1. Review git diff.
+2. Confirm ONLY the six allowed files were created/modified.
+3. Run the existing frontend TypeScript/typecheck/build validation.
+4. Do NOT modify project configuration if validation fails because of the environment.
+5. Test/verify route registration for:
+   - /profile
+   - /profile/edit
+   - /settings
+6. Confirm LocationPicker was NOT modified.
+7. Confirm auth-api.ts and auth-context.tsx were NOT modified.
+8. Confirm Supabase/database code was NOT modified.
+9. Confirm no notification functionality was newly invented.
+10. Confirm Profile no longer contains settings controls.
+
+Report:
+
+- exactly which files changed
+- what was moved from Profile to Edit Profile
+- what was moved from Profile to Settings
+- how existing persistence logic was preserved
+- route changes
+- validation result
+- any remaining limitation
+
+DO NOT publish.
+DO NOT redeploy.
+DO NOT modify anything outside the allowed scope.

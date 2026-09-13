@@ -10,6 +10,8 @@ import { Home } from '@/pages/home';
 import { Matches } from '@/pages/matches';
 import { Chats } from '@/pages/chats';
 import { Profile } from '@/pages/profile';
+import { ProfileEdit } from '@/pages/profile-edit';
+import { Settings } from '@/pages/settings';
 import { SignIn } from '@/pages/auth/sign-in';
 import { SignUp } from '@/pages/auth/sign-up';
 import { VerifyEmail } from '@/pages/auth/verify-email';
@@ -133,7 +135,9 @@ function Router() {
           <Route path="/explore" component={() => <Explore {...shared} />} />
           <Route path="/matches" component={Matches} />
           <Route path="/chats" component={Chats} />
+          <Route path="/profile/edit" component={ProfileEdit} />
           <Route path="/profile" component={Profile} />
+          <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>
       </OutfyShell>
