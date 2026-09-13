@@ -509,37 +509,43 @@ export function Settings() {
         </div>
       </section>
 
-      <section className="rounded-[26px] border border-border bg-card p-6 soft-shadow sm:p-8">
-        <h2 className="text-xl font-bold tracking-[-.03em]">
-          {t('settings.language')}
-        </h2>
+      <section className="rounded-[26px] border border-border bg-card p-4 soft-shadow sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-xl font-bold tracking-[-.03em]">
+              {t('settings.language')}
+            </h2>
 
-        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-          {t('settings.languageHelp')}
-        </p>
+            <p className="mt-1 max-w-md text-xs leading-relaxed text-muted-foreground">
+              {t('settings.languageHelp')}
+            </p>
+          </div>
 
-        <div className="mt-4">
-          <LanguageSwitcher />
+          <div className="shrink-0">
+            <LanguageSwitcher />
+          </div>
         </div>
       </section>
 
-      <section className="rounded-[26px] border border-border bg-card p-6 soft-shadow sm:p-8">
-        <h2 className="text-xl font-bold tracking-[-.03em]">
-          {t('settings.account')}
-        </h2>
+      <section className="rounded-[26px] border border-border bg-card p-4 soft-shadow sm:p-5">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-xl font-bold tracking-[-.03em]">
+            {t('settings.account')}
+          </h2>
 
-        <button
-          type="button"
-          onClick={() => {
-            void signOut().then(() =>
-              navigate('/sign-in'),
-            );
-          }}
-          className="mt-4 flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-2.5 text-xs font-bold text-muted-foreground transition hover:bg-muted hover:text-foreground"
-        >
-          <LogOut className="h-3.5 w-3.5" />
-          {t('header.signOut')}
-        </button>
+          <button
+            type="button"
+            onClick={() => {
+              void signOut().then(() =>
+                navigate('/sign-in'),
+              );
+            }}
+            className="flex w-fit items-center gap-2 rounded-full border border-border bg-card px-3.5 py-2.5 text-xs font-bold text-muted-foreground transition hover:bg-muted hover:text-foreground"
+          >
+            <LogOut className="h-3.5 w-3.5" />
+            {t('header.signOut')}
+          </button>
+        </div>
       </section>
 
       {(error || notice) && (

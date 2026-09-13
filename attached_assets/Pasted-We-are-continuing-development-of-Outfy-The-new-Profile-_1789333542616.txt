@@ -1,0 +1,177 @@
+We are continuing development of Outfy.
+
+The new Profile / Edit Profile / Settings split is working correctly.
+
+This task is ONLY a small visual refinement of the existing Settings page.
+
+STRICT SAFETY SCOPE
+
+You may modify ONLY:
+
+artifacts/outfy/src/pages/settings.tsx
+
+DO NOT modify any other file.
+
+In particular, DO NOT modify:
+
+- App.tsx
+- Profile
+- Edit Profile
+- LocationPicker
+- auth-api.ts
+- auth-context.tsx
+- Supabase
+- backend/API
+- database schema
+- i18n files
+- language persistence
+- notification persistence
+- privacy persistence
+- logout logic
+- .replit
+- workflows
+- ports
+- deployment
+- package.json
+- dependencies
+- environment variables
+
+DO NOT publish or redeploy.
+
+If this task would require modifying another file, STOP and explain why.
+
+==================================================
+GOAL
+==================================================
+
+Improve ONLY the visual layout of the existing Language and Account sections in Settings.
+
+The current Language and Account cards use too much vertical space for the small amount of content they contain.
+
+Keep the existing order:
+
+1. Privacy
+2. Notifications
+3. Language
+4. Account
+
+Do NOT move Account above other settings.
+
+==================================================
+LANGUAGE SECTION
+==================================================
+
+Make the Language section much more compact.
+
+Instead of a large card with excessive empty vertical space, use a compact row/layout similar to:
+
+Language                         ES | EN
+
+Preserve:
+
+- the existing LanguageSwitcher
+- current language persistence
+- Spanish/English switching behavior
+- current translation behavior
+
+Do NOT change LanguageSwitcher logic.
+
+Do NOT create a new language selector.
+
+The section should remain clearly identifiable but should take significantly less vertical space.
+
+==================================================
+ACCOUNT SECTION
+==================================================
+
+Make the Account section much more compact.
+
+It should primarily contain the existing Sign out action without large unused vertical space.
+
+For example conceptually:
+
+Account
+
+[ Sign out ]
+
+or a compact account row.
+
+Preserve the current logout behavior exactly:
+
+- call the existing signOut()
+- navigate to /sign-in
+
+Do NOT change authentication logic.
+
+Do NOT make Sign out look like a destructive "Delete account" action.
+
+A subtle account/action treatment is preferred over an aggressive red destructive style.
+
+==================================================
+SMALL SETTINGS POLISH
+==================================================
+
+While modifying settings.tsx, you may also make SMALL spacing/alignment improvements inside this file ONLY if they:
+
+- reduce unnecessary vertical scrolling
+- improve consistency between sections
+- preserve the existing Outfy visual design
+- work correctly on mobile and desktop
+
+Do NOT redesign Privacy or Notifications.
+
+Do NOT change their controls or behavior.
+
+Do NOT add new settings.
+
+==================================================
+DO NOT ADD YET
+==================================================
+
+Do NOT implement:
+
+- theme / appearance
+- password change
+- blocked users
+- account deletion
+- Premium
+- new notification preferences
+- new privacy preferences
+
+These are future roadmap tasks.
+
+==================================================
+RESPONSIVE
+==================================================
+
+Verify the Settings page remains comfortable on:
+
+- mobile
+- tablet
+- desktop
+
+On smaller screens:
+
+- rows may wrap naturally if necessary
+- controls must remain easy to tap
+- no horizontal overflow
+
+==================================================
+VALIDATION
+==================================================
+
+After implementing:
+
+1. Review git diff.
+2. Confirm ONLY settings.tsx changed.
+3. Run the existing frontend TypeScript/typecheck/build validation.
+4. Confirm LanguageSwitcher behavior was not changed.
+5. Confirm notification logic was not changed.
+6. Confirm privacy logic was not changed.
+7. Confirm logout behavior was not changed.
+8. Confirm no new settings were added.
+9. Report exactly what visual changes were made.
+
+DO NOT publish.
+DO NOT redeploy.
+DO NOT modify anything outside settings.tsx.
