@@ -1,0 +1,78 @@
+We are continuing development of Outfy.
+
+Before making changes, inspect the current project state.
+
+GOAL
+
+Verify whether the new activity taxonomy already has complete Spanish and English i18n support.
+
+READ ONLY first:
+
+- artifacts/outfy/src/activity-taxonomy.ts
+- artifacts/outfy/src/i18n/index.ts
+- artifacts/outfy/src/i18n/locales/es/
+- artifacts/outfy/src/i18n/locales/en/
+
+Check whether:
+
+1. An "activities" i18n namespace already exists.
+2. Every category from activity-taxonomy.ts has both Spanish and English translations.
+3. Every subcategory from activity-taxonomy.ts has both Spanish and English translations.
+4. physical / online location types have translations.
+5. The Spanish and English translation structures are equivalent.
+6. The activities namespace is registered correctly in the existing i18n configuration.
+
+IMPORTANT:
+
+If everything is already complete and correct:
+- DO NOT modify anything.
+- Simply report that the task is already complete.
+
+If something is missing, you may modify ONLY:
+
+1. artifacts/outfy/src/i18n/index.ts
+2. artifacts/outfy/src/i18n/locales/es/activities.json
+3. artifacts/outfy/src/i18n/locales/en/activities.json
+
+Do NOT modify activity-taxonomy.ts.
+
+DO NOT modify any other file.
+
+DO NOT modify:
+- .replit
+- workflows
+- ports
+- health checks
+- startup commands
+- deployment
+- backend/API
+- Supabase
+- authentication
+- Home
+- Profile
+- LocationPicker
+- package.json
+- dependencies
+- constants.ts
+- types.ts
+- mock-data.ts
+- routing
+- environment variables
+
+Do NOT publish or redeploy.
+
+Do not migrate the current mock activity UI yet.
+Do not create database tables yet.
+Do not change Home or Explore.
+
+After checking/fixing:
+
+- review git diff
+- confirm exactly which files changed
+- run the existing TypeScript/frontend validation
+- report what was already present
+- report what was missing
+- report what you changed
+- report validation results
+
+If the task was already complete, make zero changes.
