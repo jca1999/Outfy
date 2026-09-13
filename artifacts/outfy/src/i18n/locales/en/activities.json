@@ -90,5 +90,93 @@
   "locationTypes": {
     "physical": "In person",
     "online": "Online"
+  },
+  "create": {
+    "eyebrow": "NEW PLAN",
+    "title": "What do you want to do?",
+    "intro": "Create a simple plan and find people who want to join.",
+    "back": "Back",
+    "sections": {
+      "what": "What",
+      "when": "When",
+      "where": "Where",
+      "people": "People",
+      "cost": "Cost"
+    },
+    "what": {
+      "titleLabel": "Title",
+      "titlePlaceholder": "e.g. Football match",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Tell people a little more about the plan (optional)",
+      "categoryLabel": "Category",
+      "categoryPlaceholder": "Choose a category",
+      "subcategoryLabel": "Subcategory",
+      "subcategoryPlaceholder": "Choose a subcategory"
+    },
+    "when": {
+      "dateLabel": "Date",
+      "startTimeLabel": "Start time",
+      "endTimeLabel": "End time (optional)"
+    },
+    "where": {
+      "typeLabel": "Plan type",
+      "cityLabel": "City",
+      "cityPlaceholder": "e.g. Zaragoza",
+      "meetingPointLabel": "Meeting point or area (optional)",
+      "meetingPointPlaceholder": "e.g. Central Park",
+      "onlinePlatformLabel": "Online platform or place (optional)",
+      "onlinePlatformPlaceholder": "e.g. Discord, PlayStation or Steam"
+    },
+    "people": {
+      "limitLabel": "How many people can join?",
+      "limited": "Limited",
+      "unlimited": "No limit",
+      "maxParticipantsLabel": "Maximum participants",
+      "maxParticipantsPlaceholder": "Minimum 2"
+    },
+    "cost": {
+      "typeLabel": "How will the cost work?",
+      "free": "Free",
+      "paid": "Has a cost",
+      "eachOwn": "Everyone pays their own",
+      "estimatedCostLabel": "Estimated cost",
+      "estimatedCostPlaceholder": "e.g. 12.50",
+      "currencyLabel": "Currency",
+      "currencies": {
+        "eur": "EUR (€)",
+        "usd": "USD ($)"
+      }
+    },
+    "actions": {
+      "review": "Review plan",
+      "backToEdit": "Back to edit"
+    },
+    "preview": {
+      "eyebrow": "PREVIEW",
+      "title": "This is how your plan will look",
+      "intro": "Review it before sharing. It has not been published yet.",
+      "description": "Description",
+      "category": "Category",
+      "subcategory": "Subcategory",
+      "date": "Date",
+      "time": "Time",
+      "location": "Location",
+      "participants": "People",
+      "participantsLimited": "Up to {{count}} people",
+      "participantsUnlimited": "No limit on people",
+      "cost": "Cost",
+      "onlineNoPlatform": "Online, platform to be decided"
+    },
+    "validation": {
+      "title": "Add a title for the plan.",
+      "category": "Choose a category.",
+      "subcategory": "Choose a subcategory.",
+      "date": "Choose a date.",
+      "startTime": "Choose a start time.",
+      "endTimeBeforeStart": "The end time must be after the start time.",
+      "city": "Add the city for the plan.",
+      "maxParticipants": "Choose at least 2 participants.",
+      "estimatedCost": "Add a valid estimated cost."
+    }
   }
 }

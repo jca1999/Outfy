@@ -2,9 +2,9 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider, useAuth } from '@/auth/auth-context';
 import { ErrorBoundary } from '@/components/error-boundary';
-import { CreatePlanDialog } from '@/components/create-plan-dialog';
 import { OutfyShell } from '@/components/outfy-shell';
 import { activities as initialActivities } from '@/mock-data';
+import { CreateActivity } from '@/pages/create-activity';
 import { Explore } from '@/pages/explore';
 import { Home } from '@/pages/home';
 import { Matches } from '@/pages/matches';
@@ -32,10 +32,9 @@ const queryClient = new QueryClient();
 function Router() {
   const { user, loading } = useAuth();
   const [location, navigate] = useLocation();
-  const [activities, setActivities] = useState(initialActivities);
+  const [activities] = useState(initialActivities);
   const [saved, setSaved] = useState<Set<string>>(new Set(['cine-verdi']));
   const [interested, setInterested] = useState<Set<string>>(new Set(['futbol-parque']));
-  const [dialogOpen, setDialogOpen] = useState(false);
   const toggleSet = (setter: React.Dispatch<React.SetStateAction<Set<string>>>, id: string) => {
     setter((current) => {
       const next = new Set(current);
@@ -43,25 +42,6 @@ function Router() {
       else next.add(id);
       return next;
     });
-  };
-  const createActivity = (title: string) => {
-    setActivities((current) => [...current, {
-      id: `custom-${Date.now()}`,
-      title,
-      category: 'Creativo',
-      day: 'Próximamente',
-      date: 'Fecha por decidir',
-      time: 'Hora por decidir',
-      location: 'Zaragoza',
-      neighborhood: 'Por decidir',
-      participants: 1,
-      capacity: 8,
-      host: 'Laura C.',
-      hostInitials: 'LC',
-      description: 'Un plan propuesto por la comunidad.',
-      tone: 'coral',
-    }]);
-    setDialogOpen(false);
   };
   const shared = {
     activities,
@@ -129,19 +109,19 @@ function Router() {
 
   return (
     <RoutedErrorBoundary>
-      <OutfyShell onCreateActivity={() => setDialogOpen(true)}>
+      <OutfyShell>
         <Switch>
-          <Route path="/" component={() => <Home {...shared} onCreate={() => setDialogOpen(true)} />} />
+          <Route path="/" component={() => <Home {...shared} onCreate={() => navigate('/activities/new')} />} />
           <Route path="/explore" component={() => <Explore {...shared} />} />
           <Route path="/matches" component={Matches} />
           <Route path="/chats" component={Chats} />
+          <Route path="/activities/new" component={CreateActivity} />
           <Route path="/profile/edit" component={ProfileEdit} />
           <Route path="/profile" component={Profile} />
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>
       </OutfyShell>
-      <CreatePlanDialog open={dialogOpen} onClose={() => setDialogOpen(false)} onCreate={createActivity} />
     </RoutedErrorBoundary>
   );
 }

@@ -1,0 +1,459 @@
+We are continuing development of Outfy.
+
+The Profile / Edit Profile / Settings structure is working correctly.
+
+The next step is to create the first version of the "Create plan" experience.
+
+IMPORTANT:
+This task is UI + local state ONLY.
+
+DO NOT connect this form to Supabase yet.
+DO NOT create database tables.
+DO NOT persist activities.
+DO NOT modify authentication.
+
+We first want to validate the user experience before implementing the backend.
+
+==================================================
+STRICT SAFETY SCOPE
+==================================================
+
+You may modify ONLY:
+
+1. artifacts/outfy/src/App.tsx
+2. artifacts/outfy/src/components/outfy-shell.tsx
+3. artifacts/outfy/src/i18n/locales/es/activities.json
+4. artifacts/outfy/src/i18n/locales/en/activities.json
+
+You may create ONLY:
+
+5. artifacts/outfy/src/pages/create-activity.tsx
+
+You may READ but MUST NOT modify:
+
+6. artifacts/outfy/src/activity-taxonomy.ts
+7. artifacts/outfy/src/i18n/index.ts
+
+If the existing "Crear plan / Create plan" button is NOT located in outfy-shell.tsx, STOP and report its exact file path instead of modifying another file.
+
+DO NOT modify any other file.
+
+In particular DO NOT modify:
+
+- .replit
+- workflows
+- ports
+- health checks
+- deployment
+- backend/API
+- Supabase
+- database schema
+- auth-api.ts
+- auth-context.tsx
+- LocationPicker
+- Profile
+- Edit Profile
+- Settings
+- Home
+- Explore
+- Matches
+- Chats
+- constants.ts
+- types.ts
+- mock-data.ts
+- activity-taxonomy.ts
+- package.json
+- dependencies
+- environment variables
+
+DO NOT publish or redeploy.
+
+If this task cannot be safely completed using only the allowed files, STOP and explain why.
+
+==================================================
+ROUTE
+==================================================
+
+Create a new authenticated route:
+
+/activities/new
+
+Register it inside the same existing authenticated OutfyShell route structure.
+
+The existing global:
+
+"Crear plan" / "Create plan"
+
+button should navigate to:
+
+/activities/new
+
+Do not change its visual design unless strictly necessary for navigation.
+
+==================================================
+CREATE PLAN PAGE
+==================================================
+
+Create:
+
+artifacts/outfy/src/pages/create-activity.tsx
+
+The page must be mobile-first and also work well on desktop.
+
+Use the existing Outfy design language.
+
+Do NOT make it look like a professional event-management form.
+
+Creating a casual plan should feel simple and friendly.
+
+The conceptual question should be:
+
+"What do you want to do?"
+
+==================================================
+SECTION 1 — WHAT
+==================================================
+
+Include:
+
+TITLE
+Required.
+
+Examples conceptually:
+- Partido de fútbol
+- Ir al cine
+- Dar una vuelta
+- Ir al concierto
+
+Use local state only.
+
+DESCRIPTION
+Optional.
+
+CATEGORY
+Required.
+
+Read the available categories from:
+
+activity-taxonomy.ts
+
+Do NOT duplicate the taxonomy manually.
+
+Display category labels through the existing "activities" i18n namespace.
+
+SUBCATEGORY
+Required.
+
+After choosing a category, show only that category's subcategories.
+
+Example:
+
+Sports
+-> Football
+-> Padel
+-> Basketball
+
+Social
+-> Drinks
+-> City walk
+-> Meet people
+
+Use translated labels but preserve internal taxonomy IDs.
+
+==================================================
+SECTION 2 — WHEN
+==================================================
+
+Include:
+
+- date
+- start time
+- optional end time
+
+Date and start time are required.
+
+End time is optional.
+
+Do not allow obviously invalid local form states such as an end time earlier than the start time when both refer to the same day.
+
+No backend validation is needed yet.
+
+==================================================
+SECTION 3 — WHERE
+==================================================
+
+Use the existing taxonomy location types:
+
+physical
+online
+
+Show a clear selector:
+
+- Presencial / In person
+- Online
+
+If ONLINE:
+
+Show a simple optional field such as:
+
+"Platform or place online"
+
+Example:
+Discord, PlayStation, Steam, etc.
+
+This is local UI only.
+
+If PHYSICAL:
+
+For this first UI prototype, DO NOT reuse LocationPicker because it represents the user's saved HOME location and must not be modified.
+
+Instead provide simple local-only fields for:
+
+- City
+- Meeting point / area
+
+The meeting point should be optional.
+
+Do NOT request GPS.
+
+Do NOT access browser geolocation.
+
+We will build the proper activity location system separately later.
+
+==================================================
+SECTION 4 — PEOPLE
+==================================================
+
+Allow the organizer to choose:
+
+- limited participants
+- no participant limit
+
+If limited:
+
+Show a max participants numeric field.
+
+Minimum:
+2
+
+Do not invent a hard maximum unless needed for reasonable input validation.
+
+==================================================
+SECTION 5 — COST
+==================================================
+
+Provide these options:
+
+free
+paid
+each_own
+
+Translated through activities i18n.
+
+Conceptually:
+
+Spanish:
+- Gratis
+- Tiene coste
+- Cada uno paga lo suyo
+
+English:
+- Free
+- Has a cost
+- Everyone pays their own
+
+If "paid" is selected:
+
+Show:
+- estimated cost
+- currency
+
+For this prototype support at least:
+
+EUR
+USD
+
+Do not implement payments.
+
+Do not connect Stripe or any payment service.
+
+==================================================
+FORM BEHAVIOR
+==================================================
+
+This is LOCAL STATE ONLY.
+
+Do not save anything to:
+- Supabase
+- localStorage
+- sessionStorage
+- backend
+
+The goal is UX validation.
+
+The form must have basic client-side validation for required fields.
+
+Do not show technical errors.
+
+Use translated friendly validation messages.
+
+==================================================
+PREVIEW STEP
+==================================================
+
+Instead of actually creating the activity, when the form is valid provide a:
+
+"Revisar plan" / "Review plan"
+
+action.
+
+This should show a local preview/summary of the entered plan.
+
+The preview should include where applicable:
+
+- title
+- description
+- category
+- subcategory
+- date
+- time
+- physical/online
+- city or online platform
+- participant limit
+- cost
+
+Provide:
+
+"Volver a editar" / "Back to edit"
+
+Do NOT provide a real Publish action yet.
+
+Make it clear in the UI that this is a preview during this prototype stage without using developer/technical language.
+
+==================================================
+INTERNATIONALIZATION
+==================================================
+
+All new visible text must use the existing:
+
+activities
+
+namespace.
+
+Modify only:
+
+artifacts/outfy/src/i18n/locales/es/activities.json
+artifacts/outfy/src/i18n/locales/en/activities.json
+
+Preserve all existing taxonomy translations.
+
+Do NOT delete or rename existing keys.
+
+Spanish and English structures must remain equivalent.
+
+Do not hardcode visible Spanish or English text in create-activity.tsx.
+
+==================================================
+IMPORTANT UX PRINCIPLES
+==================================================
+
+Creating a simple plan must not feel overwhelming.
+
+Group the form into clear sections.
+
+Avoid showing unnecessary fields at the same time.
+
+Use progressive disclosure:
+
+- subcategory appears after category
+- meeting point appears for physical plans
+- online platform appears for online plans
+- max participants appears only when limited
+- price fields appear only for paid plans
+
+Keep the form visually clean.
+
+Do not create a huge wall of inputs.
+
+==================================================
+DO NOT IMPLEMENT YET
+==================================================
+
+Do NOT implement:
+
+- Supabase persistence
+- activity database
+- activity members
+- chat
+- invitations
+- approval requests
+- private activities
+- age restrictions
+- gender restrictions
+- maps
+- GPS
+- photos
+- tags
+- likes
+- matches
+- notifications
+- recurring activities
+- external events
+- ticketing
+- payments
+
+Those are future tasks.
+
+==================================================
+RESPONSIVE
+==================================================
+
+Verify the page works well on:
+
+- mobile
+- tablet
+- desktop
+
+On desktop, do not stretch the form excessively across the entire screen.
+
+Use a comfortable readable content width.
+
+On mobile:
+- inputs must fit correctly
+- no horizontal overflow
+- controls must remain easy to tap
+- bottom navigation / app shell must remain unchanged
+
+==================================================
+VALIDATION
+==================================================
+
+After implementation:
+
+1. Review git diff.
+2. Confirm ONLY the allowed files changed/created.
+3. Run the existing frontend TypeScript/typecheck/build validation.
+4. Confirm no Supabase code was added.
+5. Confirm no database code was added.
+6. Confirm no GPS/geolocation code was added.
+7. Confirm activity-taxonomy.ts was not modified.
+8. Confirm existing Profile, Settings, Home and LocationPicker were not modified.
+9. Confirm the existing Create plan button now navigates to /activities/new.
+10. Confirm ES/EN works on the new page.
+11. Confirm category -> subcategory filtering uses activity-taxonomy.ts.
+12. Confirm the Review Plan step does not persist data.
+
+Report:
+
+- exact files changed
+- route added
+- form sections implemented
+- how taxonomy is being reused
+- validation implemented
+- responsive behavior
+- TypeScript/build result
+- any limitation
+
+DO NOT publish.
+DO NOT redeploy.
+DO NOT modify anything outside the allowed scope.

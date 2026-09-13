@@ -90,5 +90,93 @@
   "locationTypes": {
     "physical": "Presencial",
     "online": "Online"
+  },
+  "create": {
+    "eyebrow": "NUEVO PLAN",
+    "title": "¿Qué te apetece hacer?",
+    "intro": "Crea un plan sencillo y encuentra gente que quiera apuntarse.",
+    "back": "Volver",
+    "sections": {
+      "what": "Qué",
+      "when": "Cuándo",
+      "where": "Dónde",
+      "people": "Personas",
+      "cost": "Coste"
+    },
+    "what": {
+      "titleLabel": "Título",
+      "titlePlaceholder": "Ej. Partido de fútbol",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "Cuenta un poco más sobre el plan (opcional)",
+      "categoryLabel": "Categoría",
+      "categoryPlaceholder": "Elige una categoría",
+      "subcategoryLabel": "Subcategoría",
+      "subcategoryPlaceholder": "Elige una subcategoría"
+    },
+    "when": {
+      "dateLabel": "Fecha",
+      "startTimeLabel": "Hora de inicio",
+      "endTimeLabel": "Hora de fin (opcional)"
+    },
+    "where": {
+      "typeLabel": "Tipo de plan",
+      "cityLabel": "Ciudad",
+      "cityPlaceholder": "Ej. Zaragoza",
+      "meetingPointLabel": "Punto de encuentro o zona (opcional)",
+      "meetingPointPlaceholder": "Ej. Parque Grande",
+      "onlinePlatformLabel": "Plataforma o lugar online (opcional)",
+      "onlinePlatformPlaceholder": "Ej. Discord, PlayStation o Steam"
+    },
+    "people": {
+      "limitLabel": "¿Cuántas personas pueden apuntarse?",
+      "limited": "Con límite",
+      "unlimited": "Sin límite",
+      "maxParticipantsLabel": "Máximo de participantes",
+      "maxParticipantsPlaceholder": "Mínimo 2"
+    },
+    "cost": {
+      "typeLabel": "¿Cómo será el coste?",
+      "free": "Gratis",
+      "paid": "Tiene coste",
+      "eachOwn": "Cada uno paga lo suyo",
+      "estimatedCostLabel": "Coste aproximado",
+      "estimatedCostPlaceholder": "Ej. 12,50",
+      "currencyLabel": "Moneda",
+      "currencies": {
+        "eur": "EUR (€)",
+        "usd": "USD ($)"
+      }
+    },
+    "actions": {
+      "review": "Revisar plan",
+      "backToEdit": "Volver a editar"
+    },
+    "preview": {
+      "eyebrow": "VISTA PREVIA",
+      "title": "Así quedaría tu plan",
+      "intro": "Revísalo antes de compartirlo. Todavía no se ha publicado.",
+      "description": "Descripción",
+      "category": "Categoría",
+      "subcategory": "Subcategoría",
+      "date": "Fecha",
+      "time": "Hora",
+      "location": "Lugar",
+      "participants": "Personas",
+      "participantsLimited": "Hasta {{count}} personas",
+      "participantsUnlimited": "Sin límite de personas",
+      "cost": "Coste",
+      "onlineNoPlatform": "Online, plataforma por decidir"
+    },
+    "validation": {
+      "title": "Escribe un título para el plan.",
+      "category": "Elige una categoría.",
+      "subcategory": "Elige una subcategoría.",
+      "date": "Elige una fecha.",
+      "startTime": "Elige una hora de inicio.",
+      "endTimeBeforeStart": "La hora de fin debe ser posterior a la de inicio.",
+      "city": "Escribe la ciudad del plan.",
+      "maxParticipants": "Indica un mínimo de 2 participantes.",
+      "estimatedCost": "Indica un coste aproximado válido."
+    }
   }
 }
