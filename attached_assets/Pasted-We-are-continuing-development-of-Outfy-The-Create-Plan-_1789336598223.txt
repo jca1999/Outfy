@@ -1,0 +1,142 @@
+We are continuing development of Outfy.
+
+The Create Plan prototype is working correctly.
+
+This task is ONLY a small UX refinement.
+
+STRICT SAFETY SCOPE
+
+You may modify ONLY:
+
+1. artifacts/outfy/src/pages/create-activity.tsx
+2. artifacts/outfy/src/i18n/locales/es/activities.json
+3. artifacts/outfy/src/i18n/locales/en/activities.json
+
+DO NOT modify any other file.
+
+Do NOT modify:
+- Supabase
+- backend/API
+- database schema
+- authentication
+- App.tsx
+- OutfyShell
+- Profile
+- Settings
+- LocationPicker
+- activity-taxonomy.ts
+- package.json
+- dependencies
+- .replit
+- workflows
+- deployment
+- environment variables
+
+DO NOT publish or redeploy.
+
+==================================================
+GOAL 1 — DATE AND TIME PICKERS
+==================================================
+
+Improve the date and time input UX.
+
+Currently the browser-native date/time picker icon is difficult to see in the dark Outfy theme.
+
+For these fields:
+
+- activity date
+- start time
+- optional end time
+
+Make clicking/tapping anywhere on the input open the native browser date/time picker when the browser supports HTMLInputElement.showPicker().
+
+Use the normal input behavior as fallback when showPicker() is not supported.
+
+Do not create a custom calendar/time picker.
+
+Do not install dependencies.
+
+Also add clearly visible existing Lucide icons where appropriate:
+
+- Calendar icon for date
+- Clock icon for time
+
+The icons must work correctly in both dark and light-compatible styling and must not block clicking/tapping the input.
+
+Do not rely on the browser's native picker icon being visible.
+
+Preserve the existing values, validation and local state.
+
+==================================================
+GOAL 2 — TEMPORARY PUBLISH MESSAGE
+==================================================
+
+The preview currently shows wording similar to:
+
+Spanish:
+"Podrás publicarlo cuando terminemos de conectar los planes."
+
+This sounds like an internal development message and should not be shown to users.
+
+Replace it with neutral temporary wording:
+
+Spanish:
+"La publicación todavía no está disponible."
+
+English:
+"Publishing is not available yet."
+
+Keep the existing Publish Plan button disabled for now.
+
+Do NOT implement real publishing in this task.
+
+Do NOT mention:
+- Supabase
+- database
+- backend
+- connecting plans
+- development
+- prototype
+
+in user-visible text.
+
+==================================================
+PRESERVE EVERYTHING ELSE
+==================================================
+
+Do NOT redesign the page.
+
+Preserve:
+- all existing Create Plan fields
+- category/subcategory behavior
+- physical/online behavior
+- Use my city
+- participant limits
+- cost behavior
+- Review Plan
+- Back to edit
+- existing validation
+- ES/EN
+- responsive layout
+
+==================================================
+VALIDATION
+==================================================
+
+After implementing:
+
+1. Review git diff.
+2. Confirm ONLY the three allowed files changed.
+3. Run existing TypeScript/frontend validation.
+4. Confirm date/time values and validation still work.
+5. Confirm clicking/tapping the date field opens the native picker where supported.
+6. Confirm clicking/tapping both time fields opens the native picker where supported.
+7. Confirm visible Calendar/Clock icons are present.
+8. Confirm the old "connect plans" wording no longer exists.
+9. Confirm Publish Plan is still disabled and does not persist anything.
+10. Confirm ES/EN works correctly.
+
+Report exactly what changed.
+
+DO NOT publish.
+DO NOT redeploy.

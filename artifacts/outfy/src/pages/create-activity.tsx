@@ -5,7 +5,11 @@ import {
   MapPin,
   Users,
 } from 'lucide-react';
-import { useState, type FormEvent } from 'react';
+import {
+  useState,
+  type FormEvent,
+  type MouseEvent,
+} from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'wouter';
 
@@ -126,6 +130,22 @@ export function CreateActivity() {
     setCityMessage(
       t('create.where.savedCityUsed'),
     );
+  }
+
+  function openNativePicker(
+    event: MouseEvent<HTMLInputElement>,
+  ) {
+    const input = event.currentTarget;
+
+    if (typeof input.showPicker !== 'function') {
+      return;
+    }
+
+    try {
+      input.showPicker();
+    } catch {
+      // Keep the browser's normal input behavior as fallback.
+    }
   }
 
   function validateForm() {
@@ -642,16 +662,23 @@ export function CreateActivity() {
                 >
                   {t('create.when.dateLabel')}
                 </label>
-                <input
-                  id="activity-date"
-                  type="date"
-                  value={form.date}
-                  onChange={(event) =>
-                    updateForm('date', event.target.value)
-                  }
-                  aria-invalid={Boolean(errors.date)}
-                  className={`${inputClassName} mt-2`}
-                />
+                <div className="relative mt-2">
+                  <input
+                    id="activity-date"
+                    type="date"
+                    value={form.date}
+                    onClick={openNativePicker}
+                    onChange={(event) =>
+                      updateForm('date', event.target.value)
+                    }
+                    aria-invalid={Boolean(errors.date)}
+                    className={`${inputClassName} pl-11`}
+                  />
+                  <CalendarDays
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-primary"
+                  />
+                </div>
                 {renderError('date')}
               </div>
 
@@ -662,19 +689,26 @@ export function CreateActivity() {
                 >
                   {t('create.when.startTimeLabel')}
                 </label>
-                <input
-                  id="activity-start-time"
-                  type="time"
-                  value={form.startTime}
-                  onChange={(event) =>
-                    updateForm(
-                      'startTime',
-                      event.target.value,
-                    )
-                  }
-                  aria-invalid={Boolean(errors.startTime)}
-                  className={`${inputClassName} mt-2`}
-                />
+                <div className="relative mt-2">
+                  <input
+                    id="activity-start-time"
+                    type="time"
+                    value={form.startTime}
+                    onClick={openNativePicker}
+                    onChange={(event) =>
+                      updateForm(
+                        'startTime',
+                        event.target.value,
+                      )
+                    }
+                    aria-invalid={Boolean(errors.startTime)}
+                    className={`${inputClassName} pl-11`}
+                  />
+                  <Clock3
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-primary"
+                  />
+                </div>
                 {renderError('startTime')}
               </div>
 
@@ -685,19 +719,26 @@ export function CreateActivity() {
                 >
                   {t('create.when.endTimeLabel')}
                 </label>
-                <input
-                  id="activity-end-time"
-                  type="time"
-                  value={form.endTime}
-                  onChange={(event) =>
-                    updateForm(
-                      'endTime',
-                      event.target.value,
-                    )
-                  }
-                  aria-invalid={Boolean(errors.endTime)}
-                  className={`${inputClassName} mt-2`}
-                />
+                <div className="relative mt-2">
+                  <input
+                    id="activity-end-time"
+                    type="time"
+                    value={form.endTime}
+                    onClick={openNativePicker}
+                    onChange={(event) =>
+                      updateForm(
+                        'endTime',
+                        event.target.value,
+                      )
+                    }
+                    aria-invalid={Boolean(errors.endTime)}
+                    className={`${inputClassName} pl-11`}
+                  />
+                  <Clock3
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-primary"
+                  />
+                </div>
                 {renderError('endTime')}
               </div>
             </div>

@@ -170,7 +170,7 @@
       "participantsUnlimited": "No limit on people",
       "cost": "Cost",
       "onlineNoPlatform": "Online, platform to be decided",
-      "publishHelp": "You'll be able to publish it once plan creation is connected."
+      "publishHelp": "Publishing is not available yet."
     },
     "validation": {
       "title": "Add a title for the plan.",
