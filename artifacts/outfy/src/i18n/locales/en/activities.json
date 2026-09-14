@@ -115,8 +115,10 @@
     },
     "when": {
       "dateLabel": "Date",
+      "dateFormatHint": "dd/mm/aaaa",
       "startTimeLabel": "Start time",
-      "endTimeLabel": "End time (optional)"
+      "endTimeLabel": "End time (optional)",
+      "timeFormatHint": "hh:mm"
     },
     "where": {
       "typeLabel": "Plan type",

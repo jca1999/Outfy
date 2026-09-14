@@ -1,0 +1,185 @@
+We are continuing development of Outfy.
+
+The Create Plan page works correctly.
+
+This task is ONLY a small UX improvement for the date and time inputs.
+
+==================================================
+STRICT SCOPE
+==================================================
+
+You may modify ONLY:
+
+1. artifacts/outfy/src/pages/create-activity.tsx
+2. artifacts/outfy/src/i18n/locales/es/activities.json
+3. artifacts/outfy/src/i18n/locales/en/activities.json
+
+DO NOT modify any other file.
+
+Do NOT modify:
+
+- API
+- Supabase
+- database
+- migrations
+- authentication
+- App.tsx
+- Activity Detail
+- Profile
+- Home
+- Settings
+- LocationPicker
+- activity-taxonomy.ts
+- package.json
+- dependencies
+- workflows
+- .replit
+- deployment
+
+DO NOT publish or redeploy.
+
+==================================================
+GOAL 1 — OPEN PICKER FROM THE WHOLE FIELD
+==================================================
+
+For the existing Create Plan fields:
+
+- Date
+- Start time
+- Optional end time
+
+Make clicking/tapping anywhere inside the field open the native browser picker.
+
+Where supported, use:
+
+HTMLInputElement.showPicker()
+
+Do not require the user to click a small browser icon.
+
+Preserve the normal native input fallback for browsers where showPicker()
+is not supported.
+
+Do NOT create a custom calendar or clock picker.
+
+==================================================
+GOAL 2 — REMOVE CUSTOM DATE/TIME ICONS
+==================================================
+
+Remove the custom Calendar and Clock icons currently shown inside these
+fields.
+
+They are unnecessary because:
+
+- the entire field will open the native picker
+- they have poor visibility in the current dark theme
+- they add visual noise
+
+Do not replace them with different custom icons.
+
+If the browser shows its own native date/time affordance, leave normal
+browser behavior intact unless the current CSS already hides it safely.
+
+==================================================
+GOAL 3 — EMPTY FIELD PLACEHOLDER / FORMAT HINT
+==================================================
+
+When no value has been selected yet, the field should visually communicate
+the expected format in a subtle muted/gray style.
+
+Date:
+
+Spanish and English:
+"dd/mm/aaaa"
+
+Time:
+
+Spanish and English:
+"hh:mm"
+
+IMPORTANT:
+
+Native input type="date" and type="time" placeholder support is inconsistent.
+
+Do NOT rely only on the native HTML placeholder attribute if it does not
+render reliably.
+
+Implement the smallest robust visual solution compatible with the existing
+native inputs.
+
+Requirements:
+
+- Empty date field visually shows "dd/mm/aaaa"
+- Empty start-time field visually shows "hh:mm"
+- Empty optional end-time field visually shows "hh:mm"
+- Once a value is selected, the hint disappears
+- The real selected native date/time value remains the actual form value
+- Clicking the hint/field still opens the native picker
+- Do not replace native date/time inputs with custom text inputs
+- Do not break keyboard accessibility
+- Do not block mobile native pickers
+
+==================================================
+PRESERVE EXISTING BEHAVIOR
+==================================================
+
+Preserve:
+
+- form state
+- validation
+- Review Plan
+- publishing
+- date/time conversion
+- timezone behavior
+- optional end time
+- ES/EN
+- responsive layout
+
+Do NOT change how timestamps are sent to the API.
+
+==================================================
+DESIGN
+==================================================
+
+Keep the fields simple.
+
+The desired appearance when empty is conceptually:
+
+Fecha
+[ dd/mm/aaaa ]
+
+Hora de inicio
+[ hh:mm ]
+
+Hora de fin
+[ hh:mm ]
+
+The format hint should look muted, like placeholder text.
+
+Do not add explanatory paragraphs or extra helper text.
+
+==================================================
+VALIDATION
+==================================================
+
+After implementation:
+
+1. Review git diff.
+2. Confirm ONLY the three allowed files changed.
+3. Run frontend TypeScript/typecheck/build.
+4. Confirm clicking anywhere on Date opens the native picker where supported.
+5. Confirm clicking anywhere on Start time opens the native picker.
+6. Confirm clicking anywhere on End time opens the native picker.
+7. Confirm custom Calendar/Clock icons are removed.
+8. Confirm empty fields visually show the expected format.
+9. Confirm selected values replace the format hint.
+10. Confirm mobile/native picker behavior remains intact.
+11. Confirm publishing date/time behavior was not changed.
+
+Report:
+- exact files changed
+- how the empty-state format hint was implemented
+- browser fallback behavior
+- validation/build result
+
+DO NOT publish.
+DO NOT redeploy.

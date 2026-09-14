@@ -818,12 +818,21 @@ export function CreateActivity() {
                       updateForm('date', event.target.value)
                     }
                     aria-invalid={Boolean(errors.date)}
-                    className={`${inputClassName} pl-11`}
+                    aria-describedby={
+                      form.date
+                        ? undefined
+                        : 'activity-date-format'
+                    }
+                    className={inputClassName}
                   />
-                  <CalendarDays
-                    aria-hidden="true"
-                    className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-primary"
-                  />
+                  {!form.date && (
+                    <span
+                      id="activity-date-format"
+                      className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm text-muted-foreground/65"
+                    >
+                      {t('create.when.dateFormatHint')}
+                    </span>
+                  )}
                 </div>
                 {renderError('date')}
               </div>
@@ -848,12 +857,21 @@ export function CreateActivity() {
                       )
                     }
                     aria-invalid={Boolean(errors.startTime)}
-                    className={`${inputClassName} pl-11`}
+                    aria-describedby={
+                      form.startTime
+                        ? undefined
+                        : 'activity-start-time-format'
+                    }
+                    className={inputClassName}
                   />
-                  <Clock3
-                    aria-hidden="true"
-                    className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-primary"
-                  />
+                  {!form.startTime && (
+                    <span
+                      id="activity-start-time-format"
+                      className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm text-muted-foreground/65"
+                    >
+                      {t('create.when.timeFormatHint')}
+                    </span>
+                  )}
                 </div>
                 {renderError('startTime')}
               </div>
@@ -878,12 +896,21 @@ export function CreateActivity() {
                       )
                     }
                     aria-invalid={Boolean(errors.endTime)}
-                    className={`${inputClassName} pl-11`}
+                    aria-describedby={
+                      form.endTime
+                        ? undefined
+                        : 'activity-end-time-format'
+                    }
+                    className={inputClassName}
                   />
-                  <Clock3
-                    aria-hidden="true"
-                    className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-primary"
-                  />
+                  {!form.endTime && (
+                    <span
+                      id="activity-end-time-format"
+                      className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm text-muted-foreground/65"
+                    >
+                      {t('create.when.timeFormatHint')}
+                    </span>
+                  )}
                 </div>
                 {renderError('endTime')}
               </div>
