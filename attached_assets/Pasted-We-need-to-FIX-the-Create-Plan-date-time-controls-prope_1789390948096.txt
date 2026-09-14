@@ -1,0 +1,482 @@
+We need to FIX the Create Plan date/time controls properly.
+
+Several previous attempts have failed.
+
+CURRENT CONFIRMED BUGS:
+
+1. The custom Calendar / Clock button does not open the native picker reliably.
+2. The date mask can produce malformed visible values such as:
+   14/84/2210
+3. The date text can visually collide with / be clipped by the icon area.
+4. Previous showPicker()-based implementations have been unreliable.
+
+DO NOT add another patch on top of the current implementation.
+
+First inspect the CURRENT create-activity.tsx implementation and remove obsolete
+date/time approaches before implementing the solution below.
+
+==================================================
+MODE / STRICT SCOPE
+==================================================
+
+Modify ONLY:
+
+artifacts/outfy/src/pages/create-activity.tsx
+
+DO NOT modify any other file.
+
+Do NOT modify:
+- translations
+- API
+- Supabase
+- migrations
+- Activity Detail
+- App.tsx
+- package.json
+- dependencies
+- workflows
+- deployment
+- .replit
+
+DO NOT publish or redeploy.
+
+==================================================
+CORE DESIGN
+==================================================
+
+Use TWO controls for each date/time value:
+
+A) A visible editable TEXT input
+   -> for manual typing
+
+B) A real native date/time input positioned transparently ONLY over the
+   Calendar/Clock icon area
+   -> for opening the browser-native picker
+
+IMPORTANT:
+
+DO NOT use showPicker() as the primary picker mechanism.
+
+DO NOT programmatically trigger the native picker from a hidden input.
+
+Instead, the user must physically click the transparent real native input
+that sits directly over the custom Calendar / Clock icon.
+
+This avoids showPicker() restrictions and iframe/browser inconsistencies.
+
+==================================================
+DATE FIELD
+==================================================
+
+Visible layout:
+
+Fecha
+[ 31/12/2026                 calendar icon ]
+
+The left/main portion is a normal:
+
+input type="text"
+
+The user can:
+- click
+- type
+- select text
+- use Backspace/Delete
+- paste
+
+The CalendarDays icon is visible on the right.
+
+Directly ABOVE the CalendarDays icon area place a real:
+
+input type="date"
+
+It should be:
+
+- absolute
+- same size as the icon button hit area
+- opacity-0
+- cursor-pointer
+- pointer-events enabled
+- NOT display:none
+- NOT visibility:hidden
+
+Therefore clicking the icon area is actually clicking the native date input.
+
+Do NOT use showPicker().
+
+==================================================
+TIME FIELDS
+==================================================
+
+Use the exact same pattern:
+
+Visible text input:
+HH:mm
+
+Visible Clock3 icon.
+
+Transparent real:
+
+input type="time"
+
+positioned directly over the Clock icon hit area.
+
+Clicking the Clock area must directly invoke the browser-native time control.
+
+Do NOT use showPicker().
+
+==================================================
+ICON STYLING
+==================================================
+
+Use existing Lucide icons:
+
+CalendarDays
+Clock3
+
+They must be clearly visible on Outfy's dark background.
+
+Use theme-aware styling such as:
+
+text-muted-foreground
+
+and hover/focus styles such as:
+
+text-foreground
+text-primary
+
+NEVER:
+- black
+- text-black
+- #000
+
+The transparent native input sits above the icon but the icon remains visually
+visible underneath.
+
+==================================================
+MANUAL DATE MASK
+==================================================
+
+The visible date text input uses:
+
+DD/MM/YYYY
+
+Placeholder:
+
+dd/mm/aaaa
+
+Implement the mask from the COMPLETE current input value.
+
+On every change:
+
+1. extract numeric digits only
+2. maximum 8 digits
+3. format them consistently
+
+Examples:
+
+3
+-> 3
+
+31
+-> 31/
+
+311
+-> 31/1
+
+3112
+-> 31/12/
+
+31122026
+-> 31/12/2026
+
+Paste:
+31122026
+-> 31/12/2026
+
+Paste:
+31/12/2026
+-> 31/12/2026
+
+There must NEVER be duplicate slashes.
+
+==================================================
+DATE SEGMENT VALIDATION
+==================================================
+
+When enough digits exist to determine a segment:
+
+DAY:
+01-31
+
+MONTH:
+01-12
+
+YEAR:
+4 digits when complete
+
+Do NOT allow the mask logic to corrupt/reorder digits.
+
+Do NOT silently transform something like:
+
+14/84/2210
+
+into another date.
+
+If a complete manually typed value is invalid:
+
+- keep it visible so the user can correct it
+- canonical form.date must remain empty/invalid
+- Review validation must catch it
+
+Validate the real calendar date when complete.
+
+Examples:
+
+31/02/2026 -> invalid
+29/02/2025 -> invalid
+29/02/2028 -> valid
+
+==================================================
+CANONICAL DATE STATE
+==================================================
+
+DO NOT change the existing form contract.
+
+form.date must remain:
+
+YYYY-MM-DD
+
+Example:
+
+visible:
+31/12/2026
+
+canonical:
+2026-12-31
+
+Only update form.date when the complete visible date is valid.
+
+==================================================
+TIME MASK
+==================================================
+
+Visible format:
+
+HH:mm
+
+Placeholder:
+
+hh:mm
+
+Use digits only, maximum 4.
+
+Examples:
+
+1
+-> 1
+
+18
+-> 18:
+
+183
+-> 18:3
+
+1830
+-> 18:30
+
+Paste:
+18:30
+-> 18:30
+
+Validate complete values:
+
+hours 00-23
+minutes 00-59
+
+Invalid complete values remain editable but must NOT populate canonical state.
+
+Canonical:
+
+form.startTime
+form.endTime
+
+remain HH:mm.
+
+==================================================
+NATIVE PICKER SYNCHRONIZATION
+==================================================
+
+When native date input changes:
+
+2026-12-31
+
+set:
+
+form.date = "2026-12-31"
+
+visible date text = "31/12/2026"
+
+When native time input changes:
+
+18:30
+
+set:
+
+form.startTime = "18:30"
+visible text = "18:30"
+
+Same for optional End time.
+
+==================================================
+LAYOUT / CLIPPING FIX
+==================================================
+
+The date currently appears cramped/clipped.
+
+Fix the visible field layout.
+
+Requirements:
+
+- wrapper width 100%
+- visible text input min-width: 0
+- sufficient right padding for icon hit area
+- icon area fixed width
+- typed date must never render underneath the icon
+- DD/MM/YYYY must fit cleanly
+- no horizontal overlap
+- no duplicate native text
+
+Keep responsive behavior.
+
+If the 3-column layout becomes too narrow at a breakpoint, preserve the
+existing responsive stacking rather than shrinking the text until unreadable.
+
+==================================================
+BACKSPACE
+==================================================
+
+Backspace must work naturally.
+
+Do not trap the user around `/` or `:` characters.
+
+The mask should always be regenerated from the remaining digits.
+
+==================================================
+REMOVE OLD FAILED IMPLEMENTATIONS
+==================================================
+
+Before finishing, remove obsolete code related to previous attempts:
+
+- showPicker helpers
+- full-field transparent overlays
+- click-wrapper picker handlers
+- old dateTimeDisplay classes
+- old native-input hiding hacks
+- duplicate refs
+- duplicate placeholder layers
+
+There must be ONE implementation only.
+
+==================================================
+PRESERVE EXISTING BUSINESS LOGIC
+==================================================
+
+Do NOT change:
+
+- form state shape
+- validateForm except minimal integration with manual input validity
+- Review Plan
+- publishing
+- date/time conversion
+- timezone handling
+- API payload
+- category/location/people/cost logic
+
+==================================================
+MANDATORY MANUAL TEST CASES
+==================================================
+
+Test in the actual Replit browser preview, not only typecheck.
+
+DATE MANUAL:
+
+type:
+31122026
+
+must display:
+31/12/2026
+
+canonical:
+2026-12-31
+
+Delete several characters with Backspace and confirm editing remains usable.
+
+Test invalid:
+
+31022026
+
+must remain visible as:
+31/02/2026
+
+but MUST NOT populate a valid canonical date.
+
+DATE PICKER:
+
+Click directly on the Calendar icon area.
+
+The native browser date picker MUST open.
+
+Select a date.
+
+Visible and canonical values must synchronize.
+
+TIME MANUAL:
+
+type:
+1830
+
+must display:
+18:30
+
+TIME PICKER:
+
+Click each Clock icon area.
+
+Native picker must open.
+
+LAYOUT:
+
+Confirm:
+31/12/2026
+
+is fully visible and does not go underneath the Calendar icon.
+
+==================================================
+VALIDATION
+==================================================
+
+1. Confirm ONLY create-activity.tsx changed.
+2. Run frontend typecheck/build.
+3. Confirm old showPicker-based logic is removed.
+4. Confirm native transparent inputs physically cover the icon hit areas.
+5. Confirm Calendar click works without calling showPicker().
+6. Confirm both Clock clicks work without calling showPicker().
+7. Confirm date mask formats 31122026 correctly.
+8. Confirm time mask formats 1830 correctly.
+9. Confirm Backspace behaves naturally.
+10. Confirm invalid complete dates do not populate canonical state.
+11. Confirm selected picker values synchronize.
+12. Confirm DD/MM/YYYY fits fully in the field.
+13. Confirm publishing logic remains unchanged.
+
+Report:
+- root cause found in the current code
+- obsolete implementation removed
+- exact native-overlay implementation
+- date/time mask implementation
+- actual browser-preview test result
+- typecheck/build result
+
+DO NOT publish.
+DO NOT redeploy.

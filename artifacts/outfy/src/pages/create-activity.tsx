@@ -9,6 +9,7 @@ import {
 import {
   useRef,
   useState,
+  type ChangeEvent,
   type FormEvent,
 } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -77,10 +78,10 @@ const dateTimeFieldClassName =
   'relative flex min-h-[46px] w-full items-center rounded-2xl border border-border bg-background transition focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/15';
 
 const dateTimeTextInputClassName =
-  'min-w-0 flex-1 rounded-2xl border-0 bg-transparent px-4 py-3 pr-12 text-sm text-foreground outline-none placeholder:text-muted-foreground/65 focus:ring-0';
+  'min-w-0 flex-1 rounded-2xl border-0 bg-transparent px-4 py-3 pr-2 text-sm text-foreground outline-none placeholder:text-muted-foreground/65 focus:ring-0';
 
 const dateTimePickerInputClassName =
-  'pointer-events-none absolute h-px w-px opacity-0';
+  'absolute inset-0 z-10 h-full w-full cursor-pointer opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:cursor-pointer';
 
 const choiceLabelClassName =
   'flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold transition';
@@ -143,14 +144,11 @@ function parseTimeInputValue(value: string) {
   return `${match[1]}:${match[2]}`;
 }
 
-function maskDateInput(value: string, previousValue: string) {
+function maskDateInput(value: string, isDeleting: boolean) {
   const digits = value.replace(/\D/g, '').slice(0, 8);
 
   if (digits.length <= 2) {
-    if (
-      digits.length === 2 &&
-      value.length >= previousValue.length
-    ) {
+    if (digits.length === 2 && !isDeleting) {
       return `${digits}/`;
     }
 
@@ -160,10 +158,7 @@ function maskDateInput(value: string, previousValue: string) {
   if (digits.length <= 4) {
     const monthPart = digits.slice(2);
     const trailingSlash =
-      digits.length === 4 &&
-      value.length >= previousValue.length
-        ? '/'
-        : '';
+      digits.length === 4 && !isDeleting ? '/' : '';
 
     return `${digits.slice(0, 2)}/${monthPart}${trailingSlash}`;
   }
@@ -174,14 +169,11 @@ function maskDateInput(value: string, previousValue: string) {
   )}/${digits.slice(4)}`;
 }
 
-function maskTimeInput(value: string, previousValue: string) {
+function maskTimeInput(value: string, isDeleting: boolean) {
   const digits = value.replace(/\D/g, '').slice(0, 4);
 
   if (digits.length <= 2) {
-    if (
-      digits.length === 2 &&
-      value.length >= previousValue.length
-    ) {
+    if (digits.length === 2 && !isDeleting) {
       return `${digits}:`;
     }
 
@@ -189,6 +181,16 @@ function maskTimeInput(value: string, previousValue: string) {
   }
 
   return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+}
+
+function isDeleteInput(
+  event: ChangeEvent<HTMLInputElement>,
+) {
+  return (
+    (event.nativeEvent as InputEvent).inputType?.startsWith(
+      'delete',
+    ) ?? false
+  );
 }
 
 export function CreateActivity() {
@@ -268,26 +270,14 @@ export function CreateActivity() {
     );
   }
 
-  function showNativePicker(input: HTMLInputElement | null) {
-    if (!input) {
-      return;
-    }
-
-    if (typeof input.showPicker === 'function') {
-      try {
-        input.showPicker();
-        return;
-      } catch {
-        // Use the native input fallback below.
-      }
-    }
-
-    input.focus();
-    input.click();
-  }
-
-  function handleDateTextChange(value: string) {
-    const maskedValue = maskDateInput(value, dateText);
+  function handleDateTextChange(
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const maskedValue = maskDateInput(
+      event.target.value,
+      isDeleteInput(event) ||
+        event.target.value.length < dateText.length,
+    );
     setDateText(maskedValue);
     updateForm(
       'date',
@@ -295,10 +285,13 @@ export function CreateActivity() {
     );
   }
 
-  function handleStartTimeTextChange(value: string) {
+  function handleStartTimeTextChange(
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
     const maskedValue = maskTimeInput(
-      value,
-      startTimeText,
+      event.target.value,
+      isDeleteInput(event) ||
+        event.target.value.length < startTimeText.length,
     );
     setStartTimeText(maskedValue);
     updateForm(
@@ -307,8 +300,14 @@ export function CreateActivity() {
     );
   }
 
-  function handleEndTimeTextChange(value: string) {
-    const maskedValue = maskTimeInput(value, endTimeText);
+  function handleEndTimeTextChange(
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const maskedValue = maskTimeInput(
+      event.target.value,
+      isDeleteInput(event) ||
+        event.target.value.length < endTimeText.length,
+    );
     setEndTimeText(maskedValue);
     updateForm(
       'endTime',
@@ -977,7 +976,7 @@ export function CreateActivity() {
               </h2>
             </div>
 
-            <div className="mt-6 grid gap-5 sm:grid-cols-3">
+            <div className="mt-6 grid gap-5 md:grid-cols-3">
               <div>
                 <label
                   htmlFor="activity-date"
@@ -985,55 +984,40 @@ export function CreateActivity() {
                 >
                   {t('create.when.dateLabel')}
                 </label>
-                <div className="relative mt-2">
-                  <input
-                    ref={datePickerRef}
-                    id="activity-date-picker"
-                    type="date"
-                    value={form.date}
-                    onChange={(event) =>
-                      handleDatePickerChange(
-                        event.target.value,
-                      )
-                    }
-                    tabIndex={-1}
-                    aria-hidden="true"
-                    className={dateTimePickerInputClassName}
-                  />
-                  <div
-                    className={dateTimeFieldClassName}
-                  >
+                <div className="mt-2">
+                  <div className={dateTimeFieldClassName}>
                     <input
                       id="activity-date"
                       type="text"
                       value={dateText}
-                      onChange={(event) =>
-                        handleDateTextChange(
-                          event.target.value,
-                        )
-                      }
+                      onChange={handleDateTextChange}
                       placeholder={t(
                         'create.when.dateFormatHint',
                       )}
                       inputMode="numeric"
                       aria-invalid={Boolean(errors.date)}
-                      aria-describedby={
-                        dateText
-                          ? undefined
-                          : 'activity-date-format'
-                      }
                       className={dateTimeTextInputClassName}
                     />
-                    <button
-                      type="button"
-                      aria-label={t('create.when.dateLabel')}
-                      onClick={() =>
-                        showNativePicker(datePickerRef.current)
-                      }
-                      className="mr-3 shrink-0 rounded-lg p-1 text-muted-foreground transition hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    >
-                      <CalendarDays className="h-4 w-4" />
-                    </button>
+                    <span className="relative mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:text-foreground focus-within:text-primary focus-within:ring-2 focus-within:ring-primary/30">
+                      <CalendarDays className="pointer-events-none h-4 w-4" />
+                      <input
+                        ref={datePickerRef}
+                        id="activity-date-picker"
+                        type="date"
+                        value={form.date}
+                        onChange={(event) =>
+                          handleDatePickerChange(
+                            event.target.value,
+                          )
+                        }
+                        aria-label={t(
+                          'create.when.dateLabel',
+                        )}
+                        className={
+                          dateTimePickerInputClassName
+                        }
+                      />
+                    </span>
                   </div>
                 </div>
                 {renderError('date')}
@@ -1046,59 +1030,40 @@ export function CreateActivity() {
                 >
                   {t('create.when.startTimeLabel')}
                 </label>
-                <div className="relative mt-2">
-                  <input
-                    ref={startTimePickerRef}
-                    id="activity-start-time-picker"
-                    type="time"
-                    value={form.startTime}
-                    onChange={(event) =>
-                      handleStartTimePickerChange(
-                        event.target.value,
-                      )
-                    }
-                    tabIndex={-1}
-                    aria-hidden="true"
-                    className={dateTimePickerInputClassName}
-                  />
-                  <div
-                    className={dateTimeFieldClassName}
-                  >
+                <div className="mt-2">
+                  <div className={dateTimeFieldClassName}>
                     <input
                       id="activity-start-time"
                       type="text"
                       value={startTimeText}
-                      onChange={(event) =>
-                        handleStartTimeTextChange(
-                          event.target.value,
-                        )
-                      }
+                      onChange={handleStartTimeTextChange}
                       placeholder={t(
                         'create.when.timeFormatHint',
                       )}
                       inputMode="numeric"
                       aria-invalid={Boolean(errors.startTime)}
-                      aria-describedby={
-                        startTimeText
-                          ? undefined
-                          : 'activity-start-time-format'
-                      }
                       className={dateTimeTextInputClassName}
                     />
-                    <button
-                      type="button"
-                      aria-label={t(
-                        'create.when.startTimeLabel',
-                      )}
-                      onClick={() =>
-                        showNativePicker(
-                          startTimePickerRef.current,
-                        )
-                      }
-                      className="mr-3 shrink-0 rounded-lg p-1 text-muted-foreground transition hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    >
-                      <Clock3 className="h-4 w-4" />
-                    </button>
+                    <span className="relative mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:text-foreground focus-within:text-primary focus-within:ring-2 focus-within:ring-primary/30">
+                      <Clock3 className="pointer-events-none h-4 w-4" />
+                      <input
+                        ref={startTimePickerRef}
+                        id="activity-start-time-picker"
+                        type="time"
+                        value={form.startTime}
+                        onChange={(event) =>
+                          handleStartTimePickerChange(
+                            event.target.value,
+                          )
+                        }
+                        aria-label={t(
+                          'create.when.startTimeLabel',
+                        )}
+                        className={
+                          dateTimePickerInputClassName
+                        }
+                      />
+                    </span>
                   </div>
                 </div>
                 {renderError('startTime')}
@@ -1111,59 +1076,40 @@ export function CreateActivity() {
                 >
                   {t('create.when.endTimeLabel')}
                 </label>
-                <div className="relative mt-2">
-                  <input
-                    ref={endTimePickerRef}
-                    id="activity-end-time-picker"
-                    type="time"
-                    value={form.endTime}
-                    onChange={(event) =>
-                      handleEndTimePickerChange(
-                        event.target.value,
-                      )
-                    }
-                    tabIndex={-1}
-                    aria-hidden="true"
-                    className={dateTimePickerInputClassName}
-                  />
-                  <div
-                    className={dateTimeFieldClassName}
-                  >
+                <div className="mt-2">
+                  <div className={dateTimeFieldClassName}>
                     <input
                       id="activity-end-time"
                       type="text"
                       value={endTimeText}
-                      onChange={(event) =>
-                        handleEndTimeTextChange(
-                          event.target.value,
-                        )
-                      }
+                      onChange={handleEndTimeTextChange}
                       placeholder={t(
                         'create.when.timeFormatHint',
                       )}
                       inputMode="numeric"
                       aria-invalid={Boolean(errors.endTime)}
-                      aria-describedby={
-                        endTimeText
-                          ? undefined
-                          : 'activity-end-time-format'
-                      }
                       className={dateTimeTextInputClassName}
                     />
-                    <button
-                      type="button"
-                      aria-label={t(
-                        'create.when.endTimeLabel',
-                      )}
-                      onClick={() =>
-                        showNativePicker(
-                          endTimePickerRef.current,
-                        )
-                      }
-                      className="mr-3 shrink-0 rounded-lg p-1 text-muted-foreground transition hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                    >
-                      <Clock3 className="h-4 w-4" />
-                    </button>
+                    <span className="relative mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:text-foreground focus-within:text-primary focus-within:ring-2 focus-within:ring-primary/30">
+                      <Clock3 className="pointer-events-none h-4 w-4" />
+                      <input
+                        ref={endTimePickerRef}
+                        id="activity-end-time-picker"
+                        type="time"
+                        value={form.endTime}
+                        onChange={(event) =>
+                          handleEndTimePickerChange(
+                            event.target.value,
+                          )
+                        }
+                        aria-label={t(
+                          'create.when.endTimeLabel',
+                        )}
+                        className={
+                          dateTimePickerInputClassName
+                        }
+                      />
+                    </span>
                   </div>
                 </div>
                 {renderError('endTime')}
