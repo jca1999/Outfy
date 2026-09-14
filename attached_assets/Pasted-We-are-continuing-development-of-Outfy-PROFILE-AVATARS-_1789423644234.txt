@@ -1,0 +1,509 @@
+We are continuing development of Outfy.
+
+PROFILE AVATARS ARE ALREADY WORKING.
+
+The current user can:
+
+- select a profile image
+- crop/reposition it
+- zoom
+- generate 512x512 WebP
+- upload it securely
+- replace it
+- remove it
+- see it correctly in Profile
+
+DO NOT redesign or reimplement the avatar system.
+
+We now need TWO small global UI integrations:
+
+1. Show the authenticated user's real avatar in the main application header
+   instead of the current initials when a custom avatar exists.
+
+2. Replace the current generic Outfy/navigation brand icon on the LEFT side
+   with the OFFICIAL Outfy logo asset that already exists in the project.
+
+==================================================
+MODE / IMPORTANT
+==================================================
+
+This should be a FRONTEND-ONLY integration.
+
+Do NOT modify backend/API/Supabase unless inspection proves the existing avatar
+API genuinely cannot be reused.
+
+If existing avatar data cannot be reused without backend changes:
+
+STOP and report why.
+
+Do NOT invent a second avatar endpoint.
+
+==================================================
+INSPECT FIRST
+==================================================
+
+Before modifying anything, inspect and identify:
+
+- the shared application shell/header/navigation component
+- where the current top-right initials avatar is rendered
+- where the current left-side Outfy brand icon is rendered
+- the existing frontend avatar API/helper created for Profile
+- how Profile currently obtains avatarUrl
+- how avatar save/remove updates local UI
+- the official Outfy logo/image assets already present in the repository
+
+Do not guess file names.
+
+Do not create duplicate components unnecessarily.
+
+==================================================
+PART 1 — TOP-RIGHT USER AVATAR
+==================================================
+
+CURRENT BEHAVIOR:
+
+The application header currently shows something similar to:
+
+MI
+
+inside the user/avatar circle.
+
+That is currently derived from the user's initials.
+
+NEW BEHAVIOR:
+
+IF the authenticated user has a custom avatar:
+
+-> show the real avatar image.
+
+IF there is no custom avatar:
+
+-> preserve the current initials fallback exactly as today.
+
+Conceptually:
+
+avatarUrl exists
+-> <img ... />
+
+avatarUrl null
+-> existing initials
+
+==================================================
+AVATAR VISUAL STYLE
+==================================================
+
+Preserve the current size and position of the header avatar.
+
+Do NOT make the header taller.
+
+The avatar should be:
+
+- circular
+- object-fit: cover
+- object-position: center
+- no distortion
+- no stretching
+- no square corners
+
+Reuse the current avatar border/background styling where appropriate.
+
+Do not redesign the header.
+
+==================================================
+PRIVATE STORAGE
+==================================================
+
+Remember:
+
+the avatars bucket is PRIVATE.
+
+Do NOT construct a public Supabase Storage URL manually.
+
+Do NOT use avatar_path directly in an <img>.
+
+Use ONLY the existing frontend/API mechanism that already returns the valid
+signed avatar URL for the authenticated user.
+
+Do NOT expose Storage credentials.
+
+==================================================
+LOADING BEHAVIOR
+==================================================
+
+Do not make the header flicker badly while avatar data is loading.
+
+A reasonable behavior is:
+
+while avatar is unknown/loading
+-> preserve the existing initials fallback
+
+once avatarUrl is available
+-> replace it with the image
+
+Do NOT block Home or the application while loading the avatar.
+
+==================================================
+IMAGE ERROR FALLBACK
+==================================================
+
+If the signed image URL fails to load for any reason:
+
+fall back safely to the existing initials.
+
+Do not show a broken-image icon.
+
+==================================================
+IMPORTANT — AVATAR MUST UPDATE WITHOUT RELOGIN
+==================================================
+
+Test this carefully.
+
+Scenario:
+
+1. User has initials in the top-right header.
+2. Goes to Profile.
+3. Uploads a new avatar.
+4. Goes back to Home.
+
+Expected:
+
+the new avatar appears in the top-right header.
+
+The user must NOT need to:
+
+- log out
+- log back in
+- hard refresh the browser
+
+Same for removal:
+
+1. User removes avatar from Profile.
+2. Goes to Home.
+
+Expected:
+
+top-right header returns to initials.
+
+==================================================
+STATE SYNCHRONIZATION
+==================================================
+
+First inspect whether the current avatar implementation already updates shared
+user/auth/profile state.
+
+IF it already does:
+
+reuse that mechanism.
+
+IF it does NOT and the application shell is persistent:
+
+implement the smallest clean synchronization mechanism.
+
+Preferred order:
+
+1. reuse existing shared state if available
+2. reuse existing profile/avatar state mechanism
+3. if necessary, use a small application-local avatar update event so the
+   shared shell can refresh avatarUrl after Profile save/delete
+
+Do NOT introduce:
+
+- Redux
+- Zustand
+- another global state library
+- polling
+- realtime
+- a new auth architecture
+
+Do NOT refetch continuously.
+
+==================================================
+DO NOT DUPLICATE AVATAR LOGIC
+==================================================
+
+The shared header should NOT contain:
+
+- crop logic
+- upload logic
+- delete logic
+- WebP conversion
+- Canvas processing
+
+It only needs to:
+
+- know current avatar URL
+- render avatar or initials
+
+==================================================
+PART 2 — OFFICIAL OUTFY LOGO IN LEFT NAVIGATION
+==================================================
+
+CURRENT BEHAVIOR:
+
+The left side of the main Outfy navigation currently uses a generic/current
+brand icon.
+
+Replace ONLY that brand mark with the OFFICIAL Outfy image/logo asset that is
+ALREADY stored in this project.
+
+==================================================
+IMPORTANT — USE EXISTING ASSET
+==================================================
+
+DO NOT:
+
+- generate a new Outfy logo
+- redraw the logo
+- use a Lucide wolf/compass icon
+- use an emoji
+- download an image from the internet
+
+Search the repository for the official Outfy logo/icon assets we already use
+for branding/sign-in/PWA/favicon.
+
+Use the most appropriate existing square/icon version for the navigation brand
+mark.
+
+Prefer the established wolf + compass Outfy icon asset.
+
+==================================================
+LOGO APPEARANCE
+==================================================
+
+The logo should:
+
+- preserve its aspect ratio
+- remain clearly visible on the dark Outfy navigation
+- not be stretched
+- not be cropped incorrectly
+- fit naturally inside the current brand area
+
+If the logo asset already includes its intended dark background, do not add
+another ugly conflicting background around it.
+
+Do not make it excessively large.
+
+==================================================
+OUTFY TEXT
+==================================================
+
+If the left navigation currently displays:
+
+[icon] Outfy
+
+keep the existing "Outfy" text unless the current design clearly uses icon
+only.
+
+This task is primarily:
+
+replace CURRENT BRAND ICON
+with
+OFFICIAL OUTFY BRAND ICON.
+
+Do not redesign the entire sidebar/header.
+
+==================================================
+DESKTOP + MOBILE
+==================================================
+
+Check where the shared navigation is rendered.
+
+If the same brand/avatar components are used on:
+
+- desktop
+- mobile
+
+make sure the official logo and avatar work in both.
+
+Do not introduce duplicated logo implementations unnecessarily.
+
+==================================================
+CLICK BEHAVIOR
+==================================================
+
+Preserve existing behavior.
+
+If:
+
+- Outfy logo currently navigates Home
+- top-right avatar currently navigates Profile
+
+those actions must continue working.
+
+Do not change navigation routes.
+
+==================================================
+DO NOT TOUCH
+==================================================
+
+Do NOT modify:
+
+- avatar upload backend
+- avatar delete backend
+- Storage
+- Supabase
+- migrations
+- RLS
+- profile schema
+- image cropper
+- compression
+- activity APIs
+- Create Plan
+- Explore logic
+- Join/Leave
+- My Plans
+- Upcoming
+- Activity Detail
+- routing
+- package.json
+- dependencies
+- .replit
+- workflows
+- deployment
+
+==================================================
+NO NEW TRANSLATIONS
+==================================================
+
+This task should not require new visible text.
+
+Do not add translations unless genuinely necessary for an accessibility label
+that cannot reuse an existing one.
+
+==================================================
+MANDATORY TESTS
+==================================================
+
+TEST 1 — USER WITH AVATAR
+
+Login with an account that has a custom avatar.
+
+Open Home.
+
+Expected:
+
+top-right shows real avatar.
+
+NOT initials.
+
+==================================================
+TEST 2 — USER WITHOUT AVATAR
+
+Use an account without avatar.
+
+Expected:
+
+existing initials fallback remains.
+
+No broken image.
+
+==================================================
+TEST 3 — CHANGE AVATAR
+
+From Profile:
+
+change the avatar.
+
+Return to Home.
+
+Expected:
+
+new image appears immediately without logout/hard refresh.
+
+==================================================
+TEST 4 — REMOVE AVATAR
+
+Remove avatar.
+
+Return to Home.
+
+Expected:
+
+initials return immediately.
+
+==================================================
+TEST 5 — HEADER CLICK
+
+Click the top-right avatar.
+
+Expected:
+
+existing Profile navigation behavior remains unchanged.
+
+==================================================
+TEST 6 — OUTFY LOGO
+
+Check left navigation.
+
+Expected:
+
+official Outfy wolf/compass branding is shown instead of the generic/current
+icon.
+
+Confirm:
+
+- correct aspect ratio
+- visible in dark mode
+- correct size
+- no unwanted crop
+- no black/invisible icon problem
+
+==================================================
+TEST 7 — LOGO NAVIGATION
+
+If current brand area is clickable:
+
+click it.
+
+Expected:
+
+existing Home navigation still works.
+
+==================================================
+TEST 8 — MOBILE
+
+Test narrow/mobile viewport.
+
+Confirm:
+
+- avatar fits correctly
+- logo fits correctly
+- no header overflow
+- no navigation displacement
+
+==================================================
+FINAL VALIDATION
+==================================================
+
+1. Review git diff.
+2. Report exact files modified.
+3. Confirm backend was NOT modified.
+4. Confirm Supabase/migrations were NOT modified.
+5. Confirm existing avatar API was reused.
+6. Confirm initials fallback still works.
+7. Confirm avatar replacement/removal propagates to header.
+8. Confirm official existing Outfy asset was reused.
+9. Confirm no new branding asset was generated.
+10. Run frontend TypeScript/typecheck/build.
+11. Confirm Profile avatar editing still works.
+12. Confirm Home/Explore/Profile navigation still works.
+
+==================================================
+REPORT BACK
+==================================================
+
+Report:
+
+1. Shared shell/header file identified.
+2. Current initials implementation found.
+3. Existing avatar API/state reused.
+4. Avatar synchronization approach.
+5. Official Outfy asset selected and its existing file path.
+6. Exact files modified.
+7. Desktop test.
+8. Mobile test.
+9. Avatar replace/remove test.
+10. Frontend build/typecheck result.
+
+DO NOT publish.
+DO NOT redeploy.

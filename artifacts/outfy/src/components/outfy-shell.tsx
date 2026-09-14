@@ -1,9 +1,14 @@
-import { Bell, ChevronDown, Compass, Plus, Search } from 'lucide-react';
+import { Bell, ChevronDown, Plus, Search } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { navItems } from '@/constants';
 import { cn } from '@/utils';
+import {
+  getProfileAvatar,
+  PROFILE_AVATAR_CHANGED_EVENT,
+  type ProfileAvatarChangedDetail,
+} from '@/auth/auth-api';
 import { useAuth } from '@/auth/auth-context';
 
 interface OutfyShellProps {
@@ -14,11 +19,69 @@ export function OutfyShell({ children }: OutfyShellProps) {
   const { user } = useAuth();
   const [location, navigate] = useLocation();
   const [notificationsRead, setNotificationsRead] = useState(false);
+  const avatarUrlRef = useRef<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [loadedAvatarUrl, setLoadedAvatarUrl] = useState<string | null>(null);
+
+  function applyAvatarUrl(nextAvatarUrl: string | null) {
+    avatarUrlRef.current = nextAvatarUrl;
+    setAvatarUrl(nextAvatarUrl);
+    setLoadedAvatarUrl(null);
+  }
+
+  useEffect(() => {
+    let active = true;
+    let requestVersion = 0;
+
+    function loadAvatar() {
+      const version = ++requestVersion;
+      getProfileAvatar()
+        .then((result) => {
+          if (!active || version !== requestVersion) return;
+          applyAvatarUrl(result.avatarUrl);
+        })
+        .catch(() => {
+          if (!active || version !== requestVersion) return;
+          applyAvatarUrl(null);
+        });
+    }
+
+    function handleAvatarChanged(event: Event) {
+      const detail = (event as CustomEvent<ProfileAvatarChangedDetail>).detail;
+      requestVersion += 1;
+
+      if (detail.action === 'removed') {
+        applyAvatarUrl(null);
+        return;
+      }
+
+      if (detail.avatarUrl) {
+        applyAvatarUrl(detail.avatarUrl);
+        return;
+      }
+
+      loadAvatar();
+    }
+
+    loadAvatar();
+    window.addEventListener(PROFILE_AVATAR_CHANGED_EVENT, handleAvatarChanged);
+
+    return () => {
+      active = false;
+      window.removeEventListener(
+        PROFILE_AVATAR_CHANGED_EVENT,
+        handleAvatarChanged,
+      );
+    };
+  }, []);
+
+  const initials = (user?.username ?? 'LC').slice(0, 2).toUpperCase();
+
   return (
     <div className="min-h-[100dvh] bg-background">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[238px] flex-col bg-sidebar px-5 py-6 text-sidebar-foreground md:flex">
         <Link href="/" className="mb-12 flex items-center gap-2.5" data-testid="link-brand-sidebar">
-          <span className="flex h-9 w-9 items-center justify-center rounded-[13px] bg-primary text-primary-foreground"><Compass className="h-5 w-5" strokeWidth={2.5} /></span>
+          <img src="/icon-192.png" alt="" className="h-9 w-9 rounded-[13px] object-contain" />
           <span className="text-xl font-bold tracking-[-.04em]">outfy<span className="text-primary">.</span></span>
         </Link>
         <p className="mb-3 px-3 font-mono-ui text-[9px] uppercase tracking-[.18em] text-sidebar-foreground/45">Tu espacio</p>
@@ -53,13 +116,37 @@ export function OutfyShell({ children }: OutfyShellProps) {
               <Search className="h-4 w-4" /><span>¿Qué te apetece hacer?</span><span className="ml-10 font-mono-ui text-[9px] text-muted-foreground/60">⌘ K</span>
             </Link>
             <Link href="/" className="flex items-center gap-2 md:hidden" data-testid="link-brand-mobile">
-              <span className="flex h-8 w-8 items-center justify-center rounded-[11px] bg-primary text-primary-foreground"><Compass className="h-4 w-4" /></span><span className="font-bold tracking-[-.04em]">outfy<span className="text-primary">.</span></span>
+              <img src="/icon-192.png" alt="" className="h-8 w-8 rounded-[11px] object-contain" /><span className="font-bold tracking-[-.04em]">outfy<span className="text-primary">.</span></span>
             </Link>
             <div className="ml-auto flex items-center gap-2">
               <button type="button" onClick={() => navigate('/activities/new')} className="outfy-primary-action hidden items-center gap-1.5 rounded-full bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground transition sm:flex" data-testid="button-create-activity"><Plus className="h-3.5 w-3.5" />Crear plan</button>
               <button type="button" onClick={() => setNotificationsRead((current) => !current)} className="relative rounded-full p-2.5 text-muted-foreground hover:bg-muted" aria-label="Notificaciones" data-testid="button-notifications"><Bell className="h-[18px] w-[18px]" />{!notificationsRead && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />}</button>
               <Link href="/profile" className="flex items-center gap-2 rounded-full pl-1.5 pr-1 sm:gap-2.5" data-testid="link-header-profile">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-teal text-[10px] font-bold text-teal-foreground">{(user?.username ?? 'LC').slice(0, 2).toUpperCase()}</span><span className="hidden text-xs font-bold sm:inline">{user?.username ?? 'Laura C.'}</span><ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:inline" />
+                <span className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-teal text-[10px] font-bold text-teal-foreground">
+                  {initials}
+                  {avatarUrl && (
+                    <img
+                      src={avatarUrl}
+                      alt=""
+                      className={cn(
+                        'absolute inset-0 h-full w-full object-cover object-center transition-opacity',
+                        loadedAvatarUrl === avatarUrl
+                          ? 'opacity-100'
+                          : 'opacity-0',
+                      )}
+                      onLoad={() => {
+                        if (avatarUrlRef.current === avatarUrl) {
+                          setLoadedAvatarUrl(avatarUrl);
+                        }
+                      }}
+                      onError={() => {
+                        if (avatarUrlRef.current === avatarUrl) {
+                          setLoadedAvatarUrl(null);
+                        }
+                      }}
+                    />
+                  )}
+                </span><span className="hidden text-xs font-bold sm:inline">{user?.username ?? 'Laura C.'}</span><ChevronDown className="hidden h-3.5 w-3.5 text-muted-foreground sm:inline" />
               </Link>
             </div>
           </div>

@@ -50,6 +50,22 @@ export interface ProfileAvatarResponse {
   avatarUrl: string | null;
 }
 
+export const PROFILE_AVATAR_CHANGED_EVENT = 'outfy:profile-avatar-changed';
+
+export interface ProfileAvatarChangedDetail extends ProfileAvatarResponse {
+  action: 'updated' | 'removed';
+}
+
+function notifyProfileAvatarChanged(detail: ProfileAvatarChangedDetail) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent<ProfileAvatarChangedDetail>(
+      PROFILE_AVATAR_CHANGED_EVENT,
+      { detail },
+    ),
+  );
+}
+
 export class AuthApiError extends Error {
   status: number;
 
@@ -190,18 +206,22 @@ export function getProfileAvatar() {
   return avatarRequest();
 }
 
-export function uploadProfileAvatar(avatar: Blob) {
-  return avatarRequest({
+export async function uploadProfileAvatar(avatar: Blob) {
+  const result = await avatarRequest({
     method: 'PUT',
     headers: {
       'Content-Type': 'image/webp',
     },
     body: avatar,
   });
+  notifyProfileAvatarChanged({ ...result, action: 'updated' });
+  return result;
 }
 
-export function deleteProfileAvatar() {
-  return avatarRequest({ method: 'DELETE' });
+export async function deleteProfileAvatar() {
+  const result = await avatarRequest({ method: 'DELETE' });
+  notifyProfileAvatarChanged({ ...result, action: 'removed' });
+  return result;
 }
 
 export function signOut() {
