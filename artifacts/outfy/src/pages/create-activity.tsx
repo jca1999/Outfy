@@ -1001,16 +1001,9 @@ export function CreateActivity() {
                     className={dateTimePickerInputClassName}
                   />
                   <div
-                    className={`${dateTimeFieldClassName} cursor-pointer`}
-                    onClick={() =>
-                      openPicker(
-                        datePickerRef.current,
-                        dateTextInputRef.current,
-                      )
-                    }
+                    className={dateTimeFieldClassName}
                   >
                     <input
-                      ref={dateTextInputRef}
                       id="activity-date"
                       type="text"
                       value={dateText}
@@ -1031,13 +1024,16 @@ export function CreateActivity() {
                       }
                       className={dateTimeTextInputClassName}
                     />
-                    <span
-                      id="activity-date-format"
-                      className="sr-only"
+                    <button
+                      type="button"
+                      aria-label={t('create.when.dateLabel')}
+                      onClick={() =>
+                        showNativePicker(datePickerRef.current)
+                      }
+                      className="mr-3 shrink-0 rounded-lg p-1 text-muted-foreground transition hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                     >
-                      {t('create.when.dateFormatHint')}
-                    </span>
-                    <CalendarDays className="pointer-events-none absolute right-4 h-4 w-4 text-muted-foreground" />
+                      <CalendarDays className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
                 {renderError('date')}
@@ -1066,16 +1062,9 @@ export function CreateActivity() {
                     className={dateTimePickerInputClassName}
                   />
                   <div
-                    className={`${dateTimeFieldClassName} cursor-pointer`}
-                    onClick={() =>
-                      openPicker(
-                        startTimePickerRef.current,
-                        startTimeTextInputRef.current,
-                      )
-                    }
+                    className={dateTimeFieldClassName}
                   >
                     <input
-                      ref={startTimeTextInputRef}
                       id="activity-start-time"
                       type="text"
                       value={startTimeText}
@@ -1096,13 +1085,20 @@ export function CreateActivity() {
                       }
                       className={dateTimeTextInputClassName}
                     />
-                    <span
-                      id="activity-start-time-format"
-                      className="sr-only"
+                    <button
+                      type="button"
+                      aria-label={t(
+                        'create.when.startTimeLabel',
+                      )}
+                      onClick={() =>
+                        showNativePicker(
+                          startTimePickerRef.current,
+                        )
+                      }
+                      className="mr-3 shrink-0 rounded-lg p-1 text-muted-foreground transition hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                     >
-                      {t('create.when.timeFormatHint')}
-                    </span>
-                    <Clock3 className="pointer-events-none absolute right-4 h-4 w-4 text-muted-foreground" />
+                      <Clock3 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
                 {renderError('startTime')}
@@ -1131,16 +1127,9 @@ export function CreateActivity() {
                     className={dateTimePickerInputClassName}
                   />
                   <div
-                    className={`${dateTimeFieldClassName} cursor-pointer`}
-                    onClick={() =>
-                      openPicker(
-                        endTimePickerRef.current,
-                        endTimeTextInputRef.current,
-                      )
-                    }
+                    className={dateTimeFieldClassName}
                   >
                     <input
-                      ref={endTimeTextInputRef}
                       id="activity-end-time"
                       type="text"
                       value={endTimeText}
@@ -1161,13 +1150,20 @@ export function CreateActivity() {
                       }
                       className={dateTimeTextInputClassName}
                     />
-                    <span
-                      id="activity-end-time-format"
-                      className="sr-only"
+                    <button
+                      type="button"
+                      aria-label={t(
+                        'create.when.endTimeLabel',
+                      )}
+                      onClick={() =>
+                        showNativePicker(
+                          endTimePickerRef.current,
+                        )
+                      }
+                      className="mr-3 shrink-0 rounded-lg p-1 text-muted-foreground transition hover:text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
                     >
-                      {t('create.when.timeFormatHint')}
-                    </span>
-                    <Clock3 className="pointer-events-none absolute right-4 h-4 w-4 text-muted-foreground" />
+                      <Clock3 className="h-4 w-4" />
+                    </button>
                   </div>
                 </div>
                 {renderError('endTime')}
