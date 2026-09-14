@@ -144,6 +144,14 @@ function parseTimeInputValue(value: string) {
   return `${match[1]}:${match[2]}`;
 }
 
+function isCompleteDateInput(value: string) {
+  return /^\d{2}\/\d{2}\/\d{4}$/.test(value.trim());
+}
+
+function isCompleteTimeInput(value: string) {
+  return /^\d{2}:\d{2}$/.test(value.trim());
+}
+
 function maskDateInput(value: string, isDeleting: boolean) {
   const digits = value.replace(/\D/g, '').slice(0, 8);
 
@@ -330,6 +338,49 @@ export function CreateActivity() {
     updateForm('endTime', value);
   }
 
+  function handleDateBlur() {
+    if (
+      dateText.trim() &&
+      !form.date &&
+      isCompleteDateInput(dateText)
+    ) {
+      setErrors((current) => ({
+        ...current,
+        date: t('create.validation.invalidDate'),
+      }));
+    }
+  }
+
+  function handleStartTimeBlur() {
+    if (
+      startTimeText.trim() &&
+      !form.startTime &&
+      isCompleteTimeInput(startTimeText)
+    ) {
+      setErrors((current) => ({
+        ...current,
+        startTime: t(
+          'create.validation.invalidTime',
+        ),
+      }));
+    }
+  }
+
+  function handleEndTimeBlur() {
+    if (
+      endTimeText.trim() &&
+      !form.endTime &&
+      isCompleteTimeInput(endTimeText)
+    ) {
+      setErrors((current) => ({
+        ...current,
+        endTime: t(
+          'create.validation.invalidTime',
+        ),
+      }));
+    }
+  }
+
   function validateForm() {
     const nextErrors: Record<string, string> = {};
 
@@ -350,18 +401,28 @@ export function CreateActivity() {
     }
 
     if (!form.date) {
-      nextErrors.date = t('create.validation.date');
+      nextErrors.date = dateText.trim()
+        ? t('create.validation.invalidDate')
+        : t('create.validation.date');
     }
 
     if (!form.startTime) {
       nextErrors.startTime = t(
-        'create.validation.startTime',
+        dateText.trim() && false
+          ? 'create.validation.startTime'
+          : 'create.validation.startTime',
+      );
+    }
+
+    if (!form.startTime && startTimeText.trim()) {
+      nextErrors.startTime = t(
+        'create.validation.invalidTime',
       );
     }
 
     if (endTimeText.trim() && !form.endTime) {
       nextErrors.endTime = t(
-        'create.validation.endTimeBeforeStart',
+        'create.validation.invalidTime',
       );
     }
 

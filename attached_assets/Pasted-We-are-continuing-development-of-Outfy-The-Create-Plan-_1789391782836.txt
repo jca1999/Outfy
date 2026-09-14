@@ -1,0 +1,397 @@
+We are continuing development of Outfy.
+
+The Create Plan date/time controls are now working correctly:
+
+- manual masked date input
+- manual masked time input
+- native Calendar / Clock picker
+- synchronization with canonical form values
+
+DO NOT redesign or replace that implementation.
+
+This task is ONLY to improve validation feedback for invalid manually entered
+dates and times.
+
+==================================================
+STRICT SCOPE
+==================================================
+
+You may modify ONLY:
+
+1. artifacts/outfy/src/pages/create-activity.tsx
+2. artifacts/outfy/src/i18n/locales/es/activities.json
+3. artifacts/outfy/src/i18n/locales/en/activities.json
+
+DO NOT modify any other file.
+
+Do NOT modify:
+
+- API
+- Supabase
+- database
+- migrations
+- Activity Detail
+- App.tsx
+- authentication
+- activity-api.ts
+- package.json
+- dependencies
+- workflows
+- .replit
+- deployment
+
+DO NOT publish or redeploy.
+
+==================================================
+IMPORTANT UX RULE
+==================================================
+
+Do NOT show an error while the user is still typing an incomplete value.
+
+Examples:
+
+Date:
+3
+31/
+31/1
+31/12/
+
+These are incomplete, NOT errors while typing.
+
+Time:
+1
+18:
+18:3
+
+These are incomplete, NOT errors while typing.
+
+Only show invalid-format/value feedback when appropriate.
+
+==================================================
+DATE VALIDATION
+==================================================
+
+The visible date format is:
+
+DD/MM/YYYY
+
+Examples of VALID dates:
+
+15/09/2026
+29/02/2028
+
+Examples of INVALID dates:
+
+31/02/2026
+29/02/2025
+32/12/2026
+15/13/2026
+
+When the visible date contains a COMPLETE DD/MM/YYYY value but it is not a
+real calendar date:
+
+show:
+
+Spanish:
+"Introduce una fecha válida."
+
+English:
+"Enter a valid date."
+
+==================================================
+TIME VALIDATION
+==================================================
+
+The visible time format is:
+
+HH:mm
+
+Valid range:
+
+00:00 through 23:59
+
+Invalid examples:
+
+25:00
+18:90
+24:30
+
+For invalid COMPLETE time values show:
+
+Spanish:
+"Introduce una hora válida."
+
+English:
+"Enter a valid time."
+
+This applies independently to:
+
+- Start time
+- End time
+
+==================================================
+WHEN TO SHOW ERRORS
+==================================================
+
+Use user-friendly timing.
+
+1. WHILE TYPING AN INCOMPLETE VALUE
+
+Do NOT immediately show an invalid-value error.
+
+Allow the user to finish typing.
+
+2. ON BLUR
+
+When the user leaves the field:
+
+- if empty and optional:
+  no invalid-value error
+
+- if incomplete:
+  do not show a misleading "invalid date/time" error unless the user attempts
+  to submit/review
+
+- if complete but invalid:
+  show the appropriate error
+
+3. ON "REVIEW PLAN"
+
+If the user tries to review the plan:
+
+DATE:
+- empty -> preserve existing required-date error
+- incomplete -> show "Enter a valid date"
+- complete but invalid -> show "Enter a valid date"
+
+START TIME:
+- empty -> preserve existing required-start-time error
+- incomplete -> show "Enter a valid time"
+- complete but invalid -> show "Enter a valid time"
+
+END TIME:
+- empty -> valid because optional
+- incomplete -> show "Enter a valid time"
+- complete but invalid -> show "Enter a valid time"
+
+Do not allow Review Plan while these errors exist.
+
+==================================================
+END TIME RELATIONSHIP
+==================================================
+
+Preserve the existing validation:
+
+End time must be later than Start time.
+
+Spanish:
+"La hora de fin debe ser posterior a la hora de inicio."
+
+English:
+"End time must be later than start time."
+
+Priority:
+
+If either time itself is invalid, show the invalid-time message first.
+
+Only compare start/end ordering when BOTH times are valid.
+
+==================================================
+ERROR CLEARING
+==================================================
+
+When the user corrects an invalid value:
+
+- clear the error naturally
+- do not require another submit before the error disappears
+
+Example:
+
+31/02/2026
+-> error
+
+change to:
+
+28/02/2026
+-> error disappears
+
+Same for times.
+
+==================================================
+NATIVE PICKER
+==================================================
+
+Do NOT change the native picker implementation.
+
+Selecting a valid value from:
+
+- Calendar picker
+- Start Time picker
+- End Time picker
+
+must clear any corresponding invalid manual-entry error.
+
+==================================================
+PRESERVE MASKING
+==================================================
+
+Do NOT change the working input masks.
+
+Keep:
+
+DATE:
+31122026
+-> 31/12/2026
+
+TIME:
+1830
+-> 18:30
+
+Do not change:
+
+- manual editing
+- Backspace behavior
+- paste behavior
+- picker buttons
+- icon styling
+- canonical state formats
+
+==================================================
+CANONICAL STATE
+==================================================
+
+Preserve:
+
+form.date
+-> YYYY-MM-DD
+
+form.startTime
+-> HH:mm
+
+form.endTime
+-> HH:mm
+
+Do NOT put invalid manual values into canonical state.
+
+Publishing logic must remain unchanged.
+
+==================================================
+I18N
+==================================================
+
+Use the existing:
+
+activities
+
+namespace.
+
+Before adding new keys, inspect whether equivalent validation translations
+already exist.
+
+Reuse existing keys if suitable.
+
+If new keys are necessary, add the minimum required keys to:
+
+es/activities.json
+en/activities.json
+
+Keep both translation structures equivalent.
+
+Do not hardcode Spanish or English error messages in the component.
+
+==================================================
+PRESERVE EVERYTHING ELSE
+==================================================
+
+Do NOT change:
+
+- categories
+- description/title
+- location
+- participants
+- cost
+- Review Plan design
+- Publish Plan
+- API payload
+- timezone handling
+- success screen
+
+==================================================
+VALIDATION TESTS
+==================================================
+
+After implementation test:
+
+DATE
+
+31/02/2026
+-> invalid date error
+
+29/02/2025
+-> invalid date error
+
+29/02/2028
+-> accepted
+
+15/09/2026
+-> accepted
+
+Incomplete:
+31/12/
+-> no aggressive error while actively typing
+-> Review Plan must reject it as invalid
+
+START TIME
+
+25:00
+-> invalid time error
+
+18:90
+-> invalid time error
+
+18:30
+-> accepted
+
+Incomplete:
+18:
+-> no aggressive error while typing
+-> Review Plan must reject it
+
+END TIME
+
+empty
+-> accepted
+
+25:00
+-> invalid time error
+
+17:00 with start 18:00
+-> valid time format, but existing end-before-start error
+
+19:00 with start 18:00
+-> accepted
+
+==================================================
+FINAL VALIDATION
+==================================================
+
+1. Confirm ONLY the three allowed files changed.
+2. Run frontend TypeScript/typecheck/build.
+3. Validate both locale JSON files.
+4. Confirm masks still work.
+5. Confirm Calendar / Clock picker still works.
+6. Confirm incomplete values are not aggressively flagged while typing.
+7. Confirm complete invalid values show clear feedback.
+8. Confirm Review Plan cannot proceed with invalid/incomplete values.
+9. Confirm errors disappear after correction.
+10. Confirm publishing/date conversion code did not change.
+
+Report:
+
+- exact validation behavior added
+- whether existing or new translation keys were used
+- files changed
+- typecheck/build result
+
+DO NOT publish.
+DO NOT redeploy.
