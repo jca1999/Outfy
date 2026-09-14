@@ -9,7 +9,7 @@ import {
 import {
   useState,
   type FormEvent,
-  type PointerEvent,
+  type MouseEvent,
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'wouter';
@@ -77,7 +77,7 @@ const dateTimeDisplayClassName =
   'relative z-0 flex min-h-[46px] w-full items-center rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none transition peer-focus:border-primary peer-focus:ring-2 peer-focus:ring-primary/15';
 
 const dateTimeNativeInputClassName =
-  'peer absolute inset-0 z-10 h-full w-full cursor-pointer appearance-none rounded-2xl border-0 bg-transparent p-0 text-transparent outline-none focus:outline-none [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-datetime-edit]:text-transparent [&::-webkit-datetime-edit-fields-wrapper]:text-transparent [&::-webkit-datetime-edit-text]:text-transparent [&::-webkit-datetime-edit-month-field]:text-transparent [&::-webkit-datetime-edit-day-field]:text-transparent [&::-webkit-datetime-edit-year-field]:text-transparent [&::-webkit-datetime-edit-hour-field]:text-transparent [&::-webkit-datetime-edit-minute-field]:text-transparent [&::-webkit-datetime-edit-ampm-field]:text-transparent [&::-webkit-datetime-edit-meridiem-field]:text-transparent';
+  'peer absolute inset-0 z-10 h-full w-full cursor-pointer rounded-2xl opacity-0';
 
 const choiceLabelClassName =
   'flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold transition';
@@ -171,10 +171,9 @@ export function CreateActivity() {
   }
 
   function openNativePicker(
-    event: PointerEvent<HTMLInputElement>,
+    event: MouseEvent<HTMLInputElement>,
   ) {
     const input = event.currentTarget;
-    input.focus();
 
     if (typeof input.showPicker !== 'function') {
       return;
@@ -837,7 +836,7 @@ export function CreateActivity() {
                     id="activity-date"
                     type="date"
                     value={form.date}
-                    onPointerDown={openNativePicker}
+                    onClick={openNativePicker}
                     onChange={(event) =>
                       updateForm('date', event.target.value)
                     }
@@ -875,7 +874,7 @@ export function CreateActivity() {
                     id="activity-start-time"
                     type="time"
                     value={form.startTime}
-                    onPointerDown={openNativePicker}
+                    onClick={openNativePicker}
                     onChange={(event) =>
                       updateForm(
                         'startTime',
@@ -916,7 +915,7 @@ export function CreateActivity() {
                     id="activity-end-time"
                     type="time"
                     value={form.endTime}
-                    onPointerDown={openNativePicker}
+                    onClick={openNativePicker}
                     onChange={(event) =>
                       updateForm(
                         'endTime',

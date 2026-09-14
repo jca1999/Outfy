@@ -1,0 +1,321 @@
+We need to fix a confirmed bug in the Create Plan date/time controls.
+
+I have reviewed the CURRENT implementation in:
+
+artifacts/outfy/src/pages/create-activity.tsx
+
+The root cause is now known.
+
+The current native date/time input is layered above the custom display and
+tries to hide Chromium's segmented date/time UI using text-transparent and
+multiple ::-webkit-datetime-edit selectors.
+
+This is not reliable.
+
+Chrome is still exposing/focusing internal date/time segments (for example
+the blue highlighted "dd"), and the current onPointerDown handler allows
+native segmented-input behavior to interfere with showPicker().
+
+DO NOT attempt another pseudo-element patch.
+
+==================================================
+STRICT SCOPE
+==================================================
+
+Modify ONLY:
+
+artifacts/outfy/src/pages/create-activity.tsx
+
+DO NOT modify any other file.
+
+DO NOT modify:
+- translations
+- API
+- Supabase
+- migrations
+- authentication
+- Activity Detail
+- App.tsx
+- dependencies
+- package.json
+- workflows
+- deployment
+- .replit
+
+DO NOT publish or redeploy.
+
+==================================================
+EXACT FIX
+==================================================
+
+Keep the existing architecture:
+
+- real native input type="date" / type="time"
+- custom visible span containing dd/mm/aaaa, hh:mm, or the selected value
+
+But change HOW the native input is hidden and activated.
+
+==================================================
+1. REPLACE THE NATIVE INPUT CLASS
+==================================================
+
+The current dateTimeNativeInputClassName contains:
+
+- text-transparent
+- appearance-none
+- many ::-webkit-datetime-edit selectors
+- picker-indicator opacity rules
+
+REMOVE that complicated native-content hiding approach.
+
+The native input itself should simply:
+
+- position absolute
+- inset 0
+- width 100%
+- height 100%
+- z-index above the visible display
+- cursor pointer
+- opacity 0
+- remain enabled
+- remain focusable
+- keep pointer events enabled
+- preserve rounded dimensions
+
+Conceptually it should be equivalent to:
+
+const dateTimeNativeInputClassName =
+  'peer absolute inset-0 z-10 h-full w-full cursor-pointer rounded-2xl opacity-0';
+
+It may include minimal accessibility/layout classes if genuinely necessary,
+but DO NOT add back WebKit datetime-edit pseudo-element hacks.
+
+IMPORTANT:
+
+Do NOT use:
+
+display: none
+visibility: hidden
+pointer-events: none
+
+on the native input.
+
+The transparent native input MUST remain the click target across the ENTIRE
+rounded field.
+
+==================================================
+2. CHANGE POINTERDOWN TO CLICK
+==================================================
+
+The current fields use:
+
+onPointerDown={openNativePicker}
+
+REMOVE this.
+
+Use:
+
+onClick={openNativePicker}
+
+for:
+
+- activity-date
+- activity-start-time
+- activity-end-time
+
+This is intentional.
+
+Do NOT use pointerdown for showPicker().
+
+==================================================
+3. UPDATE openNativePicker
+==================================================
+
+Change its React event type accordingly.
+
+It should receive a click/mouse event from the native HTMLInputElement.
+
+The implementation should conceptually be:
+
+function openNativePicker(event) {
+  const input = event.currentTarget;
+
+  if (typeof input.showPicker !== 'function') {
+    return;
+  }
+
+  try {
+    input.showPicker();
+  } catch {
+    // Native click/focus remains the fallback.
+  }
+}
+
+Do NOT use:
+
+- setTimeout
+- promises
+- requestAnimationFrame
+- async
+- artificial click()
+- document.querySelector
+
+showPicker() must remain directly inside the user's click gesture.
+
+There is no need to manually call focus() before showPicker unless testing
+shows it is genuinely required.
+
+==================================================
+4. KEEP THE CUSTOM DISPLAY
+==================================================
+
+Keep the existing visible spans:
+
+dateDisplay
+startTimeDisplay
+endTimeDisplay
+
+They already correctly provide:
+
+empty date:
+dd/mm/aaaa
+
+selected date:
+DD/MM/YYYY
+
+empty time:
+hh:mm
+
+selected time:
+HH:mm
+
+The span must remain:
+
+pointer-events-none
+
+so EVERY click passes through to the full-size native input.
+
+Do not add another overlay.
+
+Do not add another placeholder.
+
+Do not render any native date/time text visibly.
+
+==================================================
+5. VISUAL FOCUS
+==================================================
+
+Keep the existing Outfy focus appearance.
+
+The visible display may continue using the existing peer-focus classes so
+the border/ring becomes green when the transparent native input receives
+focus.
+
+There must be NO blue Chromium segment highlight visible because the native
+input itself is fully transparent.
+
+==================================================
+6. NO ICONS
+==================================================
+
+Do not add Calendar or Clock icons inside these three fields.
+
+The whole rounded field is the interaction target.
+
+The Clock3 icon used as the SECTION icon for "Cuando / When" is unrelated
+and should remain.
+
+CalendarDays used elsewhere (for example Preview) should also remain if
+still used.
+
+Do not remove imports that are still needed elsewhere in the page.
+
+==================================================
+EXPECTED RESULT
+==================================================
+
+EMPTY DATE:
+
+Fecha
+┌──────────────────────┐
+│ dd/mm/aaaa           │
+└──────────────────────┘
+
+There must be NO native:
+- dd
+- mm
+- yyyy
+- calendar icon
+- blue selected date segment
+
+under or above our display.
+
+Click ANYWHERE inside the rectangle:
+-> native calendar opens.
+
+Test:
+- far left
+- center
+- far right
+- top
+- bottom
+
+All must open the same picker.
+
+EMPTY TIME:
+
+Hora de inicio
+┌──────────────────────┐
+│ hh:mm                │
+└──────────────────────┘
+
+There must be NO native gray time text behind it and NO native clock icon.
+
+Click ANYWHERE:
+-> native time picker opens.
+
+The same applies to End time.
+
+==================================================
+PRESERVE ALL EXISTING LOGIC
+==================================================
+
+Do NOT change:
+
+- form.date
+- form.startTime
+- form.endTime
+- updateForm()
+- validation
+- Review Plan
+- publishing
+- toISOString conversion
+- timezone behavior
+- API payload
+- optional end-time behavior
+
+This is strictly an interaction/rendering fix.
+
+==================================================
+VALIDATION
+==================================================
+
+After the change:
+
+1. Confirm ONLY create-activity.tsx changed.
+2. Run frontend TypeScript/typecheck/build.
+3. Confirm date input shows ONLY one visible dd/mm/aaaa.
+4. Confirm time input shows ONLY one visible hh:mm.
+5. Confirm NO blue segmented native date/time text is visible.
+6. Confirm NO native calendar/clock indicator is visible.
+7. Confirm selected values appear exactly once.
+8. Confirm clicking far left of each field opens the picker.
+9. Confirm clicking center opens it.
+10. Confirm clicking far right opens it.
+11. Confirm clicking top and bottom areas opens it.
+12. Confirm publishing still receives exactly the same underlying values.
+
+Report the exact class and handler changes.
+
+DO NOT publish.
+DO NOT redeploy.
