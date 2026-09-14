@@ -143,6 +143,54 @@ function parseTimeInputValue(value: string) {
   return `${match[1]}:${match[2]}`;
 }
 
+function maskDateInput(value: string, previousValue: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+
+  if (digits.length <= 2) {
+    if (
+      digits.length === 2 &&
+      value.length >= previousValue.length
+    ) {
+      return `${digits}/`;
+    }
+
+    return digits;
+  }
+
+  if (digits.length <= 4) {
+    const monthPart = digits.slice(2);
+    const trailingSlash =
+      digits.length === 4 &&
+      value.length >= previousValue.length
+        ? '/'
+        : '';
+
+    return `${digits.slice(0, 2)}/${monthPart}${trailingSlash}`;
+  }
+
+  return `${digits.slice(0, 2)}/${digits.slice(
+    2,
+    4,
+  )}/${digits.slice(4)}`;
+}
+
+function maskTimeInput(value: string, previousValue: string) {
+  const digits = value.replace(/\D/g, '').slice(0, 4);
+
+  if (digits.length <= 2) {
+    if (
+      digits.length === 2 &&
+      value.length >= previousValue.length
+    ) {
+      return `${digits}:`;
+    }
+
+    return digits;
+  }
+
+  return `${digits.slice(0, 2)}:${digits.slice(2)}`;
+}
+
 export function CreateActivity() {
   const { t, i18n } = useTranslation('activities');
   const { user } = useAuth();
@@ -164,12 +212,6 @@ export function CreateActivity() {
   const startTimePickerRef =
     useRef<HTMLInputElement>(null);
   const endTimePickerRef = useRef<HTMLInputElement>(null);
-  const dateTextInputRef =
-    useRef<HTMLInputElement>(null);
-  const startTimeTextInputRef =
-    useRef<HTMLInputElement>(null);
-  const endTimeTextInputRef =
-    useRef<HTMLInputElement>(null);
 
   const categoryIds = Object.keys(
     activityTaxonomy,
@@ -226,42 +268,52 @@ export function CreateActivity() {
     );
   }
 
-  function openPicker(
-    input: HTMLInputElement | null,
-    fallback: HTMLInputElement | null,
-  ) {
+  function showNativePicker(input: HTMLInputElement | null) {
     if (!input) {
-      fallback?.focus();
       return;
+    }
+
+    if (typeof input.showPicker === 'function') {
+      try {
+        input.showPicker();
+        return;
+      } catch {
+        // Use the native input fallback below.
+      }
     }
 
     input.focus();
-
-    if (typeof input.showPicker !== 'function') {
-      fallback?.focus();
-      return;
-    }
-
-    try {
-      input.showPicker();
-    } catch {
-      fallback?.focus();
-    }
+    input.click();
   }
 
   function handleDateTextChange(value: string) {
-    setDateText(value);
-    updateForm('date', parseDateInputValue(value) ?? '');
+    const maskedValue = maskDateInput(value, dateText);
+    setDateText(maskedValue);
+    updateForm(
+      'date',
+      parseDateInputValue(maskedValue) ?? '',
+    );
   }
 
   function handleStartTimeTextChange(value: string) {
-    setStartTimeText(value);
-    updateForm('startTime', parseTimeInputValue(value) ?? '');
+    const maskedValue = maskTimeInput(
+      value,
+      startTimeText,
+    );
+    setStartTimeText(maskedValue);
+    updateForm(
+      'startTime',
+      parseTimeInputValue(maskedValue) ?? '',
+    );
   }
 
   function handleEndTimeTextChange(value: string) {
-    setEndTimeText(value);
-    updateForm('endTime', parseTimeInputValue(value) ?? '');
+    const maskedValue = maskTimeInput(value, endTimeText);
+    setEndTimeText(maskedValue);
+    updateForm(
+      'endTime',
+      parseTimeInputValue(maskedValue) ?? '',
+    );
   }
 
   function handleDatePickerChange(value: string) {

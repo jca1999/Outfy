@@ -1,0 +1,490 @@
+We need to simplify and stabilize the Create Plan date/time UX.
+
+The previous hybrid implementation still has a problem:
+the Calendar/Clock picker button does not reliably open the native picker.
+
+We also want proper input masking for manually typed dates and times.
+
+IMPORTANT UX DECISION:
+
+Do NOT make the entire text field open the native picker anymore.
+
+The visible text field is for manual typing/editing.
+
+The Calendar / Clock icon button is the explicit control that opens the native
+picker.
+
+This avoids conflict between:
+- placing the text cursor
+- editing manually
+- opening the native picker
+
+==================================================
+STRICT SCOPE
+==================================================
+
+Modify ONLY:
+
+artifacts/outfy/src/pages/create-activity.tsx
+
+DO NOT modify any other file.
+
+Do NOT modify:
+- translations
+- API
+- Supabase
+- migrations
+- Activity Detail
+- App.tsx
+- package.json
+- dependencies
+- workflows
+- deployment
+- .replit
+
+DO NOT publish or redeploy.
+
+==================================================
+DATE FIELD UX
+==================================================
+
+Visible field:
+
+[ 31/12/2026                    Calendar icon ]
+
+The visible control must be a normal editable text input.
+
+Placeholder:
+
+dd/mm/aaaa
+
+The user must be able to:
+- click anywhere in the text area
+- place the cursor
+- type
+- use backspace/delete
+- select text
+- edit the value normally
+
+Clicking the Calendar icon button must open the native date picker.
+
+==================================================
+DATE INPUT MASK
+==================================================
+
+Implement a lightweight date mask WITHOUT installing a dependency.
+
+Accept digits from the user and automatically format them as:
+
+DD/MM/YYYY
+
+Examples:
+
+User types:
+
+3
+-> 3
+
+31
+-> 31/
+
+311
+-> 31/1
+
+3112
+-> 31/12/
+
+31122026
+-> 31/12/2026
+
+If the user pastes:
+
+31122026
+
+it should become:
+
+31/12/2026
+
+If they paste:
+
+31/12/2026
+
+it should remain valid.
+
+Strip irrelevant characters and keep a maximum of 8 numeric digits.
+
+Do not create duplicated slashes.
+
+==================================================
+DATE CANONICAL STATE
+==================================================
+
+The existing canonical:
+
+form.date
+
+MUST continue using:
+
+YYYY-MM-DD
+
+Do not change publishing logic.
+
+Use a separate visible text state if necessary.
+
+Example:
+
+visible:
+31/12/2026
+
+canonical:
+2026-12-31
+
+Only update form.date when the visible value represents a COMPLETE AND VALID
+calendar date.
+
+Validate real dates.
+
+Examples:
+
+31/02/2026 -> invalid
+29/02/2025 -> invalid
+29/02/2028 -> valid
+
+Do not let JavaScript Date silently normalize invalid dates.
+
+When the visible date is incomplete or invalid:
+- keep the typed visible text
+- canonical form.date should not become an invalid date
+
+==================================================
+TIME INPUT MASK
+==================================================
+
+Do the equivalent for Start Time and End Time.
+
+Visible format:
+
+HH:mm
+
+Examples:
+
+1
+-> 1
+
+18
+-> 18:
+
+183
+-> 18:3
+
+1830
+-> 18:30
+
+Pasting:
+
+1830
+
+should produce:
+
+18:30
+
+Maximum 4 numeric digits.
+
+Only update canonical:
+
+form.startTime
+form.endTime
+
+when the value is complete and valid.
+
+Valid range:
+
+00:00 through 23:59
+
+Invalid examples:
+
+25:00
+18:90
+
+End time remains optional.
+
+==================================================
+NATIVE PICKER BUTTONS
+==================================================
+
+Keep separate native controls:
+
+<input type="date">
+<input type="time">
+
+for the browser picker.
+
+They are NOT the visible editable fields.
+
+They must remain mounted in the DOM and mutable, but may be visually hidden.
+
+IMPORTANT:
+
+Do NOT use:
+- display: none
+- hidden attribute
+
+if that prevents showPicker() from working.
+
+Keep them renderable but visually unobtrusive.
+
+Use refs:
+
+datePickerRef
+startTimePickerRef
+endTimePickerRef
+
+==================================================
+ICON BUTTON
+==================================================
+
+The visible CalendarDays / Clock3 icon must be inside a REAL:
+
+<button type="button">
+
+The button must have an accessible aria-label.
+
+Date:
+CalendarDays
+
+Times:
+Clock3
+
+Use theme-aware colors such as:
+
+text-muted-foreground
+
+and hover/focus:
+
+text-foreground
+or
+text-primary
+
+NEVER use:
+- text-black
+- black
+- #000
+
+because Outfy uses a dark background.
+
+==================================================
+OPEN PICKER RELIABLY
+==================================================
+
+The icon button must call showPicker() DIRECTLY from the user event.
+
+Use a helper conceptually equivalent to:
+
+function showNativePicker(input: HTMLInputElement | null) {
+  if (!input) return;
+
+  if (typeof input.showPicker === 'function') {
+    try {
+      input.showPicker();
+      return;
+    } catch {
+      // fallback below
+    }
+  }
+
+  input.focus();
+  input.click();
+}
+
+IMPORTANT:
+
+Call this helper synchronously from the icon button's click/pointer event.
+
+Do NOT use:
+- setTimeout
+- async
+- Promise
+- requestAnimationFrame
+
+Do NOT rely on clicking an invisible native calendar hotspot.
+
+The custom icon button itself must trigger the picker.
+
+==================================================
+PICKER -> TEXT SYNCHRONIZATION
+==================================================
+
+When the native DATE picker selects:
+
+2026-12-31
+
+update:
+
+form.date = "2026-12-31"
+
+visible date text = "31/12/2026"
+
+When native TIME picker selects:
+
+18:30
+
+update:
+
+form.startTime = "18:30"
+
+visible time text = "18:30"
+
+Same for End Time.
+
+==================================================
+BACKSPACE / EDITING
+==================================================
+
+The masks must not make editing frustrating.
+
+Backspace should work naturally.
+
+For example, removing digits from:
+
+31/12/2026
+
+must progressively reduce the formatted value rather than trapping the user
+around slash characters.
+
+Prefer deriving the mask from numeric digits on every change rather than
+trying to manually manipulate slash positions.
+
+==================================================
+INITIAL / RESET STATE
+==================================================
+
+When Create Another Plan resets the form:
+
+visible date/time text must also reset.
+
+Date:
+empty -> placeholder dd/mm/aaaa
+
+Times:
+empty -> placeholder hh:mm
+
+No stale display values may remain.
+
+==================================================
+VALIDATION
+==================================================
+
+Existing Review Plan validation must still work.
+
+Date:
+required and must have a valid canonical form.date.
+
+Start time:
+required and valid.
+
+End time:
+optional, but if entered it must be valid.
+
+Existing:
+end time > start time
+
+behavior must remain.
+
+Do NOT alter publishing/date conversion logic.
+
+==================================================
+REMOVE OLD BROKEN CODE
+==================================================
+
+Remove any obsolete code from the previous date/time attempts:
+
+- whole-field showPicker handlers
+- transparent full-field native overlays
+- duplicate placeholder layers
+- old dateTimeDisplay/native classes
+- unused refs/functions
+
+Do not leave several competing implementations in the component.
+
+There should be ONE clear implementation.
+
+==================================================
+EXPECTED RESULT
+==================================================
+
+DATE:
+
+Fecha
+┌──────────────────────────────┐
+│ 31/12/2026                📅 │
+└──────────────────────────────┘
+
+Click text:
+-> edit manually
+
+Type:
+31122026
+-> 31/12/2026
+
+Click calendar icon:
+-> native calendar opens
+
+Select another date:
+-> text and canonical value update
+
+TIME:
+
+Hora de inicio
+┌──────────────────────────────┐
+│ 18:30                     🕒 │
+└──────────────────────────────┘
+
+Type:
+1830
+-> 18:30
+
+Click clock:
+-> native time picker opens
+
+==================================================
+PRESERVE
+==================================================
+
+Do NOT change:
+- categories
+- location
+- participants
+- costs
+- Review Plan
+- Publish Plan
+- API payload
+- timezone behavior
+- activity creation
+
+==================================================
+VALIDATION AFTER IMPLEMENTATION
+==================================================
+
+1. Confirm ONLY create-activity.tsx changed.
+2. Run frontend typecheck/build.
+3. Type 31122026 -> 31/12/2026.
+4. Type 1830 -> 18:30.
+5. Confirm Backspace works naturally.
+6. Confirm invalid dates do not populate canonical form.date.
+7. Confirm invalid times do not populate canonical time state.
+8. Confirm Calendar icon opens native picker.
+9. Confirm both Clock icons open native picker.
+10. Confirm picker selection updates visible text.
+11. Confirm icons are clearly visible in dark mode.
+12. Confirm no browser-native icon/text overlaps the visible controls.
+13. Confirm publishing still receives YYYY-MM-DD and HH:mm.
+
+Report:
+- mask implementation
+- manual validation implementation
+- native picker implementation
+- root cause of the previous button failure
+- build/typecheck result
+
+DO NOT publish.
+DO NOT redeploy.
