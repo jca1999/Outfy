@@ -7,9 +7,9 @@ import {
   Users,
 } from 'lucide-react';
 import {
+  useRef,
   useState,
   type FormEvent,
-  type MouseEvent,
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'wouter';
@@ -77,7 +77,7 @@ const dateTimeDisplayClassName =
   'relative z-0 flex min-h-[46px] w-full items-center rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none transition peer-focus:border-primary peer-focus:ring-2 peer-focus:ring-primary/15';
 
 const dateTimeNativeInputClassName =
-  'peer absolute inset-0 z-10 h-full w-full cursor-pointer rounded-2xl opacity-0';
+  'peer pointer-events-none absolute inset-0 z-10 h-full w-full cursor-pointer rounded-2xl opacity-0';
 
 const choiceLabelClassName =
   'flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold transition';
@@ -106,6 +106,10 @@ export function CreateActivity() {
   const [publishError, setPublishError] = useState('');
   const [publishedActivityId, setPublishedActivityId] =
     useState<string | null>(null);
+  const dateInputRef = useRef<HTMLInputElement>(null);
+  const startTimeInputRef =
+    useRef<HTMLInputElement>(null);
+  const endTimeInputRef = useRef<HTMLInputElement>(null);
 
   const categoryIds = Object.keys(
     activityTaxonomy,
@@ -170,10 +174,12 @@ export function CreateActivity() {
     );
   }
 
-  function openNativePicker(
-    event: MouseEvent<HTMLInputElement>,
-  ) {
-    const input = event.currentTarget;
+  function openPicker(input: HTMLInputElement | null) {
+    if (!input) {
+      return;
+    }
+
+    input.focus();
 
     if (typeof input.showPicker !== 'function') {
       return;

@@ -1,0 +1,315 @@
+We need to fix the Create Plan date/time picker interaction one final time.
+
+The previous implementation still relies too much on native date/time input click
+behavior.
+
+CURRENT PROBLEM:
+
+The native picker only opens reliably when clicking the browser's original
+calendar/clock hotspot.
+
+This is NOT acceptable.
+
+The required UX is:
+
+CLICK ANYWHERE inside the entire visible rounded field
+-> open the native picker.
+
+We are going to stop relying on the native input itself as the pointer target.
+
+==================================================
+STRICT SCOPE
+==================================================
+
+Modify ONLY:
+
+artifacts/outfy/src/pages/create-activity.tsx
+
+DO NOT modify any other file.
+
+DO NOT modify:
+- translations
+- API
+- Supabase
+- migrations
+- Activity Detail
+- App.tsx
+- dependencies
+- package.json
+- workflows
+- deployment
+- .replit
+
+DO NOT publish or redeploy.
+
+==================================================
+NEW APPROACH
+==================================================
+
+Use React refs for:
+
+- Date input
+- Start time input
+- End time input
+
+The VISIBLE rounded wrapper must receive the click.
+
+The native date/time input must NOT be responsible for pointer interaction.
+
+==================================================
+1. ADD REFS
+==================================================
+
+Import/use React useRef.
+
+Create:
+
+const dateInputRef = useRef<HTMLInputElement>(null)
+const startTimeInputRef = useRef<HTMLInputElement>(null)
+const endTimeInputRef = useRef<HTMLInputElement>(null)
+
+Attach them to the corresponding native inputs.
+
+==================================================
+2. CREATE A WRAPPER PICKER FUNCTION
+==================================================
+
+Create a helper conceptually like:
+
+function openPicker(input: HTMLInputElement | null) {
+  if (!input) {
+    return;
+  }
+
+  input.focus();
+
+  if (typeof input.showPicker === 'function') {
+    try {
+      input.showPicker();
+    } catch {
+      // Keep focus/native fallback.
+    }
+  }
+}
+
+IMPORTANT:
+
+This function must be called DIRECTLY from the wrapper's user click.
+
+No:
+- setTimeout
+- promises
+- requestAnimationFrame
+- async behavior
+
+==================================================
+3. THE WRAPPER IS THE CLICK TARGET
+==================================================
+
+For each visible rounded field, the wrapper itself must have:
+
+onClick={() => openPicker(dateInputRef.current)}
+
+or the corresponding time ref.
+
+The wrapper must cover the complete visible control.
+
+Conceptually:
+
+<div
+  className="..."
+  onClick={() => openPicker(dateInputRef.current)}
+>
+  ...
+</div>
+
+Clicking ANYWHERE in this div must call showPicker().
+
+==================================================
+4. NATIVE INPUT POINTER EVENTS
+==================================================
+
+The native input must remain:
+
+- mounted
+- enabled
+- focusable
+- semantic
+- connected to React state
+- type="date" / type="time"
+
+BUT it must NOT capture mouse/pointer clicks.
+
+Use:
+
+pointer-events-none
+
+on the native input.
+
+This is intentionally DIFFERENT from the previous implementation.
+
+The wrapper handles all pointer clicks.
+
+The input exists only for:
+
+- native picker
+- keyboard semantics
+- value
+- onChange
+
+Do not use onClick or onPointerDown on the native input anymore.
+
+==================================================
+5. NATIVE INPUT VISIBILITY
+==================================================
+
+The native input must not render visible browser date/time text.
+
+Keep it fully visually hidden/transparent inside the wrapper.
+
+Do not use the previous long list of WebKit datetime-edit pseudo-element hacks.
+
+Prefer a simple hidden visual state such as:
+
+absolute
+inset-0
+opacity-0
+pointer-events-none
+
+while preserving:
+
+- ref
+- value
+- onChange
+- type
+
+==================================================
+6. CUSTOM DISPLAY
+==================================================
+
+The visible wrapper itself should display:
+
+EMPTY DATE:
+dd/mm/aaaa
+
+SELECTED DATE:
+DD/MM/YYYY
+
+EMPTY TIME:
+hh:mm
+
+SELECTED TIME:
+HH:mm
+
+Use the EXISTING:
+
+dateDisplay
+startTimeDisplay
+endTimeDisplay
+
+There must be only ONE visible text value.
+
+No native gray text.
+No duplicated hh:mm.
+No blue native date segment.
+No calendar/clock indicator.
+
+==================================================
+7. KEYBOARD ACCESSIBILITY
+==================================================
+
+Do not destroy keyboard accessibility.
+
+Keep the native input focusable through normal keyboard navigation if possible.
+
+If pointer-events-none is used, this must not remove keyboard focusability.
+
+Preserve the existing labels with htmlFor.
+
+Do NOT replace date/time with plain text inputs.
+
+==================================================
+8. FOCUS STYLE
+==================================================
+
+The rounded visible field should still show Outfy's green focus styling when
+the underlying input has focus.
+
+If the existing peer-focus approach no longer works cleanly because of the new
+structure, use a minimal React focus state or focus-within styling.
+
+Do not redesign the fields.
+
+==================================================
+EXPECTED RESULT
+==================================================
+
+Date field:
+
+Fecha
+┌──────────────────────┐
+│ dd/mm/aaaa           │
+└──────────────────────┘
+
+Click:
+- left edge
+- center
+- right edge
+- top
+- bottom
+
+ALL must execute the same wrapper click handler and open the native calendar.
+
+Time field:
+
+Hora de inicio
+┌──────────────────────┐
+│ hh:mm                │
+└──────────────────────┘
+
+Again, EVERY area of the rounded field must open the native time picker.
+
+There must be NO special hotspot.
+
+==================================================
+PRESERVE EXISTING LOGIC
+==================================================
+
+Do NOT change:
+
+- form.date
+- form.startTime
+- form.endTime
+- updateForm()
+- validation
+- preview
+- publishing
+- timezone conversion
+- API payload
+
+==================================================
+VALIDATION
+==================================================
+
+After implementation:
+
+1. Confirm ONLY create-activity.tsx changed.
+2. Run frontend typecheck/build.
+3. Confirm the native inputs no longer handle pointer clicks.
+4. Confirm the visible wrapper handles the click.
+5. Confirm wrapper click directly calls showPicker() through a ref.
+6. Confirm far left opens picker.
+7. Confirm center opens picker.
+8. Confirm far right opens picker.
+9. Confirm top opens picker.
+10. Confirm bottom opens picker.
+11. Confirm no duplicate native date/time text is visible.
+12. Confirm publishing still receives the same values.
+
+If this browser still refuses to open showPicker() from the wrapper click,
+DO NOT invent another workaround.
+
+Report that clearly so we can revert to the original native input UX.
+
+DO NOT publish.
+DO NOT redeploy.
