@@ -840,9 +840,9 @@ export function CreateActivity() {
                 <div className="relative mt-2">
                   <input
                     id="activity-date"
+                    ref={dateInputRef}
                     type="date"
                     value={form.date}
-                    onClick={openNativePicker}
                     onChange={(event) =>
                       updateForm('date', event.target.value)
                     }
@@ -856,11 +856,12 @@ export function CreateActivity() {
                   />
                   <span
                     id="activity-date-format"
-                    className={`${dateTimeDisplayClassName} ${
+                    onClick={() => openPicker(dateInputRef.current)}
+                    className={`${dateTimeDisplayClassName} cursor-pointer ${
                       form.date
                         ? 'text-foreground'
                         : 'text-muted-foreground/65'
-                    } pointer-events-none`}
+                    }`}
                   >
                     {dateDisplay}
                   </span>
@@ -878,9 +879,9 @@ export function CreateActivity() {
                 <div className="relative mt-2">
                   <input
                     id="activity-start-time"
+                    ref={startTimeInputRef}
                     type="time"
                     value={form.startTime}
-                    onClick={openNativePicker}
                     onChange={(event) =>
                       updateForm(
                         'startTime',
@@ -897,11 +898,14 @@ export function CreateActivity() {
                   />
                   <span
                     id="activity-start-time-format"
-                    className={`${dateTimeDisplayClassName} ${
+                    onClick={() =>
+                      openPicker(startTimeInputRef.current)
+                    }
+                    className={`${dateTimeDisplayClassName} cursor-pointer ${
                       form.startTime
                         ? 'text-foreground'
                         : 'text-muted-foreground/65'
-                    } pointer-events-none`}
+                    }`}
                   >
                     {startTimeDisplay}
                   </span>
@@ -919,9 +923,9 @@ export function CreateActivity() {
                 <div className="relative mt-2">
                   <input
                     id="activity-end-time"
+                    ref={endTimeInputRef}
                     type="time"
                     value={form.endTime}
-                    onClick={openNativePicker}
                     onChange={(event) =>
                       updateForm(
                         'endTime',
@@ -938,11 +942,14 @@ export function CreateActivity() {
                   />
                   <span
                     id="activity-end-time-format"
-                    className={`${dateTimeDisplayClassName} ${
+                    onClick={() =>
+                      openPicker(endTimeInputRef.current)
+                    }
+                    className={`${dateTimeDisplayClassName} cursor-pointer ${
                       form.endTime
                         ? 'text-foreground'
                         : 'text-muted-foreground/65'
-                    } pointer-events-none`}
+                    }`}
                   >
                     {endTimeDisplay}
                   </span>
