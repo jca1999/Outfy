@@ -1,0 +1,348 @@
+We are continuing development of Outfy.
+
+A read-only audit confirmed that the LIVE Supabase public.profiles table ALREADY contains all required profile and structured HomeLocation columns.
+
+The current problem is NOT the live schema.
+
+The problem is that the API currently receives structured `homeLocation` from the frontend but does not persist it correctly and always returns `homeLocation: null`.
+
+We need to fix this safely before implementing activities.
+
+==================================================
+STRICT SAFETY SCOPE
+==================================================
+
+You may modify ONLY:
+
+1. artifacts/api-server/src/routes/auth.ts
+
+You may create ONLY:
+
+2. supabase/migrations/006_profile_schema_reconciliation.sql
+
+You may READ but MUST NOT modify:
+
+- artifacts/outfy/src/auth/auth-api.ts
+- artifacts/outfy/src/auth/auth-context.tsx
+- artifacts/outfy/src/pages/profile-edit.tsx
+- artifacts/outfy/src/pages/home.tsx
+- artifacts/outfy/src/pages/create-activity.tsx
+- existing Supabase migrations
+
+DO NOT modify any other file.
+
+In particular DO NOT modify:
+
+- .replit
+- workflows
+- ports
+- deployment
+- frontend pages
+- LocationPicker
+- App.tsx
+- activity-taxonomy.ts
+- activities UI
+- package.json
+- dependencies
+- environment variables
+- Supabase keys/configuration
+- existing migration files
+
+DO NOT publish.
+DO NOT redeploy.
+
+==================================================
+IMPORTANT VERIFIED FACTS
+==================================================
+
+The LIVE public.profiles table already contains:
+
+- id
+- username
+- username_normalized
+- email
+- created_at
+
+- display_name
+- display_name_visibility
+- is_profile_private
+
+- home_country_code
+- home_country
+- home_region_code
+- home_region
+- home_city
+- home_latitude
+- home_longitude
+
+- notify_activities
+- notify_connections
+- notify_messages
+- notify_reminders
+
+Do NOT recreate or rename these columns in the live database.
+
+The frontend already sends the intended structured object:
+
+homeLocation:
+{
+  countryCode,
+  country,
+  regionCode,
+  region,
+  city,
+  latitude,
+  longitude
+}
+
+The frontend should NOT need changes for this task.
+
+==================================================
+GOAL 1 — PERSIST STRUCTURED HOME LOCATION
+==================================================
+
+Inspect the existing profile PATCH/update route in:
+
+artifacts/api-server/src/routes/auth.ts
+
+It currently supports legacy `homeCity` behavior but does not correctly persist `body.homeLocation`.
+
+Fix it so that when a structured `homeLocation` is supplied:
+
+1. Validate it using the EXISTING `parseHomeLocation()` helper.
+
+2. Persist the complete structured location into:
+
+home_country_code
+home_country
+home_region_code
+home_region
+home_city
+home_latitude
+home_longitude
+
+3. Map:
+
+homeLocation.countryCode -> home_country_code
+homeLocation.country -> home_country
+homeLocation.regionCode -> home_region_code
+homeLocation.region -> home_region
+homeLocation.city -> home_city
+homeLocation.latitude -> home_latitude
+homeLocation.longitude -> home_longitude
+
+Do NOT trust raw values without the existing validation.
+
+Do NOT introduce a second HomeLocation parser.
+
+==================================================
+GOAL 2 — LOCATION CLEARING
+==================================================
+
+Inspect the CURRENT request type/contract.
+
+If `homeLocation: null` is already a supported/valid input in the existing contract, make it clear ALL structured location columns together:
+
+- home_country_code = null
+- home_country = null
+- home_region_code = null
+- home_region = null
+- home_city = null
+- home_latitude = null
+- home_longitude = null
+
+Do not leave partial/stale location data.
+
+If null is NOT part of the current contract, do NOT invent a new frontend contract in this task.
+
+Report that limitation instead.
+
+==================================================
+GOAL 3 — READ STRUCTURED LOCATION
+==================================================
+
+Update the relevant profile SELECT queries so they include:
+
+- home_country_code
+- home_country
+- home_region_code
+- home_region
+- home_city
+- home_latitude
+- home_longitude
+
+Do this anywhere necessary for:
+
+- authenticated session/current user
+- profile update response
+
+Preserve every existing selected field.
+
+Do NOT remove legacy `home_city`.
+
+==================================================
+GOAL 4 — RETURN REAL HOMELOCATION
+==================================================
+
+The file already contains an existing helper similar to:
+
+profileHomeLocation(...)
+
+Reuse it.
+
+Replace the current effective:
+
+homeLocation: null
+
+behavior in the authenticated user/session payload with the correctly reconstructed HomeLocation when sufficient structured data exists.
+
+Also return the reconstructed HomeLocation after a successful profile update.
+
+Preserve:
+
+homeCity
+
+as the current legacy compatibility fallback.
+
+The public frontend user should therefore continue receiving:
+
+- homeCity
+- homeLocation
+
+Do NOT remove legacy compatibility yet.
+
+==================================================
+GOAL 5 — RECONCILE MIGRATION HISTORY
+==================================================
+
+Create:
+
+supabase/migrations/006_profile_schema_reconciliation.sql
+
+Purpose:
+
+Make a fresh Outfy environment reproduce the CURRENT live profile schema.
+
+IMPORTANT:
+The live database already contains these columns.
+
+Therefore this migration MUST be safe and idempotent where possible.
+
+Use PostgreSQL-safe additions such as:
+
+ALTER TABLE ... ADD COLUMN IF NOT EXISTS ...
+
+for the profile fields that are live but missing from checked-in migrations:
+
+- display_name
+- display_name_visibility
+- is_profile_private
+- home_city
+- notify_activities
+- notify_connections
+- notify_messages
+- notify_reminders
+
+Before choosing types/defaults, inspect the CURRENT API expectations and any available live-schema metadata.
+
+Do NOT guess incompatible defaults or constraints.
+
+Do NOT duplicate columns already represented in migration 005:
+
+- home_country_code
+- home_country
+- home_region_code
+- home_region
+- home_latitude
+- home_longitude
+
+Do NOT edit migrations 001-005.
+
+Do NOT execute this migration against Supabase during this task.
+
+The task is to add the reconciliation migration FILE to source control only.
+
+==================================================
+PRESERVE EXISTING BEHAVIOR
+==================================================
+
+Do NOT break:
+
+- username/email sign-in
+- registration
+- email verification
+- password recovery
+- password reset
+- sessions/cookies
+- display name
+- display name visibility
+- profile privacy
+- notification preferences
+- logout
+
+Do NOT modify invitation-code behavior.
+
+Do NOT change cookie/session architecture.
+
+Do NOT expose Supabase credentials to the frontend.
+
+==================================================
+SECURITY
+==================================================
+
+Never log or report:
+
+- access tokens
+- refresh tokens
+- passwords
+- secret keys
+- service-role keys
+- real user UUIDs
+- email addresses
+- usernames
+
+Keep the existing server-side Supabase architecture.
+
+==================================================
+VALIDATION
+==================================================
+
+After implementing:
+
+1. Review git diff.
+2. Confirm ONLY:
+   - artifacts/api-server/src/routes/auth.ts
+   - supabase/migrations/006_profile_schema_reconciliation.sql
+   changed/were created.
+
+3. Run the existing API TypeScript/typecheck/build validation.
+
+4. Verify logically that:
+
+Edit Profile
+-> sends structured homeLocation
+-> PATCH validates it
+-> all structured DB columns are written
+-> response reconstructs homeLocation
+-> subsequent session reload reconstructs homeLocation
+-> Home can use user.homeLocation.city
+-> Create Plan "Use my city" can use user.homeLocation.city
+
+5. Confirm legacy homeCity compatibility still exists.
+
+6. Confirm profile/privacy/notification behavior was not altered.
+
+7. Confirm NO SQL migration was executed.
+
+8. Confirm NO frontend file changed.
+
+9. Report:
+   - exact auth.ts changes
+   - exact migration contents/purpose
+   - validation result
+   - whether null-clearing was supported by the existing contract
+   - any remaining limitation
+
+DO NOT publish.
+DO NOT redeploy.
+DO NOT execute the migration.

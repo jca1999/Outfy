@@ -423,6 +423,7 @@ async function sessionPayload(user: SupabaseUser) {
 
   const homeCity =
     typeof profile?.home_city === "string" ? profile.home_city : null;
+  const homeLocation = profileHomeLocation(profile);
 
   const isProfilePrivate = profile?.is_profile_private === true;
 
@@ -437,7 +438,7 @@ async function sessionPayload(user: SupabaseUser) {
       displayName,
       displayNameVisibility,
       homeCity,
-      null,
+      homeLocation,
       isProfilePrivate,
       notificationPreferences,
     ),
@@ -499,7 +500,7 @@ async function findProfileByUserId(userId: string) {
   const { data, error } = await getSupabaseAdmin()
     .from("profiles")
     .select(
-      "id,username,display_name,display_name_visibility,home_city,is_profile_private,notify_activities,notify_connections,notify_messages,notify_reminders",
+      "id,username,display_name,display_name_visibility,home_country_code,home_country,home_region_code,home_region,home_city,home_latitude,home_longitude,is_profile_private,notify_activities,notify_connections,notify_messages,notify_reminders",
     )
     .eq("id", userId)
     .limit(1);
@@ -1073,6 +1074,10 @@ router.patch("/auth/profile", async (request, response) => {
   );
 
   const hasHomeCity = Object.prototype.hasOwnProperty.call(body, "homeCity");
+  const hasHomeLocation = Object.prototype.hasOwnProperty.call(
+    body,
+    "homeLocation",
+  );
 
   const hasProfilePrivacy = Object.prototype.hasOwnProperty.call(
     body,
@@ -1089,6 +1094,7 @@ router.patch("/auth/profile", async (request, response) => {
     !hasDisplayName &&
     !hasDisplayNameVisibility &&
     !hasHomeCity &&
+    !hasHomeLocation &&
     !hasProfilePrivacy &&
     !hasNotificationPreferences
   ) {
@@ -1100,6 +1106,12 @@ router.patch("/auth/profile", async (request, response) => {
     display_name?: string | null;
     display_name_visibility?: DisplayNameVisibility;
     home_city?: string | null;
+    home_country_code?: string | null;
+    home_country?: string | null;
+    home_region_code?: string | null;
+    home_region?: string | null;
+    home_latitude?: number | null;
+    home_longitude?: number | null;
     is_profile_private?: boolean;
     notify_activities?: boolean;
     notify_connections?: boolean;
@@ -1150,6 +1162,23 @@ router.patch("/auth/profile", async (request, response) => {
     }
 
     updates.home_city = homeCity || null;
+  }
+
+  if (hasHomeLocation) {
+    const homeLocation = parseHomeLocation(body.homeLocation);
+
+    if (homeLocation === undefined) {
+      sendError(response, 400, "La ubicación no es válida.");
+      return;
+    }
+
+    updates.home_country_code = homeLocation?.countryCode ?? null;
+    updates.home_country = homeLocation?.country ?? null;
+    updates.home_region_code = homeLocation?.regionCode ?? null;
+    updates.home_region = homeLocation?.region ?? null;
+    updates.home_city = homeLocation?.city ?? null;
+    updates.home_latitude = homeLocation?.latitude ?? null;
+    updates.home_longitude = homeLocation?.longitude ?? null;
   }
 
   if (hasProfilePrivacy) {
@@ -1303,7 +1332,7 @@ router.patch("/auth/profile", async (request, response) => {
       .update(updates)
       .eq("id", session.user.id)
       .select(
-        "id,username,display_name,display_name_visibility,home_city,is_profile_private,notify_activities,notify_connections,notify_messages,notify_reminders",
+        "id,username,display_name,display_name_visibility,home_country_code,home_country,home_region_code,home_region,home_city,home_latitude,home_longitude,is_profile_private,notify_activities,notify_connections,notify_messages,notify_reminders",
       )
       .limit(1);
 
@@ -1332,7 +1361,7 @@ router.patch("/auth/profile", async (request, response) => {
           : "shared_activity",
 
         typeof profile.home_city === "string" ? profile.home_city : null,
-        null,
+        profileHomeLocation(profile as ProfileLookup),
         profile.is_profile_private === true,
         profileNotificationPreferences(
           profile as ProfileLookup,
