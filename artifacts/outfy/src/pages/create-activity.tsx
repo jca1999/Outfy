@@ -73,11 +73,24 @@ const initialForm: ActivityForm = {
 const inputClassName =
   'w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/65 focus:border-primary focus:ring-2 focus:ring-primary/15';
 
-const dateTimeInputClassName =
-  `${inputClassName} appearance-none [&::-webkit-calendar-picker-indicator]:opacity-0`;
+const dateTimeDisplayClassName =
+  'relative z-0 flex min-h-[46px] w-full items-center rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none transition peer-focus:border-primary peer-focus:ring-2 peer-focus:ring-primary/15';
+
+const dateTimeNativeInputClassName =
+  'peer absolute inset-0 z-10 h-full w-full cursor-pointer appearance-none rounded-2xl border-0 bg-transparent p-0 text-transparent outline-none focus:outline-none [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-datetime-edit]:text-transparent [&::-webkit-datetime-edit-fields-wrapper]:text-transparent [&::-webkit-datetime-edit-text]:text-transparent [&::-webkit-datetime-edit-month-field]:text-transparent [&::-webkit-datetime-edit-day-field]:text-transparent [&::-webkit-datetime-edit-year-field]:text-transparent [&::-webkit-datetime-edit-hour-field]:text-transparent [&::-webkit-datetime-edit-minute-field]:text-transparent [&::-webkit-datetime-edit-ampm-field]:text-transparent [&::-webkit-datetime-edit-meridiem-field]:text-transparent';
 
 const choiceLabelClassName =
   'flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold transition';
+
+function formatDateInputValue(value: string) {
+  const [year, month, day] = value.split('-');
+
+  if (!year || !month || !day) {
+    return value;
+  }
+
+  return `${day}/${month}/${year}`;
+}
 
 export function CreateActivity() {
   const { t, i18n } = useTranslation('activities');
@@ -101,6 +114,13 @@ export function CreateActivity() {
   const subcategoryIds = form.category
     ? activityTaxonomy[form.category]
     : [];
+  const dateDisplay = form.date
+    ? formatDateInputValue(form.date)
+    : t('create.when.dateFormatHint');
+  const startTimeDisplay =
+    form.startTime || t('create.when.timeFormatHint');
+  const endTimeDisplay =
+    form.endTime || t('create.when.timeFormatHint');
 
   function clearError(key: string) {
     setErrors((current) => {
@@ -827,18 +847,18 @@ export function CreateActivity() {
                         ? undefined
                         : 'activity-date-format'
                     }
-                    className={`${dateTimeInputClassName} ${
-                      form.date ? '' : 'text-transparent'
-                    }`}
+                    className={dateTimeNativeInputClassName}
                   />
-                  {!form.date && (
-                    <span
-                      id="activity-date-format"
-                      className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm text-muted-foreground/65"
-                    >
-                      {t('create.when.dateFormatHint')}
-                    </span>
-                  )}
+                  <span
+                    id="activity-date-format"
+                    className={`${dateTimeDisplayClassName} ${
+                      form.date
+                        ? 'text-foreground'
+                        : 'text-muted-foreground/65'
+                    } pointer-events-none`}
+                  >
+                    {dateDisplay}
+                  </span>
                 </div>
                 {renderError('date')}
               </div>
@@ -868,18 +888,18 @@ export function CreateActivity() {
                         ? undefined
                         : 'activity-start-time-format'
                     }
-                    className={`${dateTimeInputClassName} ${
-                      form.startTime ? '' : 'text-transparent'
-                    }`}
+                    className={dateTimeNativeInputClassName}
                   />
-                  {!form.startTime && (
-                    <span
-                      id="activity-start-time-format"
-                      className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm text-muted-foreground/65"
-                    >
-                      {t('create.when.timeFormatHint')}
-                    </span>
-                  )}
+                  <span
+                    id="activity-start-time-format"
+                    className={`${dateTimeDisplayClassName} ${
+                      form.startTime
+                        ? 'text-foreground'
+                        : 'text-muted-foreground/65'
+                    } pointer-events-none`}
+                  >
+                    {startTimeDisplay}
+                  </span>
                 </div>
                 {renderError('startTime')}
               </div>
@@ -909,18 +929,18 @@ export function CreateActivity() {
                         ? undefined
                         : 'activity-end-time-format'
                     }
-                    className={`${dateTimeInputClassName} ${
-                      form.endTime ? '' : 'text-transparent'
-                    }`}
+                    className={dateTimeNativeInputClassName}
                   />
-                  {!form.endTime && (
-                    <span
-                      id="activity-end-time-format"
-                      className="pointer-events-none absolute inset-y-0 left-4 flex items-center text-sm text-muted-foreground/65"
-                    >
-                      {t('create.when.timeFormatHint')}
-                    </span>
-                  )}
+                  <span
+                    id="activity-end-time-format"
+                    className={`${dateTimeDisplayClassName} ${
+                      form.endTime
+                        ? 'text-foreground'
+                        : 'text-muted-foreground/65'
+                    } pointer-events-none`}
+                  >
+                    {endTimeDisplay}
+                  </span>
                 </div>
                 {renderError('endTime')}
               </div>

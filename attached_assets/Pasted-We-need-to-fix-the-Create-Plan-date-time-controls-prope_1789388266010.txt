@@ -1,0 +1,323 @@
+We need to fix the Create Plan date/time controls properly.
+
+The previous attempts are still broken.
+
+CURRENT BUGS:
+
+1. Native date/time text is still visible behind the custom placeholder,
+   causing overlapping gray text.
+
+2. The native picker only opens when clicking a specific part of the field.
+
+3. The required UX is:
+   clicking ANYWHERE inside the entire rounded date/time control must open
+   the native date/time picker.
+
+Do NOT patch the existing overlay approach again.
+
+Implement the date/time fields using a full-control native input overlay.
+
+==================================================
+STRICT SCOPE
+==================================================
+
+You may modify ONLY:
+
+artifacts/outfy/src/pages/create-activity.tsx
+
+DO NOT modify any other file.
+
+Do NOT modify translations, API, Supabase, database, migrations,
+authentication, Activity Detail, App.tsx, Profile, Home, Settings,
+Explore, dependencies, package.json, workflows, .replit or deployment.
+
+DO NOT publish or redeploy.
+
+==================================================
+FIELDS TO FIX
+==================================================
+
+Fix:
+
+- Date
+- Start time
+- Optional end time
+
+==================================================
+REQUIRED STRUCTURE
+==================================================
+
+For EACH date/time control:
+
+1. Keep a real semantic native:
+
+<input type="date">
+
+or:
+
+<input type="time">
+
+2. The REAL native input must cover the ENTIRE visible rounded control.
+
+Conceptually the wrapper should be:
+
+position: relative
+
+and the native input should cover it using something equivalent to:
+
+position: absolute
+inset: 0
+width: 100%
+height: 100%
+
+The native input itself must therefore receive clicks anywhere inside the
+rounded rectangle.
+
+Do NOT create a small hidden input located only over one area.
+
+==================================================
+CUSTOM VISUAL DISPLAY
+==================================================
+
+Do NOT show the browser's native rendered date/time text.
+
+The native input should remain interactive and accessible but its internal
+visual content should not conflict with our custom display.
+
+Inside the same wrapper, render a NON-INTERACTIVE visual text layer.
+
+It must use:
+
+pointer-events: none
+
+When empty show:
+
+DATE:
+dd/mm/aaaa
+
+TIME:
+hh:mm
+
+in muted placeholder styling.
+
+When a value exists, show a clean human-readable representation of the
+selected value instead.
+
+The custom display layer must be the ONLY visible date/time text.
+
+There must never be:
+
+- native gray text behind it
+- --:--
+- duplicate hh:mm
+- duplicate date format
+- overlapping values
+
+==================================================
+IMPORTANT — INPUT INTERACTION
+==================================================
+
+The full-size native input must remain the actual clickable element.
+
+Any click/tap ANYWHERE inside the rounded control must hit the native input.
+
+On a direct user click:
+
+- focus the input
+- call showPicker() synchronously when supported
+
+Example logic conceptually:
+
+if (typeof input.showPicker === "function") {
+  try {
+    input.showPicker()
+  } catch {
+    // preserve normal native behavior
+  }
+}
+
+Do NOT call showPicker asynchronously.
+
+Do NOT use setTimeout.
+
+Do NOT require the user to click a calendar/clock icon.
+
+==================================================
+NATIVE INDICATORS
+==================================================
+
+The visible browser calendar/clock indicator must not appear.
+
+Do not add replacement icons.
+
+The complete rounded field itself is the interaction target.
+
+If browser-specific CSS is necessary to visually hide the native picker
+indicator, keep it scoped only to these inputs.
+
+Do NOT disable the native picker itself.
+
+==================================================
+DO NOT USE OPACITY IN A WAY THAT BREAKS CLICKING
+==================================================
+
+The native input may be visually transparent, but it MUST:
+
+- remain enabled
+- remain focusable
+- occupy the full control
+- receive pointer events
+- retain native date/time picker behavior
+
+Do not apply:
+
+pointer-events: none
+
+to the input.
+
+Only the custom visible text layer should have:
+
+pointer-events: none
+
+==================================================
+SELECTED VALUE DISPLAY
+==================================================
+
+Use the existing React state values.
+
+Date:
+
+If empty:
+dd/mm/aaaa
+
+If selected, display it naturally as:
+
+dd/mm/yyyy
+
+without changing the underlying native input value format.
+
+Time:
+
+If empty:
+hh:mm
+
+If selected:
+display the selected HH:mm value.
+
+Do NOT change the state representation used by publishing.
+
+The real input values must remain compatible with the existing API/date
+conversion logic.
+
+==================================================
+CLICK AREA VALIDATION
+==================================================
+
+This is essential.
+
+For EACH field test clicking:
+
+- far left
+- center
+- far right
+- top area
+- bottom area
+
+ALL of these positions inside the rounded field must open/focus the same
+native picker.
+
+There must not be a special small hotspot.
+
+==================================================
+ACCESSIBILITY
+==================================================
+
+Keep the real date/time inputs semantic.
+
+Preserve:
+
+- keyboard tab navigation
+- labels
+- focus behavior
+- mobile native pickers
+
+If the input becomes visually transparent, ensure focus is still visually
+represented on the wrapper using the existing Outfy focus styling where
+possible.
+
+==================================================
+PRESERVE EXISTING FUNCTIONALITY
+==================================================
+
+Do NOT change:
+
+- date state
+- start time state
+- end time state
+- validation
+- Review Plan
+- Publish Plan
+- timezone conversion
+- API payload
+- optional end-time behavior
+
+==================================================
+EXPECTED RESULT
+==================================================
+
+The visible control should look conceptually like:
+
+Fecha
+┌────────────────────┐
+│ dd/mm/aaaa         │
+└────────────────────┘
+
+Click ANYWHERE inside that rectangle:
+-> native calendar opens
+
+After selection:
+
+┌────────────────────┐
+│ 15/09/2026         │
+└────────────────────┘
+
+For time:
+
+Hora de inicio
+┌────────────────────┐
+│ hh:mm              │
+└────────────────────┘
+
+Click ANYWHERE:
+-> native time picker opens
+
+After selection:
+
+┌────────────────────┐
+│ 18:30              │
+└────────────────────┘
+
+There must be NO duplicate native text behind these values.
+
+==================================================
+VALIDATION
+==================================================
+
+After implementing:
+
+1. Confirm ONLY create-activity.tsx changed.
+2. Run frontend typecheck/build.
+3. Confirm no overlapping native placeholder/text remains.
+4. Confirm the native calendar/clock indicators are not visible.
+5. Confirm clicking ANYWHERE in each rounded field opens/focuses the native picker.
+6. Confirm selected date displays once only.
+7. Confirm selected time displays once only.
+8. Confirm empty date shows only dd/mm/aaaa.
+9. Confirm empty time shows only hh:mm.
+10. Confirm publishing still sends exactly the same underlying values.
+
+Also report the root cause of the previous implementation and explain how
+the new full-size native input architecture fixes the click-target problem.
+
+DO NOT publish.
+DO NOT redeploy.
