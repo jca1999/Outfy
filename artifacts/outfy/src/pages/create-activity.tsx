@@ -1,6 +1,7 @@
 import {
   ArrowLeft,
   CalendarDays,
+  CheckCircle2,
   Clock3,
   MapPin,
   Users,
@@ -14,6 +15,12 @@ import { useTranslation } from 'react-i18next';
 import { useLocation } from 'wouter';
 
 import { useAuth } from '@/auth/auth-context';
+import type { HomeLocation } from '@/auth/auth-api';
+import {
+  ActivityApiError,
+  createActivity,
+  type CreateActivityRequest,
+} from '@/activities/activity-api';
 import {
   activityTaxonomy,
   type ActivityCategoryId,
@@ -77,6 +84,12 @@ export function CreateActivity() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [cityMessage, setCityMessage] = useState('');
   const [isPreview, setIsPreview] = useState(false);
+  const [savedLocation, setSavedLocation] =
+    useState<HomeLocation | null>(null);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishError, setPublishError] = useState('');
+  const [publishedActivityId, setPublishedActivityId] =
+    useState<string | null>(null);
 
   const categoryIds = Object.keys(
     activityTaxonomy,
@@ -110,6 +123,7 @@ export function CreateActivity() {
 
     if (key === 'city') {
       setCityMessage('');
+      setSavedLocation(null);
     }
   }
 
@@ -127,6 +141,7 @@ export function CreateActivity() {
     }
 
     updateForm('city', savedCity);
+    setSavedLocation(user?.homeLocation ?? null);
     setCityMessage(
       t('create.where.savedCityUsed'),
     );
@@ -235,6 +250,84 @@ export function CreateActivity() {
     }
   }
 
+  async function handlePublish() {
+    if (isPublishing) {
+      return;
+    }
+
+    setIsPublishing(true);
+    setPublishError('');
+
+    const startsAt = new Date(
+      `${form.date}T${form.startTime}:00`,
+    ).toISOString();
+    const endsAt = form.endTime
+      ? new Date(`${form.date}T${form.endTime}:00`).toISOString()
+      : undefined;
+    const timezoneName =
+      Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    const input: CreateActivityRequest = {
+      title: form.title.trim(),
+      description: form.description.trim() || undefined,
+      category: form.category,
+      subcategory: form.subcategory,
+      startsAt,
+      endsAt,
+      timezoneName,
+      locationType: form.locationType,
+      participationMode: form.participation,
+      maxParticipants:
+        form.participation === 'limited'
+          ? Number(form.maxParticipants)
+          : undefined,
+      costType: form.cost,
+      estimatedCost:
+        form.cost === 'paid'
+          ? Number(form.estimatedCost)
+          : undefined,
+      currency: form.cost === 'paid' ? form.currency : undefined,
+      ...(form.locationType === 'physical'
+        ? {
+            city: form.city.trim(),
+            meetingPoint: form.meetingPoint.trim() || undefined,
+            countryCode: savedLocation?.countryCode,
+            regionCode: savedLocation?.regionCode ?? undefined,
+            regionName: savedLocation?.region ?? undefined,
+            latitude: savedLocation?.latitude,
+            longitude: savedLocation?.longitude,
+          }
+        : {
+            onlinePlatform:
+              form.onlinePlatform.trim() || undefined,
+          }),
+    };
+
+    try {
+      const result = await createActivity(input);
+      setPublishedActivityId(result.activity.id);
+    } catch (error) {
+      setPublishError(
+        error instanceof ActivityApiError && error.status === 401
+          ? t('create.publish.authError')
+          : t('create.publish.error'),
+      );
+    } finally {
+      setIsPublishing(false);
+    }
+  }
+
+  function handleCreateAnother() {
+    setForm(initialForm);
+    setErrors({});
+    setCityMessage('');
+    setSavedLocation(null);
+    setIsPreview(false);
+    setIsPublishing(false);
+    setPublishError('');
+    setPublishedActivityId(null);
+  }
+
   function getDateLabel() {
     if (!form.date) {
       return '';
@@ -323,13 +416,47 @@ export function CreateActivity() {
     );
   }
 
+  if (publishedActivityId) {
+    return (
+      <section className="mx-auto w-full max-w-3xl rounded-[26px] border border-border bg-card p-6 text-center soft-shadow sm:p-10">
+        <CheckCircle2 className="mx-auto h-12 w-12 text-primary" />
+        <p className="mt-5 font-mono-ui text-[10px] font-bold uppercase tracking-[.18em] text-primary">
+          {t('create.success.eyebrow')}
+        </p>
+        <h1 className="mt-2 text-4xl font-bold tracking-[-.06em]">
+          {t('create.success.title')}
+        </h1>
+        <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
+          {t('create.success.message')}
+        </p>
+        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="rounded-full border border-border px-5 py-3 text-sm font-bold text-muted-foreground transition hover:bg-muted hover:text-foreground"
+          >
+            {t('create.actions.backHome')}
+          </button>
+          <button
+            type="button"
+            onClick={handleCreateAnother}
+            className="outfy-primary-action rounded-full bg-primary px-5 py-3 text-sm font-bold text-primary-foreground transition hover:opacity-90"
+          >
+            {t('create.actions.createAnother')}
+          </button>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6">
       <div>
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="mb-4 inline-flex items-center gap-2 text-xs font-bold text-muted-foreground transition hover:text-foreground"
+          disabled={isPublishing}
+          className="mb-4 inline-flex items-center gap-2 text-xs font-bold text-muted-foreground transition hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           {t('create.back')}
@@ -460,23 +587,33 @@ export function CreateActivity() {
             <button
               type="button"
               onClick={() => setIsPreview(false)}
-              className="rounded-full border border-border px-4 py-3 text-xs font-bold text-muted-foreground transition hover:bg-muted hover:text-foreground"
+              disabled={isPublishing}
+              className="rounded-full border border-border px-4 py-3 text-xs font-bold text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
             >
               {t('create.actions.backToEdit')}
             </button>
           </div>
 
           <div className="mt-6 flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
-            <p className="max-w-md text-xs leading-relaxed text-muted-foreground">
-              {t('create.preview.publishHelp')}
-            </p>
+            <div className="max-w-md">
+              {publishError && (
+                <p className="text-xs font-semibold text-destructive" role="alert">
+                  {publishError}
+                </p>
+              )}
+            </div>
 
             <button
               type="button"
-              disabled
-              className="inline-flex w-full cursor-not-allowed items-center justify-center rounded-full bg-primary/45 px-5 py-3 text-sm font-bold text-primary-foreground/75 sm:w-auto"
+              onClick={handlePublish}
+              disabled={isPublishing}
+              className="outfy-primary-action inline-flex w-full items-center justify-center rounded-full bg-primary px-5 py-3 text-sm font-bold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
             >
-              {t('create.actions.publish')}
+              {t(
+                isPublishing
+                  ? 'create.actions.publishing'
+                  : 'create.actions.publish',
+              )}
             </button>
           </div>
         </section>

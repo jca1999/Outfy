@@ -153,7 +153,10 @@
     "actions": {
       "review": "Revisar plan",
       "backToEdit": "Volver a editar",
-      "publish": "Publicar plan"
+      "publish": "Publicar plan",
+      "publishing": "Publicando...",
+      "backHome": "Volver al inicio",
+      "createAnother": "Crear otro plan"
     },
     "preview": {
       "eyebrow": "VISTA PREVIA",
@@ -169,8 +172,16 @@
       "participantsLimited": "Hasta {{count}} personas",
       "participantsUnlimited": "Sin límite de personas",
       "cost": "Coste",
-      "onlineNoPlatform": "Online, plataforma por decidir",
-      "publishHelp": "La publicación todavía no está disponible."
+      "onlineNoPlatform": "Online, plataforma por decidir"
+    },
+    "publish": {
+      "error": "No hemos podido publicar tu plan. Inténtalo de nuevo.",
+      "authError": "Tu sesión ha caducado. Inicia sesión de nuevo para publicar el plan."
+    },
+    "success": {
+      "eyebrow": "PUBLICADO",
+      "title": "Plan publicado",
+      "message": "Tu plan ya está en Outfy."
     },
     "validation": {
       "title": "Escribe un título para el plan.",

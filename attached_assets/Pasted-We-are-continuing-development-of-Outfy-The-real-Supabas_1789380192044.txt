@@ -1,0 +1,724 @@
+We are continuing development of Outfy.
+
+The real Supabase database foundation is now live.
+
+The following migrations have already been applied successfully:
+
+- 007_activities
+- 008_activity_security_hardening
+
+The live database now contains:
+
+- public.activities
+- public.activity_members
+- RLS policies
+- automatic organizer membership trigger
+- automatic updated_at trigger
+
+The next task is to make the existing "Publish plan" button create a REAL activity.
+
+==================================================
+MODE / SAFETY
+==================================================
+
+This is a production-data feature.
+
+STRICT SCOPE.
+
+You may CREATE:
+
+1. artifacts/api-server/src/routes/activities.ts
+2. artifacts/outfy/src/activities/activity-api.ts
+
+You may MODIFY:
+
+3. artifacts/api-server/src/routes/index.ts
+4. artifacts/outfy/src/pages/create-activity.tsx
+5. artifacts/outfy/src/i18n/locales/es/activities.json
+6. artifacts/outfy/src/i18n/locales/en/activities.json
+
+You may ALSO modify:
+
+7. artifacts/api-server/src/routes/auth.ts
+
+ONLY if necessary to expose/reuse the EXISTING authenticated-session helper.
+
+If the existing current-session helper can simply be exported safely,
+prefer the smallest possible change.
+
+DO NOT rewrite authentication.
+
+If a clean shared-session extraction is absolutely necessary, STOP and
+report the exact proposed files/change instead of performing a broad
+auth refactor.
+
+DO NOT modify any other file.
+
+==================================================
+DO NOT TOUCH
+==================================================
+
+Do NOT modify:
+
+- Supabase migrations
+- Supabase schema
+- RLS
+- database triggers
+- activity-taxonomy.ts
+- LocationPicker
+- Profile
+- Edit Profile
+- Settings
+- Home
+- Explore
+- Matches
+- Chats
+- App.tsx
+- OutfyShell
+- .replit
+- workflows
+- ports
+- deployment configuration
+- package.json
+- dependencies
+- environment variables
+
+DO NOT execute SQL.
+
+DO NOT publish or redeploy.
+
+==================================================
+CURRENT ARCHITECTURE
+==================================================
+
+Preserve the existing Outfy architecture:
+
+FRONTEND
+-> /api
+-> API server
+-> server-side Supabase client
+
+The frontend must NOT receive:
+
+- Supabase secret/service-role key
+- Supabase admin client
+- access to privileged database operations
+
+Authentication currently uses httpOnly cookies.
+
+The new activity endpoint must reuse the CURRENT server-side
+authenticated-session mechanism.
+
+Do NOT introduce a frontend Supabase client.
+
+==================================================
+GOAL
+==================================================
+
+Implement:
+
+Create Plan
+-> Review Plan
+-> Publish Plan
+-> POST /api/activities
+-> authenticated server validation
+-> insert into public.activities
+-> database trigger automatically creates organizer membership
+-> API returns new activity ID
+-> frontend shows a successful published state
+
+Do NOT manually insert the organizer membership from application code.
+
+The existing database trigger handles it.
+
+==================================================
+BACKEND ROUTE
+==================================================
+
+Create:
+
+artifacts/api-server/src/routes/activities.ts
+
+Implement:
+
+POST /api/activities
+
+Use the same Express/router patterns already used by the API server.
+
+Register the router through:
+
+artifacts/api-server/src/routes/index.ts
+
+Follow current API error/response conventions wherever possible.
+
+==================================================
+AUTHENTICATION
+==================================================
+
+Publishing requires an authenticated Outfy session.
+
+Use the EXISTING authenticated-session logic.
+
+The activity creator MUST be derived from the authenticated server session.
+
+NEVER trust or accept a browser-provided creator_id.
+
+The request body must NOT need creatorId.
+
+The server should perform:
+
+creator_id = authenticatedUser.id
+
+If there is no valid authenticated session:
+
+return the same appropriate unauthorized status/convention used elsewhere
+in the API.
+
+Do not change cookie/session behavior.
+
+==================================================
+REQUEST CONTRACT
+==================================================
+
+Create a clear request type for publishing an activity.
+
+The frontend should send canonical values conceptually equivalent to:
+
+{
+  title,
+  description,
+
+  category,
+  subcategory,
+
+  startsAt,
+  endsAt,
+  timezoneName,
+
+  locationType,
+
+  countryCode?,
+  regionCode?,
+  regionName?,
+  city?,
+  latitude?,
+  longitude?,
+  meetingPoint?,
+  onlinePlatform?,
+
+  participationMode,
+  maxParticipants?,
+
+  costType,
+  estimatedCost?,
+  currency?
+}
+
+Use camelCase in the API contract.
+
+Map to the existing snake_case database columns on the server.
+
+Do NOT send:
+
+- creatorId
+- status
+- createdAt
+- updatedAt
+- role
+
+The server/database owns those values.
+
+==================================================
+DATE / TIME
+==================================================
+
+The existing form has:
+
+- date
+- start time
+- optional end time
+
+For this first real implementation, use the browser's current IANA
+timezone:
+
+Intl.DateTimeFormat().resolvedOptions().timeZone
+
+Build valid ISO timestamps from the selected local form date/time.
+
+Send:
+
+startsAt
+endsAt
+timezoneName
+
+to the server.
+
+The server must validate that:
+
+- startsAt is a valid date/time
+- timezoneName is non-empty
+- endsAt, when present, is valid and later than startsAt
+
+Do NOT install a date library.
+
+Do NOT add timezone dependencies.
+
+IMPORTANT:
+
+This first version may interpret the activity time using the creator's
+browser timezone.
+
+Do not attempt to infer the timezone from a manually entered city yet.
+
+==================================================
+SERVER VALIDATION
+==================================================
+
+Do not rely solely on frontend validation.
+
+Validate the incoming request on the API server before inserting.
+
+Match the LIVE database rules.
+
+TITLE
+
+- required string
+- trim it
+- 1 to 120 characters
+
+DESCRIPTION
+
+- optional
+- maximum 5000 characters
+
+CATEGORY / SUBCATEGORY
+
+- required non-empty strings
+- store the stable taxonomy IDs received from the UI
+- do not store translated labels
+
+Do NOT duplicate the full taxonomy in the API for this task.
+
+LOCATION TYPE
+
+Allowed:
+
+- physical
+- online
+
+PHYSICAL
+
+Requires:
+- non-empty city
+
+May contain:
+- countryCode
+- regionCode
+- regionName
+- latitude
+- longitude
+- meetingPoint
+
+ONLINE
+
+May contain:
+- onlinePlatform
+
+Do not invent physical coordinates.
+
+If coordinates are supplied:
+
+- both latitude and longitude must exist
+- latitude -90..90
+- longitude -180..180
+
+If countryCode is supplied:
+
+- normalize/validate as two uppercase letters
+
+PARTICIPATION
+
+Allowed:
+
+- limited
+- unlimited
+
+Limited:
+- maxParticipants integer >= 2
+
+Unlimited:
+- maxParticipants must be stored as null
+
+Remember:
+maxParticipants includes the organizer.
+
+COST
+
+Allowed:
+
+- free
+- paid
+- each_own
+
+Free:
+- estimatedCost -> null
+- currency -> null
+
+Paid:
+- estimatedCost > 0
+- currency required
+- normalize currency uppercase
+
+Each own:
+- estimatedCost and currency may be null
+
+Do not implement payments.
+
+==================================================
+DATABASE INSERT
+==================================================
+
+Use the existing server-side Supabase architecture.
+
+Insert ONE row into:
+
+public.activities
+
+using the authenticated user ID as creator_id.
+
+Set:
+
+status = 'active'
+
+either explicitly on the trusted server or allow the database default.
+
+Do NOT perform a second insert into activity_members.
+
+The database trigger:
+
+add_activity_organizer
+
+already creates:
+
+activity_id = new activity ID
+user_id = creator
+role = organizer
+
+The API should return the newly created activity ID.
+
+Suggested response shape:
+
+{
+  activity: {
+    id: "..."
+  }
+}
+
+Do not return unnecessary internal database fields.
+
+==================================================
+DATABASE ERRORS
+==================================================
+
+Handle Supabase/database errors safely.
+
+Do NOT expose:
+
+- raw SQL
+- database internals
+- service credentials
+- tokens
+- stack traces
+
+Log errors according to existing server conventions.
+
+Return a friendly API error.
+
+Where sensible distinguish:
+
+- invalid input -> 400
+- unauthenticated -> 401
+- unexpected creation/database failure -> 500
+
+Do not fake success.
+
+==================================================
+FRONTEND API
+==================================================
+
+Create:
+
+artifacts/outfy/src/activities/activity-api.ts
+
+Follow the style of the existing auth-api.ts.
+
+Use:
+
+credentials: 'include'
+
+Call:
+
+POST /api/activities
+
+Create proper TypeScript request/response types.
+
+Do not put Supabase code in this module.
+
+==================================================
+CREATE PLAN — REAL PUBLISH
+==================================================
+
+Modify:
+
+artifacts/outfy/src/pages/create-activity.tsx
+
+Preserve the current:
+
+- form
+- local state
+- validation
+- taxonomy
+- Review Plan screen
+- Back to edit
+- Use my city
+- date/time picker behavior
+- physical/online behavior
+- participant behavior
+- cost behavior
+
+The existing disabled:
+
+"Publicar plan" / "Publish plan"
+
+button must become functional.
+
+Remove the temporary message:
+
+"La publicación todavía no está disponible."
+"Publishing is not available yet."
+
+==================================================
+PUBLISH FLOW
+==================================================
+
+When the user presses Publish Plan:
+
+1. Prevent double submission.
+
+2. Show loading state.
+
+Spanish:
+"Publicando..."
+
+English:
+"Publishing..."
+
+3. Build the API request from the already-reviewed form values.
+
+4. Call the activity API.
+
+5. If creation fails:
+   - remain on the Review screen
+   - preserve all entered data
+   - show a friendly translated error
+   - allow retry
+
+6. If creation succeeds:
+   - save the returned activity ID in component state
+   - show a publication-success view
+
+Do NOT automatically submit twice.
+
+==================================================
+SUCCESS VIEW
+==================================================
+
+For this task, DO NOT create /activities/:id yet.
+
+After successful publication, replace the review content with a clean
+success state inside the Create Plan page.
+
+Conceptually:
+
+✓ Plan publicado
+
+"Tu plan ya está en Outfy."
+
+Buttons/actions:
+
+- "Volver al inicio" / "Back to home"
+- "Crear otro plan" / "Create another plan"
+
+Back to home:
+navigate to "/"
+
+Create another plan:
+reset the form to its initial state and return to the edit/form step.
+
+Do NOT add Share yet.
+
+Do NOT add View Plan yet.
+
+Those will be implemented once the real activity-detail route exists.
+
+Do NOT expose the raw activity UUID in the visible UI.
+
+==================================================
+OPTIONAL STRUCTURED LOCATION DATA
+==================================================
+
+The current physical form primarily uses a manually editable City field.
+
+Do NOT redesign location in this task.
+
+If the existing "Use my city" flow already gives safe access to the
+user's structured HomeLocation values, it is acceptable to retain those
+associated values in local state and send:
+
+- countryCode
+- regionCode
+- regionName
+- latitude
+- longitude
+
+when "Use my city" is used.
+
+However:
+
+- do NOT persist exact device GPS coordinates
+- do NOT add GPS to Create Plan
+- do NOT invent coordinates for manually entered cities
+- do NOT make structured metadata required
+
+A manually entered physical city must still be publishable with only city.
+
+==================================================
+INTERNATIONALIZATION
+==================================================
+
+Use ONLY the existing:
+
+activities
+
+namespace for all new Create Plan publication messages.
+
+Modify:
+
+es/activities.json
+en/activities.json
+
+Keep both structures equivalent.
+
+Add only the keys needed for:
+
+- Publishing
+- Publication success
+- Publication failure
+- Back to home
+- Create another plan
+- Session/auth failure if shown to user
+
+Do not remove taxonomy translations.
+
+Do not hardcode visible ES/EN strings in the React page.
+
+==================================================
+DO NOT IMPLEMENT YET
+==================================================
+
+Do NOT implement:
+
+- activity detail page
+- GET activity endpoint
+- Explore activity queries
+- joining
+- leaving
+- capacity-safe join RPC
+- activity editing
+- activity cancellation
+- sharing
+- chat
+- notifications
+- maps
+- activity photos
+- tags
+- private activities
+- approvals
+- invitations
+- recurring activities
+- payments
+
+==================================================
+IMPORTANT SECURITY CHECKS
+==================================================
+
+Confirm that:
+
+- request body cannot choose creator_id
+- request body cannot choose organizer role
+- request body cannot choose arbitrary activity status
+- frontend has no Supabase admin credentials
+- organizer membership is created only by the existing database trigger
+- session authentication is verified server-side
+- SQL/database errors are not exposed directly to users
+
+==================================================
+VALIDATION
+==================================================
+
+After implementation:
+
+1. Review git diff.
+
+2. Confirm ONLY the allowed files changed/created.
+
+3. Run existing API TypeScript/typecheck/build validation.
+
+4. Run existing frontend TypeScript/typecheck/build validation.
+
+5. Confirm migrations 007 and 008 were NOT changed.
+
+6. Confirm no SQL was executed.
+
+7. Confirm no Supabase schema/RLS changes occurred.
+
+8. Confirm POST /api/activities:
+   - requires authentication
+   - derives creator from session
+   - validates input
+   - inserts one activity
+   - returns its ID
+
+9. Confirm Create Plan:
+   - Review still works
+   - Publish is enabled
+   - shows loading state
+   - prevents duplicate submission
+   - handles errors without losing form data
+   - shows success state after creation
+
+10. Confirm no activity detail/share/join functionality was added.
+
+==================================================
+REPORT BACK
+==================================================
+
+Report:
+
+1. Exact files created.
+2. Exact files modified.
+3. API endpoint added.
+4. How authentication is reused.
+5. Request/response contract.
+6. Server validation implemented.
+7. How date/time/timezone are converted.
+8. How creator_id is protected.
+9. How organizer membership is created.
+10. Frontend publish behavior.
+11. Success/error behavior.
+12. API validation/build result.
+13. Frontend validation/build result.
+14. Any limitation or issue found.
+
+DO NOT publish.
+DO NOT redeploy.

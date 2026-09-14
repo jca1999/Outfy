@@ -153,7 +153,10 @@
     "actions": {
       "review": "Review plan",
       "backToEdit": "Back to edit",
-      "publish": "Publish plan"
+      "publish": "Publish plan",
+      "publishing": "Publishing...",
+      "backHome": "Back to home",
+      "createAnother": "Create another plan"
     },
     "preview": {
       "eyebrow": "PREVIEW",
@@ -169,8 +172,16 @@
       "participantsLimited": "Up to {{count}} people",
       "participantsUnlimited": "No limit on people",
       "cost": "Cost",
-      "onlineNoPlatform": "Online, platform to be decided",
-      "publishHelp": "Publishing is not available yet."
+      "onlineNoPlatform": "Online, platform to be decided"
+    },
+    "publish": {
+      "error": "We couldn't publish your plan. Please try again.",
+      "authError": "Your session has expired. Sign in again to publish your plan."
+    },
+    "success": {
+      "eyebrow": "PUBLISHED",
+      "title": "Plan published",
+      "message": "Your plan is now on Outfy."
     },
     "validation": {
       "title": "Add a title for the plan.",

@@ -463,7 +463,7 @@ async function refreshSession(request: Request, response: Response) {
   return result.data;
 }
 
-async function currentSession(request: Request, response: Response) {
+export async function currentSession(request: Request, response: Response) {
   const accessToken = request.cookies?.[ACCESS_COOKIE];
   if (isNonEmptyString(accessToken)) {
     const result = await supabaseRequest<SupabaseUser>("/auth/v1/user", {
