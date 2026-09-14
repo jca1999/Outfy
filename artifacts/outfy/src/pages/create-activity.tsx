@@ -407,17 +407,9 @@ export function CreateActivity() {
     }
 
     if (!form.startTime) {
-      nextErrors.startTime = t(
-        dateText.trim() && false
-          ? 'create.validation.startTime'
-          : 'create.validation.startTime',
-      );
-    }
-
-    if (!form.startTime && startTimeText.trim()) {
-      nextErrors.startTime = t(
-        'create.validation.invalidTime',
-      );
+      nextErrors.startTime = startTimeText.trim()
+        ? t('create.validation.invalidTime')
+        : t('create.validation.startTime');
     }
 
     if (endTimeText.trim() && !form.endTime) {
@@ -1057,6 +1049,10 @@ export function CreateActivity() {
                       )}
                       inputMode="numeric"
                       aria-invalid={Boolean(errors.date)}
+                      aria-describedby={
+                        errors.date ? 'date-error' : undefined
+                      }
+                      onBlur={handleDateBlur}
                       className={dateTimeTextInputClassName}
                     />
                     <span className="relative mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:text-foreground focus-within:text-primary focus-within:ring-2 focus-within:ring-primary/30">
@@ -1103,6 +1099,12 @@ export function CreateActivity() {
                       )}
                       inputMode="numeric"
                       aria-invalid={Boolean(errors.startTime)}
+                      aria-describedby={
+                        errors.startTime
+                          ? 'startTime-error'
+                          : undefined
+                      }
+                      onBlur={handleStartTimeBlur}
                       className={dateTimeTextInputClassName}
                     />
                     <span className="relative mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:text-foreground focus-within:text-primary focus-within:ring-2 focus-within:ring-primary/30">
@@ -1149,6 +1151,12 @@ export function CreateActivity() {
                       )}
                       inputMode="numeric"
                       aria-invalid={Boolean(errors.endTime)}
+                      aria-describedby={
+                        errors.endTime
+                          ? 'endTime-error'
+                          : undefined
+                      }
+                      onBlur={handleEndTimeBlur}
                       className={dateTimeTextInputClassName}
                     />
                     <span className="relative mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:text-foreground focus-within:text-primary focus-within:ring-2 focus-within:ring-primary/30">
