@@ -1,0 +1,316 @@
+We are continuing development of Outfy.
+
+We are starting PROFILE AVATARS.
+
+This is STEP 1 ONLY:
+
+Prepare the database/storage foundation for user profile avatars.
+
+DO NOT implement the UI, image selection, cropping, compression or uploading
+yet.
+
+Those will be implemented in Step 2 after this migration is reviewed/applied.
+
+==================================================
+CURRENT ARCHITECTURE
+==================================================
+
+Outfy uses:
+
+- Supabase Auth
+- public.profiles
+- privileged server-side Supabase access
+- frontend -> Outfy API -> Supabase
+
+The frontend must NOT receive service-role credentials.
+
+Profile avatars must follow the same architecture.
+
+==================================================
+DESIGN DECISIONS
+==================================================
+
+Use a Supabase Storage bucket named:
+
+avatars
+
+The bucket MUST be:
+
+PRIVATE
+
+Do NOT make it public.
+
+Reason:
+
+Avatars may later be affected by Outfy profile/privacy rules.
+
+The future application will obtain avatar access through trusted server logic /
+signed URLs rather than exposing a public bucket.
+
+==================================================
+FINAL STORED IMAGE FORMAT
+==================================================
+
+In the next implementation phase, the browser will:
+
+- accept JPG/JPEG/PNG/WebP source images
+- crop the image
+- resize to 512x512
+- encode to WebP
+- upload only the processed WebP result
+
+Therefore the Storage bucket should accept only:
+
+image/webp
+
+The original multi-megabyte source image must NEVER be persisted in Supabase.
+
+==================================================
+STORAGE FILE SIZE
+==================================================
+
+Set a maximum object size of:
+
+1 MiB
+1048576 bytes
+
+This is intentionally generous for a processed 512x512 WebP avatar.
+
+Do NOT allow unrestricted uploads.
+
+==================================================
+OBJECT PATH CONVENTION
+==================================================
+
+The future canonical object path will be:
+
+{authenticated-user-id}/avatar.webp
+
+Example conceptually:
+
+550e8400-e29b-41d4-a716-446655440000/avatar.webp
+
+One user should have one canonical avatar object.
+
+When changed later, the existing object can be overwritten instead of
+accumulating:
+
+avatar1.webp
+avatar2.webp
+avatar3.webp
+
+Do NOT implement upload logic in this task.
+
+==================================================
+PROFILE SCHEMA
+==================================================
+
+Add to:
+
+public.profiles
+
+a nullable column:
+
+avatar_path text
+
+Default:
+
+NULL
+
+Meaning:
+
+NULL
+-> user has no custom avatar
+
+non-null
+-> Storage object path for the user's avatar
+
+Do NOT store:
+
+- image binary
+- base64
+- signed URL
+- public URL
+
+in public.profiles.
+
+Only store the stable Storage object path.
+
+==================================================
+MIGRATION
+==================================================
+
+Create ONE new migration following the project's existing migration numbering
+and naming conventions.
+
+The previous activity migrations already include:
+
+007
+008
+009
+
+Therefore this should normally become something equivalent to:
+
+010_profile_avatar_storage.sql
+
+but inspect the migrations directory first and use the correct next number.
+
+The migration must:
+
+1. add profiles.avatar_path if it does not already exist
+
+2. create/configure the Supabase Storage bucket:
+
+   id/name:
+   avatars
+
+   public:
+   false
+
+   file_size_limit:
+   1048576
+
+   allowed_mime_types:
+   image/webp
+
+Use an idempotent/safe migration style where appropriate.
+
+==================================================
+IMPORTANT STORAGE SECURITY
+==================================================
+
+DO NOT create anonymous upload policies.
+
+DO NOT create authenticated-client upload policies.
+
+DO NOT create public-read policies.
+
+For this architecture, avatar Storage operations will later be performed
+through the trusted Outfy server using its privileged Supabase client.
+
+Therefore ordinary browser clients do NOT need direct INSERT/UPDATE/DELETE
+permissions on storage.objects.
+
+The service-role backend can perform the required Storage operations.
+
+Do not weaken Storage RLS just to make browser uploads easier.
+
+==================================================
+DO NOT IMPLEMENT YET
+==================================================
+
+DO NOT implement:
+
+- avatar upload endpoint
+- avatar delete endpoint
+- avatar signed URL endpoint
+- avatar UI
+- image picker
+- cropper
+- image compression
+- Canvas image processing
+- profile avatar rendering
+- participant avatars
+- chat avatars
+- organizer avatars
+
+This task is ONLY the persistence/storage foundation.
+
+==================================================
+DO NOT MODIFY
+==================================================
+
+Do NOT modify:
+
+- React pages
+- Profile UI
+- Settings
+- Activity Detail
+- Explore
+- Create Plan
+- activity API
+- auth flow
+- auth session behavior
+- existing RLS policies
+- existing RPCs
+- existing migrations
+- package.json
+- dependencies
+- workflows
+- .replit
+- deployment
+- ports
+
+Do NOT publish or redeploy.
+
+==================================================
+IMPORTANT MIGRATION SAFETY
+==================================================
+
+Do NOT execute the migration against Supabase.
+
+Only CREATE the migration file in the repository.
+
+We will review it before applying it to the live Outfy Supabase project.
+
+Do NOT manually alter the live database.
+
+==================================================
+EXPECTED RESULT
+==================================================
+
+After this migration is eventually applied:
+
+public.profiles will contain:
+
+avatar_path text nullable
+
+Supabase Storage will contain:
+
+avatars
+
+with:
+
+private bucket
+1 MiB maximum file size
+image/webp only
+
+No direct browser Storage access will have been introduced.
+
+==================================================
+VALIDATION
+==================================================
+
+Before finishing:
+
+1. Inspect the current migrations directory.
+2. Confirm the exact next migration number.
+3. Confirm no previous migration was modified.
+4. Confirm only ONE new migration file was created.
+5. Confirm profiles.avatar_path is nullable.
+6. Confirm avatars bucket is private.
+7. Confirm file size limit is 1048576 bytes.
+8. Confirm allowed MIME type is only image/webp.
+9. Confirm no public Storage policy was added.
+10. Confirm no authenticated browser upload policy was added.
+11. Confirm no SQL was executed.
+12. Confirm no application code changed.
+
+==================================================
+REPORT BACK
+==================================================
+
+Report:
+
+1. Exact migration filename created.
+2. Full migration purpose.
+3. profiles column added.
+4. Bucket configuration.
+5. Storage security behavior.
+6. Exact files changed.
+7. Explicit confirmation that NO SQL was executed.
+8. Any limitation or compatibility issue discovered.
+
+DO NOT apply the migration.
+DO NOT publish.
+DO NOT redeploy.
