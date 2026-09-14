@@ -1,0 +1,215 @@
+We are continuing development of Outfy.
+
+The Create Plan UI is now working correctly with local state and a Review Plan step.
+
+The next phase will be REAL activity persistence in Supabase.
+
+This is a READ-ONLY DATABASE PLANNING TASK.
+
+DO NOT modify, create, delete, rename or move any file.
+DO NOT execute SQL.
+DO NOT create or alter database tables.
+DO NOT run migrations.
+DO NOT change Supabase configuration.
+DO NOT publish or redeploy.
+DO NOT install dependencies.
+
+==================================================
+GOAL
+==================================================
+
+Inspect the CURRENT Outfy project and determine exactly how Supabase, authentication, profiles and database access are currently implemented.
+
+We need this information before safely creating the activity system.
+
+Future functionality will be:
+
+Create Plan
+-> Review Plan
+-> Publish Plan
+-> save activity in Supabase
+-> navigate to the real activity page
+-> later allow other users to join it
+
+Do NOT implement this yet.
+
+==================================================
+INSPECT
+==================================================
+
+Find and inspect:
+
+- Supabase client/configuration
+- authentication implementation
+- current users/profiles database usage
+- auth-api.ts
+- auth-context.tsx
+- existing Supabase SQL/migrations/schema files
+- existing RLS policies if they are represented in the project
+- current user ID format/type
+- how database errors are currently handled
+- Create Plan page
+- activity-taxonomy.ts
+- HomeLocation structure
+
+You may READ any files necessary.
+
+DO NOT CHANGE ANYTHING.
+
+==================================================
+ACTIVITY MODEL TO PLAN
+==================================================
+
+We want a flexible activity model that can represent:
+
+- football
+- cinema
+- concerts
+- hiking
+- going for a walk
+- drinks
+- restaurants
+- gaming
+- online activities
+- travel
+- other social plans
+
+Common activity data should include conceptually:
+
+IDENTITY
+- id
+- creator_id
+- title
+- description
+
+CLASSIFICATION
+- category
+- subcategory
+
+TIME
+- starts_at
+- ends_at optional
+
+LOCATION TYPE
+- physical
+- online
+
+PHYSICAL LOCATION
+- country_code where appropriate
+- region_code where appropriate
+- region_name where appropriate
+- city
+- city latitude/longitude from known location data when eventually available
+- meeting point optional
+
+ONLINE
+- online platform/location optional
+
+PARTICIPANTS
+- optional maximum participant count
+
+COST
+- free
+- paid
+- each_own
+- estimated cost optional
+- currency optional
+
+STATUS
+- active
+- completed
+- cancelled
+
+TECHNICAL
+- created_at
+- updated_at
+
+Do NOT assume that every plan is physical.
+
+Do NOT assume every plan has a participant limit.
+
+Do NOT store translated category names as canonical database IDs.
+
+==================================================
+PARTICIPANTS
+==================================================
+
+We will also need a separate activity membership model conceptually:
+
+activity_members
+
+with relationships such as:
+
+- activity_id
+- user_id
+- role
+- joined_at
+
+The activity creator should eventually be represented as the organizer.
+
+Do NOT implement this yet.
+
+==================================================
+SECURITY / RLS PLANNING
+==================================================
+
+Review the existing security architecture and recommend appropriate future RLS behavior.
+
+At minimum consider:
+
+ACTIVITIES
+- authenticated users can create activities as themselves
+- users cannot create activities pretending to be another creator
+- activity creators can update their own activities
+- activity creators can cancel their own activities
+- normal users cannot arbitrarily edit other users' activities
+- active public activities will eventually need to be readable by authenticated users
+
+ACTIVITY MEMBERS
+- authenticated users can join as themselves
+- users cannot add another user arbitrarily
+- users can leave activities themselves
+- organizers will eventually need controlled participant-management permissions
+
+Do not create these policies yet.
+
+==================================================
+IMPORTANT DESIGN QUESTIONS
+==================================================
+
+Based on the CURRENT codebase, report whether we should:
+
+1. use UUID for activity IDs
+2. reference auth.users directly or an existing profiles/users table
+3. use timestamptz for activity dates
+4. use nullable max_participants for unlimited activities
+5. store category/subcategory as stable text IDs
+6. store physical/online as an enum/check constraint or text
+7. store cost_type as enum/check constraint or text
+8. create activity_members at the same time as activities
+9. automatically insert the creator into activity_members when publishing
+10. use a database trigger or application logic for that organizer membership
+
+Do not make assumptions when the current code can answer the question.
+
+==================================================
+REPORT BACK
+==================================================
+
+Provide:
+
+1. Exact files currently responsible for Supabase/database access.
+2. Existing database/migration structure.
+3. Current user/profile relationship and ID type.
+4. Whether RLS is currently being used and how.
+5. Recommended exact schema for:
+   - activities
+   - activity_members
+6. Recommended constraints and foreign keys.
+7. Recommended initial RLS policies.
+8. Whether publishing an activity can be implemented using the existing Supabase client without backend changes.
+9. Exact files that would need to be modified or created in the NEXT implementation task.
+10. Any risks or coupling that require special care.
+11. Confirmation that NO files or database objects were changed.
+
+This task is inspection and planning only.
