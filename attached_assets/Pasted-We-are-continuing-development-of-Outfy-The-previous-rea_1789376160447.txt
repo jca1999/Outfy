@@ -1,0 +1,143 @@
+We are continuing development of Outfy.
+
+The previous read-only activity persistence audit found a possible mismatch between the checked-in Supabase migrations and the CURRENT live Supabase profile schema.
+
+Before implementing activities, we need to determine the real current state.
+
+THIS IS A STRICT READ-ONLY AUDIT.
+
+DO NOT modify any source file.
+DO NOT create or modify migrations.
+DO NOT execute INSERT, UPDATE, DELETE, ALTER, CREATE, DROP, TRUNCATE or any write operation.
+DO NOT modify Supabase configuration.
+DO NOT publish or redeploy.
+DO NOT change workflows.
+DO NOT install dependencies.
+
+==================================================
+GOAL
+==================================================
+
+Verify whether the CURRENT live Supabase database schema matches the profile fields currently used by the Outfy application.
+
+The previous inspection found that the application code references fields that are not visibly created by the checked-in migrations.
+
+We need to know whether:
+
+A. the live Supabase database already contains those columns and the repository migrations are simply incomplete,
+
+or
+
+B. the live database is also missing some of them and the application is currently relying on legacy/fallback behavior.
+
+==================================================
+FIELDS TO VERIFY
+==================================================
+
+Inspect the live public.profiles table metadata in READ-ONLY mode.
+
+Verify whether these columns actually exist:
+
+- id
+- username
+- username_normalized
+- email
+- created_at
+
+- display_name
+- display_name_visibility
+- is_profile_private
+
+- home_country_code
+- home_country
+- home_region_code
+- home_region
+- home_city
+- home_latitude
+- home_longitude
+
+- notify_activities
+- notify_connections
+- notify_messages
+- notify_reminders
+
+Do not expose actual user data.
+
+We only need schema/column information.
+
+==================================================
+HOME LOCATION WIRING
+==================================================
+
+Also READ the current code and report the exact current behavior for:
+
+1. profile PATCH/update:
+   - Does it accept structured `homeLocation`?
+   - Which profile columns does it write?
+
+2. session/current-user response:
+   - Does it reconstruct and return structured `homeLocation`?
+   - Or does it currently return null?
+   - Does it return a legacy `homeCity` fallback?
+
+3. frontend:
+   - What does Edit Profile send when location is saved?
+   - What does Home use to display the saved city?
+   - What does Create Plan's "Use my city" action use?
+
+Do not change any of this yet.
+
+==================================================
+MIGRATION AUDIT
+==================================================
+
+Compare the LIVE profile columns with:
+
+supabase/migrations/
+
+Report:
+
+- columns present live but missing from checked-in migrations
+- columns present in migrations but unused by current code
+- any naming mismatch
+- any legacy field still being used
+
+Do not create a migration.
+
+==================================================
+SECURITY
+==================================================
+
+Do not print:
+
+- email addresses
+- usernames
+- UUIDs belonging to real users
+- tokens
+- Supabase keys
+- secrets
+- environment variable values
+
+Only report schema names, code paths and behavior.
+
+==================================================
+REPORT BACK
+==================================================
+
+Provide:
+
+1. Exact live columns found in public.profiles relevant to this audit.
+2. Exact fields referenced by the current API.
+3. Exact fields sent by the current frontend.
+4. Exact fields returned in the current authenticated session.
+5. Whether structured HomeLocation is currently persisted correctly.
+6. Whether structured HomeLocation survives:
+   Edit Profile -> save -> reload/session -> Home/Create Plan
+7. Every discrepancy between live Supabase and checked-in migrations.
+8. The MINIMUM safe correction you recommend before implementing activities.
+9. Exact files/migration that would need to change in that correction.
+10. Confirmation that no files and no database objects were modified.
+
+If you cannot inspect the live schema safely in read-only mode, STOP and say exactly what prevents it.
+
+DO NOT make corrections yet.
