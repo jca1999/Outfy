@@ -53,6 +53,8 @@ type ValidatedActivity = {
 };
 
 const router: IRouter = Router();
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const SERVER_OWNED_FIELDS = new Set([
   "creatorId",
   "creator_id",
@@ -295,6 +297,118 @@ router.post("/activities", async (request, response) => {
       "Unable to create activity",
     );
     response.status(500).json({ error: "The activity could not be published." });
+  }
+});
+
+router.get("/activities/:id", async (request, response) => {
+  let session;
+  try {
+    session = await currentSession(request, response);
+  } catch (error) {
+    request.log.error({ err: error }, "Unable to authenticate activity viewer");
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  if (!session) {
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  const activityId = request.params.id;
+  if (!UUID_PATTERN.test(activityId)) {
+    response.status(404).json({ error: "Activity not found." });
+    return;
+  }
+
+  try {
+    const { data: activity, error: activityError } = await getSupabaseAdmin()
+      .from("activities")
+      .select(
+        "id,creator_id,title,description,category,subcategory,starts_at,ends_at,timezone_name,location_type,country_code,region_code,region_name,city,meeting_point,online_platform,participation_mode,max_participants,cost_type,estimated_cost,currency,status",
+      )
+      .eq("id", activityId)
+      .maybeSingle();
+
+    if (activityError) {
+      request.log.error(
+        { err: activityError, activityId, userId: session.user.id },
+        "Unable to load activity",
+      );
+      response.status(500).json({ error: "The activity could not be loaded." });
+      return;
+    }
+
+    if (
+      !activity ||
+      (activity.status !== "active" &&
+        activity.creator_id !== session.user.id)
+    ) {
+      response.status(404).json({ error: "Activity not found." });
+      return;
+    }
+
+    const [profileResult, memberResult] = await Promise.all([
+      getSupabaseAdmin()
+        .from("profiles")
+        .select("username,display_name")
+        .eq("id", activity.creator_id)
+        .maybeSingle(),
+      getSupabaseAdmin()
+        .from("activity_members")
+        .select("*", { count: "exact", head: true })
+        .eq("activity_id", activity.id),
+    ]);
+
+    if (profileResult.error || memberResult.error) {
+      request.log.error(
+        {
+          profileError: profileResult.error,
+          memberError: memberResult.error,
+          activityId,
+        },
+        "Unable to load activity details",
+      );
+      response.status(500).json({ error: "The activity could not be loaded." });
+      return;
+    }
+
+    response.json({
+      activity: {
+        id: activity.id,
+        title: activity.title,
+        description: activity.description,
+        category: activity.category,
+        subcategory: activity.subcategory,
+        startsAt: activity.starts_at,
+        endsAt: activity.ends_at,
+        timezoneName: activity.timezone_name,
+        locationType: activity.location_type,
+        countryCode: activity.country_code,
+        regionCode: activity.region_code,
+        regionName: activity.region_name,
+        city: activity.city,
+        meetingPoint: activity.meeting_point,
+        onlinePlatform: activity.online_platform,
+        participationMode: activity.participation_mode,
+        maxParticipants: activity.max_participants,
+        costType: activity.cost_type,
+        estimatedCost: activity.estimated_cost,
+        currency: activity.currency,
+        status: activity.status,
+        organizer: {
+          username: profileResult.data?.username ?? null,
+          displayName: profileResult.data?.display_name ?? null,
+        },
+        memberCount: memberResult.count ?? 0,
+      },
+    });
+  } catch (error) {
+    request.log.error(
+      { err: error, activityId, userId: session.user.id },
+      "Unable to load activity",
+    );
+    response.status(500).json({ error: "The activity could not be loaded." });
   }
 });
 

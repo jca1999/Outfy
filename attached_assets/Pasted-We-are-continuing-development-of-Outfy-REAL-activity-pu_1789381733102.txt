@@ -1,0 +1,644 @@
+We are continuing development of Outfy.
+
+REAL activity publishing is now working successfully.
+
+A real test activity was created and verified in Supabase:
+
+- one activity row
+- one organizer membership row
+- creator and organizer match correctly
+
+The next task is to create the REAL activity detail page and add sharing.
+
+==================================================
+MODE / SAFETY
+==================================================
+
+STRICT SCOPE.
+
+You may CREATE:
+
+1. artifacts/outfy/src/pages/activity-detail.tsx
+
+You may MODIFY:
+
+2. artifacts/api-server/src/routes/activities.ts
+3. artifacts/outfy/src/activities/activity-api.ts
+4. artifacts/outfy/src/pages/create-activity.tsx
+5. artifacts/outfy/src/App.tsx
+6. artifacts/outfy/src/i18n/locales/es/activities.json
+7. artifacts/outfy/src/i18n/locales/en/activities.json
+
+DO NOT modify any other file.
+
+In particular DO NOT modify:
+
+- Supabase migrations
+- Supabase schema
+- RLS
+- triggers
+- auth.ts
+- auth-api.ts
+- auth-context.tsx
+- LocationPicker
+- Profile
+- Settings
+- Home
+- Explore
+- Matches
+- Chats
+- OutfyShell
+- activity-taxonomy.ts
+- package.json
+- dependencies
+- workflows
+- .replit
+- ports
+- deployment
+- environment variables
+
+DO NOT execute SQL.
+DO NOT publish or redeploy.
+
+==================================================
+GOAL
+==================================================
+
+Implement the real flow:
+
+Publish Plan
+-> successful activity ID
+-> View Plan
+-> /activities/:id
+-> load real activity from API/Supabase
+-> show real activity detail
+-> allow sharing the real activity URL
+
+Do NOT implement joining/leaving yet.
+
+==================================================
+BACKEND — GET ACTIVITY
+==================================================
+
+Extend the existing:
+
+artifacts/api-server/src/routes/activities.ts
+
+with:
+
+GET /api/activities/:id
+
+This endpoint must require the existing authenticated Outfy session.
+
+Reuse the same session/authentication approach already used by POST
+/api/activities.
+
+Do NOT create a new authentication mechanism.
+
+==================================================
+ACTIVITY LOOKUP
+==================================================
+
+Load the requested activity from:
+
+public.activities
+
+The server uses the privileged Supabase client and therefore bypasses RLS.
+
+Because of that, authorization MUST be explicitly enforced in server code.
+
+An authenticated user may read:
+
+- an activity with status = 'active'
+
+OR
+
+- their own activity, regardless of status
+
+Do NOT return another user's cancelled/completed activity unless future
+rules explicitly allow it.
+
+If the activity does not exist OR the authenticated user is not allowed
+to view it, return the existing appropriate not-found style response.
+
+Do not expose whether an inaccessible private/non-active record exists.
+
+==================================================
+ORGANIZER
+==================================================
+
+Return enough organizer information to display the creator naturally.
+
+Use the activity's creator_id to load the corresponding profile.
+
+For this first version return only safe basic identity fields already
+used elsewhere in Outfy, such as:
+
+- username
+- display_name
+
+Prefer:
+
+display_name
+-> fallback username
+
+Do NOT return:
+
+- email
+- privacy internals
+- notification settings
+- location coordinates
+- authentication data
+
+Do NOT redesign profile privacy behavior in this task.
+
+==================================================
+MEMBER COUNT
+==================================================
+
+Count the rows in:
+
+public.activity_members
+
+for the activity.
+
+Return:
+
+memberCount
+
+Remember:
+
+the organizer is already a member.
+
+Therefore:
+
+maxParticipants = 2
+memberCount = 1
+
+means one place remains.
+
+Do NOT store participant_count in activities.
+
+Always derive it from activity_members.
+
+==================================================
+GET RESPONSE CONTRACT
+==================================================
+
+Create a typed frontend/API response.
+
+Conceptually:
+
+{
+  activity: {
+    id,
+    title,
+    description,
+
+    category,
+    subcategory,
+
+    startsAt,
+    endsAt,
+    timezoneName,
+
+    locationType,
+
+    countryCode,
+    regionCode,
+    regionName,
+    city,
+    meetingPoint,
+    onlinePlatform,
+
+    participationMode,
+    maxParticipants,
+
+    costType,
+    estimatedCost,
+    currency,
+
+    status,
+
+    organizer: {
+      username,
+      displayName
+    },
+
+    memberCount
+  }
+}
+
+Use camelCase in the API response.
+
+Do not expose creator_id unless the frontend genuinely needs it.
+
+Do not expose raw database snake_case structures.
+
+==================================================
+FRONTEND API
+==================================================
+
+Extend:
+
+artifacts/outfy/src/activities/activity-api.ts
+
+Add a typed method to retrieve:
+
+GET /api/activities/:id
+
+Follow the existing API pattern.
+
+Use:
+
+credentials: 'include'
+
+Handle:
+
+- success
+- 401
+- 404
+- general server failure
+
+Do not add Supabase frontend code.
+
+==================================================
+ROUTE
+==================================================
+
+Modify:
+
+artifacts/outfy/src/App.tsx
+
+Add an authenticated route:
+
+/activities/:id
+
+inside the existing authenticated OutfyShell structure.
+
+It should render:
+
+ActivityDetail
+
+Do not alter other routes.
+
+==================================================
+ACTIVITY DETAIL PAGE
+==================================================
+
+Create:
+
+artifacts/outfy/src/pages/activity-detail.tsx
+
+Use the current Outfy visual language.
+
+Mobile-first.
+Responsive on desktop.
+
+Load the activity ID from the route.
+
+Fetch the real activity from the API.
+
+==================================================
+DETAIL CONTENT
+==================================================
+
+Display the actual saved activity.
+
+The page should clearly show:
+
+- title
+- category
+- subcategory
+- organizer
+- date
+- start time
+- optional end time
+- physical / online
+- city when physical
+- optional meeting point
+- online platform when online
+- participants
+- cost
+- optional description
+
+Use translated taxonomy labels from the existing activities namespace.
+
+Do NOT display internal taxonomy IDs to the user.
+
+==================================================
+PARTICIPANTS DISPLAY
+==================================================
+
+If limited:
+
+show conceptually:
+
+1 / 2 participantes
+
+or an equivalent clean Outfy design.
+
+If unlimited:
+
+show something natural such as:
+
+1 participante · Sin límite
+
+Use singular/plural translations correctly where practical.
+
+Do NOT add Join yet.
+
+Do NOT add fake participant avatars.
+
+==================================================
+COST DISPLAY
+==================================================
+
+FREE:
+
+Gratis / Free
+
+PAID:
+
+Show the estimated price and currency.
+
+EACH OWN:
+
+Cada uno paga lo suyo /
+Everyone pays their own
+
+Do not implement payment actions.
+
+==================================================
+DATE / TIME DISPLAY
+==================================================
+
+The database stores timestamptz.
+
+Display dates/times using normal locale-aware formatting.
+
+Respect the activity's timezoneName where supported by Intl.
+
+Spanish UI should format naturally in Spanish.
+English UI should format naturally in English.
+
+Do not install a date library.
+
+==================================================
+LOADING / ERROR
+==================================================
+
+Provide translated states for:
+
+- loading activity
+- activity not found
+- unable to load
+- session expired where relevant
+
+Do not display raw API errors.
+
+==================================================
+BACK NAVIGATION
+==================================================
+
+Provide a clear back action.
+
+If normal history navigation is available, it may go back.
+
+Otherwise safely navigate home.
+
+Do not break the OutfyShell navigation.
+
+==================================================
+PUBLISH SUCCESS VIEW
+==================================================
+
+Modify the existing successful publication state in:
+
+create-activity.tsx
+
+It already stores the returned activity ID.
+
+Add:
+
+Spanish:
+"Ver plan"
+
+English:
+"View plan"
+
+This must navigate to:
+
+/activities/{returnedActivityId}
+
+Keep:
+
+- Back to home
+- Create another plan
+
+Do not expose the raw UUID as text.
+
+==================================================
+SHARE
+==================================================
+
+On the activity detail page add:
+
+Spanish:
+"Compartir"
+
+English:
+"Share"
+
+Share the REAL current activity URL.
+
+Use the Web Share API when available:
+
+navigator.share(...)
+
+Share conceptually:
+
+title:
+activity title
+
+text:
+A short translated invitation to join the plan on Outfy
+
+url:
+the real activity URL
+
+Use the browser's current URL / application origin rather than
+hardcoding a production domain.
+
+==================================================
+SHARE FALLBACK
+==================================================
+
+If navigator.share is unavailable:
+
+use the Clipboard API to copy the activity URL.
+
+Show translated feedback:
+
+Spanish:
+"Enlace copiado"
+
+English:
+"Link copied"
+
+If clipboard copying also fails:
+
+show a friendly translated share error.
+
+Do NOT install a sharing package.
+
+Do NOT create direct hardcoded buttons for:
+
+- WhatsApp
+- Telegram
+- Instagram
+- Facebook
+
+The native share sheet will offer compatible applications on supported
+devices.
+
+==================================================
+IMPORTANT
+==================================================
+
+Do NOT put Share on the pre-publication Review step.
+
+Sharing belongs only to a REAL published activity.
+
+==================================================
+DO NOT IMPLEMENT YET
+==================================================
+
+Do NOT add:
+
+- Join
+- Leave
+- capacity RPC
+- editing activity
+- cancellation
+- participant list
+- chat
+- comments
+- likes
+- friends
+- matches
+- maps
+- photos
+- notifications
+- Explore real data
+- public unauthenticated activity access
+
+Those are future steps.
+
+==================================================
+INTERNATIONALIZATION
+==================================================
+
+Use the existing:
+
+activities
+
+namespace.
+
+Update only:
+
+es/activities.json
+en/activities.json
+
+Add translated keys needed for:
+
+- View plan
+- Share
+- Link copied
+- Share error
+- Loading
+- Not found
+- Load error
+- organizer
+- participants
+- unlimited
+- date/location/cost labels if necessary
+- short share invitation text
+
+Preserve all existing taxonomy translations and publishing strings.
+
+Spanish/English structures must remain equivalent.
+
+==================================================
+SECURITY
+==================================================
+
+Confirm:
+
+- GET requires authenticated session
+- API never trusts frontend ownership
+- privileged Supabase client does not accidentally bypass application authorization
+- inaccessible non-active activities are not exposed
+- organizer email is never returned
+- no Supabase credentials reach frontend
+- raw DB errors are not returned
+
+==================================================
+VALIDATION
+==================================================
+
+After implementation:
+
+1. Review git diff.
+
+2. Confirm ONLY the seven allowed files changed/created.
+
+3. Run API TypeScript/typecheck/build.
+
+4. Run frontend TypeScript/typecheck/build.
+
+5. Confirm no SQL was executed.
+
+6. Confirm migrations 007 and 008 did not change.
+
+7. Confirm existing activity publishing still works.
+
+8. Confirm GET /api/activities/:id:
+   - requires authentication
+   - loads active real activity
+   - returns safe organizer data
+   - derives memberCount
+   - enforces visibility in server code
+
+9. Confirm /activities/:id renders real data.
+
+10. Confirm View Plan from publish success uses the returned ID.
+
+11. Confirm native Share works where supported.
+
+12. Confirm clipboard fallback exists.
+
+13. Confirm Join/Leave were NOT implemented.
+
+==================================================
+REPORT BACK
+==================================================
+
+Report:
+
+1. Exact files changed/created.
+2. GET endpoint behavior.
+3. Authorization behavior.
+4. Organizer data returned.
+5. Member-count behavior.
+6. Activity detail layout.
+7. Date/time formatting.
+8. View Plan navigation.
+9. Share implementation.
+10. Share fallback.
+11. API validation/build results.
+12. Frontend validation/build results.
+13. Any limitation found.
+
+DO NOT publish.
+DO NOT redeploy.

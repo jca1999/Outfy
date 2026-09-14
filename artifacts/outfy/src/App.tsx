@@ -5,6 +5,7 @@ import { ErrorBoundary } from '@/components/error-boundary';
 import { OutfyShell } from '@/components/outfy-shell';
 import { activities as initialActivities } from '@/mock-data';
 import { CreateActivity } from '@/pages/create-activity';
+import { ActivityDetail } from '@/pages/activity-detail';
 import { Explore } from '@/pages/explore';
 import { Home } from '@/pages/home';
 import { Matches } from '@/pages/matches';
@@ -116,6 +117,7 @@ function Router() {
           <Route path="/matches" component={Matches} />
           <Route path="/chats" component={Chats} />
           <Route path="/activities/new" component={CreateActivity} />
+          <Route path="/activities/:id" component={ActivityDetail} />
           <Route path="/profile/edit" component={ProfileEdit} />
           <Route path="/profile" component={Profile} />
           <Route path="/settings" component={Settings} />

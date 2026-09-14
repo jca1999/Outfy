@@ -156,7 +156,8 @@
       "publish": "Publicar plan",
       "publishing": "Publicando...",
       "backHome": "Volver al inicio",
-      "createAnother": "Crear otro plan"
+      "createAnother": "Crear otro plan",
+      "viewPlan": "Ver plan"
     },
     "preview": {
       "eyebrow": "VISTA PREVIA",
@@ -182,6 +183,33 @@
       "eyebrow": "PUBLICADO",
       "title": "Plan publicado",
       "message": "Tu plan ya está en Outfy."
+    },
+    "detail": {
+      "back": "Volver",
+      "loading": "Cargando actividad...",
+      "notFoundTitle": "Actividad no encontrada",
+      "notFoundMessage": "Esta actividad no existe o no está disponible.",
+      "loadErrorTitle": "No se ha podido cargar la actividad",
+      "loadErrorMessage": "Inténtalo de nuevo dentro de un momento.",
+      "sessionErrorTitle": "Tu sesión ha caducado",
+      "sessionErrorMessage": "Inicia sesión de nuevo para ver esta actividad.",
+      "backHome": "Volver al inicio",
+      "organizer": "Organiza",
+      "unknownOrganizer": "Miembro de Outfy",
+      "date": "Fecha y hora",
+      "location": "Lugar",
+      "participants": "Participantes",
+      "participantsLimited": "{{count}} / {{max}} participantes",
+      "participantsUnlimited": "{{count}} participante",
+      "participantsUnlimited_other": "{{count}} participantes",
+      "unlimited": "Sin límite",
+      "cost": "Coste",
+      "description": "Sobre este plan",
+      "onlineNoPlatform": "Online, plataforma por decidir",
+      "share": "Compartir",
+      "shareInvitation": "Únete a este plan en Outfy.",
+      "linkCopied": "Enlace copiado",
+      "shareError": "No hemos podido compartir la actividad. Inténtalo de nuevo."
     },
     "validation": {
       "title": "Escribe un título para el plan.",

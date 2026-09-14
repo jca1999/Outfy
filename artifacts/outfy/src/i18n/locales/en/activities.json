@@ -156,7 +156,8 @@
       "publish": "Publish plan",
       "publishing": "Publishing...",
       "backHome": "Back to home",
-      "createAnother": "Create another plan"
+      "createAnother": "Create another plan",
+      "viewPlan": "View plan"
     },
     "preview": {
       "eyebrow": "PREVIEW",
@@ -182,6 +183,33 @@
       "eyebrow": "PUBLISHED",
       "title": "Plan published",
       "message": "Your plan is now on Outfy."
+    },
+    "detail": {
+      "back": "Back",
+      "loading": "Loading activity...",
+      "notFoundTitle": "Activity not found",
+      "notFoundMessage": "This activity does not exist or is not available.",
+      "loadErrorTitle": "Unable to load activity",
+      "loadErrorMessage": "Please try again in a moment.",
+      "sessionErrorTitle": "Your session has expired",
+      "sessionErrorMessage": "Sign in again to view this activity.",
+      "backHome": "Back to home",
+      "organizer": "Organized by",
+      "unknownOrganizer": "Outfy member",
+      "date": "Date and time",
+      "location": "Location",
+      "participants": "Participants",
+      "participantsLimited": "{{count}} / {{max}} participants",
+      "participantsUnlimited": "{{count}} participant",
+      "participantsUnlimited_other": "{{count}} participants",
+      "unlimited": "No limit",
+      "cost": "Cost",
+      "description": "About this plan",
+      "onlineNoPlatform": "Online, platform to be decided",
+      "share": "Share",
+      "shareInvitation": "Join this plan on Outfy.",
+      "linkCopied": "Link copied",
+      "shareError": "We couldn't share the activity. Please try again."
     },
     "validation": {
       "title": "Add a title for the plan.",
