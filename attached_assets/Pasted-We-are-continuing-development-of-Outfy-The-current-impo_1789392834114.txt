@@ -1,0 +1,728 @@
+We are continuing development of Outfy.
+
+The current important state is:
+
+- Users can create and publish REAL activities.
+- Activities are stored in public.activities.
+- The organizer is automatically inserted into public.activity_members.
+- Activity Detail already exists at /activities/:id.
+- The Profile screen already exists.
+- Authentication uses the existing Outfy server-side session architecture.
+- The frontend must NOT access Supabase directly.
+
+CURRENT UX PROBLEM:
+
+A user can publish an activity, but after leaving the success screen there is
+currently no normal way inside Outfy to find the activities they created.
+
+We now need the first real "My Activities" feature.
+
+==================================================
+MODE / GOAL
+==================================================
+
+Implement:
+
+MY CREATED ACTIVITIES
+
+inside the existing Profile screen.
+
+The user must be able to:
+
+Profile
+-> see activities they created
+-> click one
+-> open the existing /activities/:id page
+
+This task is ONLY for activities CREATED BY the current user.
+
+Do NOT implement joined activities or history yet.
+
+==================================================
+STRICT SCOPE
+==================================================
+
+You may modify ONLY:
+
+1. artifacts/api-server/src/routes/activities.ts
+
+2. artifacts/outfy/src/activities/activity-api.ts
+
+3. The EXISTING Profile page component file that currently renders the
+   user's Profile screen.
+
+   IMPORTANT:
+   First identify the existing Profile page file.
+   Modify that existing component only.
+   Do NOT create a second Profile page.
+   Do NOT modify routing.
+
+4. artifacts/outfy/src/i18n/locales/es/activities.json
+
+5. artifacts/outfy/src/i18n/locales/en/activities.json
+
+If the Profile screen's translations currently live in a dedicated profile
+namespace and visible Profile text should logically remain there, you may
+instead add the minimum Profile-specific keys to the EXISTING ES/EN profile
+translation files.
+
+Do NOT create a new translation namespace.
+
+DO NOT modify any other file.
+
+==================================================
+DO NOT TOUCH
+==================================================
+
+Do NOT modify:
+
+- Create Plan
+- Activity Detail
+- Supabase migrations
+- database schema
+- RLS
+- RPCs
+- authentication architecture
+- auth-context
+- auth-api
+- LocationPicker
+- Settings
+- Home
+- Explore
+- App.tsx
+- router configuration
+- package.json
+- dependencies
+- .replit
+- workflows
+- ports
+- deployment
+- environment variables
+
+DO NOT execute SQL.
+
+DO NOT publish.
+DO NOT redeploy.
+
+==================================================
+ARCHITECTURE
+==================================================
+
+Preserve:
+
+Frontend
+-> Outfy API
+-> privileged server-side Supabase client
+-> database
+
+The frontend must NEVER query Supabase directly.
+
+The authenticated user's ID must come exclusively from the server session.
+
+The frontend must NEVER send creator_id or userId to retrieve "my activities".
+
+==================================================
+BACKEND — NEW ENDPOINT
+==================================================
+
+Add a new authenticated endpoint:
+
+GET /api/activities/mine
+
+IMPORTANT ROUTING:
+
+Because there is already likely a route such as:
+
+GET /api/activities/:id
+
+make sure the static:
+
+/api/activities/mine
+
+route cannot accidentally be interpreted as activity ID "mine".
+
+Register/order the route appropriately according to the existing router.
+
+==================================================
+AUTHENTICATION
+==================================================
+
+Authentication is required.
+
+Get the current user's ID using the SAME existing authenticated-session
+mechanism already used by activity creation/detail routes.
+
+Do NOT accept:
+
+?userId=
+creatorId
+userId
+
+from the browser.
+
+==================================================
+DATABASE QUERY
+==================================================
+
+Return ONLY activities where:
+
+activities.creator_id = authenticated session user ID
+
+Do NOT query activities for arbitrary users.
+
+Use the existing privileged server-side Supabase client.
+
+Do not add SQL or new database functions.
+
+==================================================
+DATA NEEDED FOR EACH CARD
+==================================================
+
+Return enough information for the Profile cards to display:
+
+- id
+- title
+- category
+- subcategory if useful
+- startsAt
+- endsAt if already easily available
+- locationType
+- city
+- onlinePlatform if useful
+- participationMode
+- maxParticipants
+- memberCount
+- status
+- createdAt if useful for stable sorting
+
+Use the project's existing frontend naming conventions.
+
+Do NOT expose:
+
+- creator_id unless genuinely already part of the public activity type
+- internal DB-only information
+- participant user IDs
+- emails
+- sensitive profile information
+
+==================================================
+MEMBER COUNT
+==================================================
+
+memberCount must come from:
+
+public.activity_members
+
+Do NOT invent a stored participant_count field.
+
+Do NOT modify the schema.
+
+Do NOT count on the frontend.
+
+Prefer an efficient server-side query.
+
+Avoid issuing one database request per activity if the current Supabase query
+capabilities allow the counts to be fetched efficiently.
+
+If a two-query approach is clearer and safer:
+
+1. fetch the user's activities
+2. fetch/group membership counts for those activity IDs
+
+that is acceptable.
+
+Do NOT introduce unnecessary complexity.
+
+==================================================
+SORTING
+==================================================
+
+For this first version, sort created activities primarily by:
+
+starts_at ascending
+
+for future/upcoming activities.
+
+If there are already past activities, do NOT hide them yet.
+
+A reasonable overall stable ordering is:
+
+1. active future activities first, nearest date first
+2. then remaining activities by starts_at descending
+
+But do NOT build a complex History system in this task.
+
+The important thing is that recently relevant plans are easy to find.
+
+==================================================
+FRONTEND API
+==================================================
+
+In:
+
+artifacts/outfy/src/activities/activity-api.ts
+
+add a typed function such as:
+
+getMyCreatedActivities()
+
+Use the existing API request conventions.
+
+Use:
+
+credentials: 'include'
+
+if that is the established project pattern.
+
+Do NOT add a Supabase frontend client.
+
+Reuse existing activity types where appropriate.
+
+Avoid duplicating large incompatible Activity interfaces.
+
+==================================================
+PROFILE — NEW SECTION
+==================================================
+
+Add a new section to the EXISTING Profile screen.
+
+Recommended visible title:
+
+Spanish:
+"Mis planes"
+
+English:
+"My plans"
+
+For this first version, add a subsection/tab/heading:
+
+Spanish:
+"Propuestos"
+
+English:
+"Created"
+
+This subsection represents activities created by the user.
+
+Do NOT add fake tabs for functionality that does not exist yet unless they are
+clearly inactive.
+
+Prefer implementing ONLY the real "Propuestos / Created" content now.
+
+==================================================
+PLACEMENT
+==================================================
+
+Keep the current Profile visual design.
+
+Do not redesign the entire Profile.
+
+Place "Mis planes" in a logical position after the main user/profile
+information.
+
+It should feel like part of the existing Outfy design.
+
+==================================================
+LOADING STATE
+==================================================
+
+While fetching:
+
+show a lightweight skeleton/loading state consistent with the existing UI.
+
+Do NOT show a giant full-page spinner if unnecessary.
+
+Do NOT block the rest of the Profile.
+
+==================================================
+EMPTY STATE
+==================================================
+
+If the user has created zero activities:
+
+Spanish title:
+"Todavía no has creado ningún plan"
+
+Spanish supporting text:
+"Cuando publiques uno, aparecerá aquí."
+
+English title:
+"You haven't created any plans yet"
+
+English supporting text:
+"When you publish one, it will appear here."
+
+If there is already an existing Create Plan navigation/action available and
+can be reused WITHOUT changing routing, optionally show:
+
+Spanish:
+"Crear un plan"
+
+English:
+"Create a plan"
+
+Do NOT invent a new route.
+
+==================================================
+ACTIVITY CARD
+==================================================
+
+Each created activity should have a compact, attractive card.
+
+Show at minimum:
+
+- activity title
+- category
+- date
+- location
+- participant count
+- status if relevant
+
+Example:
+
+Cañas por Zaragoza
+Social
+18 sept · 20:00
+Zaragoza
+2 / 6 personas
+
+Keep it concise.
+
+==================================================
+DATE / TIME DISPLAY
+==================================================
+
+Use the user's current app language.
+
+Spanish:
+localized Spanish date/time
+
+English:
+localized English date/time
+
+Do NOT expose ISO strings directly.
+
+Use the existing stored startsAt value.
+
+Do not alter timezone/publishing behavior in this task.
+
+==================================================
+CATEGORY
+==================================================
+
+Activity category/subcategory values are stable internal taxonomy IDs.
+
+Do NOT show raw IDs such as:
+
+social
+city_walk
+football
+
+Use the existing activity taxonomy translations.
+
+For example:
+
+t(`categories.${activity.category}`)
+
+and the existing subcategory structure when needed.
+
+Do NOT duplicate taxonomy labels.
+
+==================================================
+LOCATION
+==================================================
+
+Physical activity:
+
+show city if available.
+
+Online activity:
+
+Spanish:
+"Online"
+
+English:
+"Online"
+
+Do not expose coordinates.
+
+==================================================
+PARTICIPANTS
+==================================================
+
+For LIMITED activities show:
+
+memberCount / maxParticipants
+
+Remember:
+
+the organizer counts toward maxParticipants.
+
+Examples:
+
+1 / 6
+3 / 10
+
+Use natural localized text around it if appropriate.
+
+For UNLIMITED activities:
+
+show the real memberCount and indicate no fixed limit using the project's
+existing language/style if already available.
+
+Do not invent participant data.
+
+==================================================
+STATUS
+==================================================
+
+Use existing database status:
+
+active
+completed
+cancelled
+
+Do not infer a new database status.
+
+Display a subtle localized badge where useful:
+
+Spanish:
+Activo
+Finalizado
+Cancelado
+
+English:
+Active
+Completed
+Cancelled
+
+If an active activity date is already in the past, do NOT mutate its status
+from the frontend.
+
+That can be handled later when we implement activity lifecycle/history.
+
+==================================================
+CLICK / NAVIGATION
+==================================================
+
+The entire activity card should be clickable/tappable.
+
+Navigate to:
+
+/activities/{activity.id}
+
+Use the project's existing navigation mechanism, likely Wouter.
+
+Do NOT duplicate Activity Detail.
+
+Do NOT open a modal.
+
+==================================================
+RESPONSIVE DESIGN
+==================================================
+
+Must work well on:
+
+- mobile
+- tablet
+- desktop
+
+Prefer:
+
+1 column on narrow mobile
+
+and a sensible grid on larger screens if space allows.
+
+Do not make cards excessively tall.
+
+==================================================
+ERROR STATE
+==================================================
+
+If loading the user's activities fails:
+
+do NOT break the Profile page.
+
+Show a small localized message inside the My Plans section.
+
+Spanish:
+"No hemos podido cargar tus planes."
+
+English:
+"We couldn't load your plans."
+
+And provide a small retry action if this fits the existing component cleanly:
+
+Spanish:
+"Reintentar"
+
+English:
+"Retry"
+
+Do not expose raw API/Supabase errors.
+
+==================================================
+SESSION ERROR
+==================================================
+
+Follow the EXISTING Outfy behavior for an invalid/expired session.
+
+Do not invent another authentication flow.
+
+==================================================
+REFRESH BEHAVIOR
+==================================================
+
+When the Profile screen mounts/loads, fetch the user's created activities.
+
+Do not poll continuously.
+
+Do not implement realtime in this task.
+
+A normal re-fetch when revisiting Profile is enough.
+
+==================================================
+DO NOT IMPLEMENT YET
+==================================================
+
+Do NOT implement:
+
+- activities joined as participant
+- Upcoming section
+- History section
+- participant list
+- editing activity
+- cancelling activity
+- deleting activity
+- leaving activity
+- joining activity
+- chat
+- notifications
+- likes
+- connections
+- Explore
+- realtime subscriptions
+- pagination unless genuinely required by existing architecture
+- infinite scroll
+- map
+
+This task is ONLY:
+
+CURRENT USER -> ACTIVITIES THEY CREATED -> PROFILE CARDS -> OPEN DETAIL
+
+==================================================
+I18N
+==================================================
+
+All new visible strings must have ES and EN translations.
+
+Reuse existing activity translation keys wherever possible for:
+
+- taxonomy
+- status
+- participants
+- location
+- common labels
+
+Add only the minimum new keys required.
+
+Do NOT hardcode Spanish/English strings in React.
+
+Keep ES/EN structures equivalent.
+
+==================================================
+SECURITY CHECK
+==================================================
+
+Verify:
+
+- frontend does NOT send user ID
+- server derives current user from session
+- server query filters creator_id by that session user
+- frontend does NOT call Supabase
+- no new SQL
+- no RLS changes
+- no migration changes
+
+==================================================
+MANDATORY TEST
+==================================================
+
+Use the existing authenticated account that already has at least one created
+activity.
+
+Open Profile.
+
+Expected:
+
+- "Mis planes" appears
+- "Propuestos" appears
+- the existing created activity appears
+- title is correct
+- date is readable
+- location is correct
+- member count is real
+- status is correct
+- clicking the card opens the existing Activity Detail page
+
+Then test an account with no created activities if possible:
+
+- empty state appears cleanly
+- Profile does not break
+
+==================================================
+VALIDATION
+==================================================
+
+Before finishing:
+
+1. Review git diff.
+
+2. Confirm only allowed files changed.
+
+3. Run API TypeScript/typecheck/build.
+
+4. Run frontend TypeScript/typecheck/build.
+
+5. Validate modified ES/EN JSON.
+
+6. Confirm /api/activities/mine cannot conflict with /api/activities/:id.
+
+7. Confirm frontend sends NO userId.
+
+8. Confirm database filtering uses session user ID.
+
+9. Confirm memberCount is real.
+
+10. Confirm cards use translated taxonomy names.
+
+11. Confirm clicking a card opens /activities/:id.
+
+12. Confirm existing Create Plan still works.
+
+13. Confirm existing Activity Detail still works.
+
+14. Confirm no SQL/migrations were touched.
+
+==================================================
+REPORT BACK
+==================================================
+
+Report:
+
+1. Exact Profile file identified.
+2. Exact files modified.
+3. New endpoint implementation.
+4. Authentication/security behavior.
+5. Member-count implementation.
+6. Sorting behavior.
+7. Profile section implementation.
+8. Card contents.
+9. Empty/error/loading states.
+10. Responsive behavior.
+11. API build/typecheck result.
+12. Frontend build/typecheck result.
+13. Any limitation discovered.
+
+DO NOT publish.
+DO NOT redeploy.

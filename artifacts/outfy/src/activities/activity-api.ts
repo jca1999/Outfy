@@ -62,6 +62,28 @@ export type ActivityDetailResponse = {
   activity: ActivityDetail;
 };
 
+export type MyCreatedActivity = Pick<
+  ActivityDetail,
+  | 'id'
+  | 'title'
+  | 'category'
+  | 'subcategory'
+  | 'startsAt'
+  | 'endsAt'
+  | 'timezoneName'
+  | 'locationType'
+  | 'city'
+  | 'onlinePlatform'
+  | 'participationMode'
+  | 'maxParticipants'
+  | 'memberCount'
+  | 'status'
+>;
+
+export type MyCreatedActivitiesResponse = {
+  activities: MyCreatedActivity[];
+};
+
 export type ActivityMembershipResponse = {
   result: 'joined' | 'already_member' | 'left' | 'not_member';
   memberCount: number;
@@ -162,6 +184,27 @@ export async function getActivity(id: string) {
   }
 
   return payload as ActivityDetailResponse;
+}
+
+export async function getMyCreatedActivities() {
+  const response = await fetch('/api/activities/mine', {
+    credentials: 'include',
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | ActivityErrorPayload
+    | MyCreatedActivitiesResponse
+    | null;
+
+  if (!response.ok) {
+    throw activityApiError(
+      payload && 'activities' in payload ? null : payload,
+      response.status,
+      'The activities could not be loaded.',
+    );
+  }
+
+  return payload as MyCreatedActivitiesResponse;
 }
 
 export async function joinActivity(activityId: string) {

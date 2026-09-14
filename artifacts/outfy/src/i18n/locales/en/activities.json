@@ -91,6 +91,21 @@
     "physical": "In person",
     "online": "Online"
   },
+  "myPlans": {
+    "title": "My plans",
+    "created": "Created",
+    "loading": "Loading your plans",
+    "emptyTitle": "You haven't created any plans yet",
+    "emptyDescription": "When you publish one, it will appear here.",
+    "createPlan": "Create a plan",
+    "loadError": "We couldn't load your plans.",
+    "retry": "Retry",
+    "status": {
+      "active": "Active",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    }
+  },
   "create": {
     "eyebrow": "NEW PLAN",
     "title": "What do you want to do?",

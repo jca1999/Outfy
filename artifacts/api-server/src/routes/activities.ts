@@ -326,6 +326,84 @@ router.post("/activities", async (request, response) => {
   }
 });
 
+router.get("/activities/mine", async (request, response) => {
+  let session;
+  try {
+    session = await currentSession(request, response);
+  } catch (error) {
+    request.log.error({ err: error }, "Unable to authenticate activity owner");
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  if (!session) {
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  try {
+    const { data: activities, error: activitiesError } =
+      await getSupabaseAdmin()
+        .from("activities")
+        .select(
+          "id,title,category,subcategory,starts_at,ends_at,timezone_name,location_type,city,online_platform,participation_mode,max_participants,status,created_at,activity_members(count)",
+        )
+        .eq("creator_id", session.user.id);
+
+    if (activitiesError) {
+      request.log.error(
+        { err: activitiesError, userId: session.user.id },
+        "Unable to load created activities",
+      );
+      response.status(500).json({ error: "The activities could not be loaded." });
+      return;
+    }
+
+    if (!activities?.length) {
+      response.json({ activities: [] });
+      return;
+    }
+
+    const now = Date.now();
+    const sortedActivities = [...activities].sort((left, right) => {
+      const leftTimestamp = Date.parse(left.starts_at);
+      const rightTimestamp = Date.parse(right.starts_at);
+      const leftUpcoming = left.status === "active" && leftTimestamp >= now;
+      const rightUpcoming = right.status === "active" && rightTimestamp >= now;
+
+      if (leftUpcoming !== rightUpcoming) return leftUpcoming ? -1 : 1;
+      if (leftUpcoming) return leftTimestamp - rightTimestamp;
+      if (leftTimestamp !== rightTimestamp) return rightTimestamp - leftTimestamp;
+      return Date.parse(right.created_at) - Date.parse(left.created_at);
+    });
+
+    response.json({
+      activities: sortedActivities.map((activity) => ({
+        id: activity.id,
+        title: activity.title,
+        category: activity.category,
+        subcategory: activity.subcategory,
+        startsAt: activity.starts_at,
+        endsAt: activity.ends_at,
+        timezoneName: activity.timezone_name,
+        locationType: activity.location_type,
+        city: activity.city,
+        onlinePlatform: activity.online_platform,
+        participationMode: activity.participation_mode,
+        maxParticipants: activity.max_participants,
+        memberCount: activity.activity_members?.[0]?.count ?? 0,
+        status: activity.status,
+      })),
+    });
+  } catch (error) {
+    request.log.error(
+      { err: error, userId: session.user.id },
+      "Unable to load created activities",
+    );
+    response.status(500).json({ error: "The activities could not be loaded." });
+  }
+});
+
 router.get("/activities/:id", async (request, response) => {
   let session;
   try {

@@ -91,6 +91,21 @@
     "physical": "Presencial",
     "online": "Online"
   },
+  "myPlans": {
+    "title": "Mis planes",
+    "created": "Propuestos",
+    "loading": "Cargando tus planes",
+    "emptyTitle": "Todavía no has creado ningún plan",
+    "emptyDescription": "Cuando publiques uno, aparecerá aquí.",
+    "createPlan": "Crear un plan",
+    "loadError": "No hemos podido cargar tus planes.",
+    "retry": "Reintentar",
+    "status": {
+      "active": "Activo",
+      "completed": "Finalizado",
+      "cancelled": "Cancelado"
+    }
+  },
   "create": {
     "eyebrow": "NUEVO PLAN",
     "title": "¿Qué te apetece hacer?",
