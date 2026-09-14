@@ -1,0 +1,221 @@
+We are continuing development of Outfy.
+
+Migration:
+
+supabase/migrations/007_activities.sql
+
+has been created and statically reviewed.
+
+The next task is to APPLY this migration to the currently configured Outfy Supabase database and verify the result.
+
+This task modifies the database.
+
+DO NOT modify application source code.
+DO NOT modify the migration file.
+DO NOT create additional migrations.
+DO NOT publish or redeploy the application.
+
+==================================================
+STEP 1 — FINAL PRE-FLIGHT CHECK
+==================================================
+
+Before executing ANY SQL:
+
+Read the complete existing:
+
+supabase/migrations/007_activities.sql
+
+Confirm that it contains exactly the architecture previously reported:
+
+- public.activities
+- public.activity_members
+- expected foreign keys
+- expected CHECK constraints
+- expected indexes
+- RLS on both tables
+- organizer trigger
+- updated_at trigger
+- no hard-delete authenticated policy
+- no participant-capacity RPC
+- no unexpected DROP/TRUNCATE/destructive statements
+
+Also confirm that:
+
+- public.activities does NOT currently exist
+- public.activity_members does NOT currently exist
+
+If either table unexpectedly exists:
+
+STOP.
+
+Do NOT execute the migration.
+
+Report what exists.
+
+If the migration contents differ materially from the previous reviewed report:
+
+STOP.
+
+Do NOT execute it.
+
+Explain the discrepancy.
+
+==================================================
+STEP 2 — APPLY MIGRATION
+==================================================
+
+If and only if the pre-flight check passes:
+
+Apply exactly:
+
+supabase/migrations/007_activities.sql
+
+to the currently configured Outfy Supabase database.
+
+Do NOT manually rewrite or improvise SQL.
+
+Do NOT run unrelated migrations.
+
+Do NOT alter existing profile/auth/invitation tables.
+
+==================================================
+STEP 3 — VERIFY DATABASE OBJECTS
+==================================================
+
+After applying it, perform READ-ONLY verification.
+
+Verify that these tables now exist:
+
+public.activities
+public.activity_members
+
+Verify the expected columns and types.
+
+==================================================
+STEP 4 — VERIFY CONSTRAINTS
+==================================================
+
+Verify the database has the expected constraints for:
+
+- activity title
+- description length
+- category/subcategory
+- starts_at / ends_at
+- timezone_name
+- physical / online
+- coordinates
+- limited / unlimited participation
+- max_participants
+- free / paid / each_own cost
+- activity status
+- activity member roles
+- composite membership primary key
+
+Do NOT insert test records unless absolutely required.
+
+Prefer metadata/schema inspection.
+
+==================================================
+STEP 5 — VERIFY TRIGGERS
+==================================================
+
+Verify the organizer trigger exists and points to the expected function.
+
+Verify the updated_at trigger exists.
+
+Do not create a fake activity just to test them in this task.
+
+We will test organizer creation through the real publishing flow later.
+
+==================================================
+STEP 6 — VERIFY RLS
+==================================================
+
+Confirm RLS is enabled on:
+
+public.activities
+public.activity_members
+
+Verify the expected policies exist.
+
+ACTIVITIES:
+
+- authenticated users can read active activities
+- creators can read their own activities regardless of status
+- authenticated users can insert only as themselves
+- creators can update only their own activities
+- ownership cannot be changed
+- no normal authenticated hard-delete policy
+
+ACTIVITY MEMBERS:
+
+- appropriate authenticated read policy
+- self-join only
+- normal join role limited to participant
+- self-leave participant only
+- organizer membership cannot be removed through normal self-leave
+- no broad role-update policy
+
+==================================================
+STEP 7 — SECURITY CHECK
+==================================================
+
+Confirm:
+
+- no Supabase service-role key was exposed
+- no secrets were printed
+- no frontend Supabase admin access was introduced
+- auth.users remains the identity source
+- existing profile/auth tables were not modified
+
+Do NOT output real user data.
+
+==================================================
+STEP 8 — SOURCE CODE CHECK
+==================================================
+
+Confirm this task changed NO application source files.
+
+The migration file should already exist and must remain unchanged.
+
+Do not modify:
+
+- frontend
+- API server
+- auth
+- Profile
+- LocationPicker
+- Create Plan
+- App.tsx
+- package.json
+- workflows
+- .replit
+
+==================================================
+REPORT BACK
+==================================================
+
+Report:
+
+1. Whether the pre-flight check passed.
+2. Whether migration 007 was successfully applied.
+3. Whether public.activities exists.
+4. Whether public.activity_members exists.
+5. RLS status for both tables.
+6. Organizer trigger status.
+7. updated_at trigger status.
+8. Policies found.
+9. Any SQL/database warning or error.
+10. Confirmation that no application source file changed.
+11. Confirmation that no unrelated database object changed.
+
+If anything fails during migration execution:
+
+STOP.
+
+Do not attempt destructive rollback or improvised repair.
+
+Report the exact failure so it can be reviewed safely.
+
+DO NOT publish.
+DO NOT redeploy.
