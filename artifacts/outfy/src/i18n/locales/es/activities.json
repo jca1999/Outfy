@@ -174,7 +174,8 @@
       "publishing": "Publicando...",
       "backHome": "Volver al inicio",
       "createAnother": "Crear otro plan",
-      "viewPlan": "Ver plan"
+      "viewPlan": "Ver plan",
+      "sharePlan": "Compartir plan"
     },
     "preview": {
       "eyebrow": "VISTA PREVIA",
@@ -199,7 +200,8 @@
     "success": {
       "eyebrow": "PUBLICADO",
       "title": "Plan publicado",
-      "message": "Tu plan ya está en Outfy."
+      "message": "Tu plan ya está en Outfy.",
+      "shareError": "No hemos podido compartir el plan."
     },
     "detail": {
       "back": "Volver",

@@ -213,6 +213,7 @@ export function CreateActivity() {
     useState<HomeLocation | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishError, setPublishError] = useState('');
+  const [shareMessage, setShareMessage] = useState('');
   const [publishedActivityId, setPublishedActivityId] =
     useState<string | null>(null);
   const [dateText, setDateText] = useState('');
@@ -465,15 +466,45 @@ export function CreateActivity() {
     }
 
     setErrors(nextErrors);
-    return Object.keys(nextErrors).length === 0;
+    return Object.keys(nextErrors)[0] ?? null;
+  }
+
+  function focusFirstInvalidField(errorKey: string) {
+    const fieldIds: Record<string, string> = {
+      title: 'activity-title',
+      category: 'activity-category',
+      subcategory: 'activity-subcategory',
+      date: 'activity-date',
+      startTime: 'activity-start-time',
+      endTime: 'activity-end-time',
+      city: 'activity-city',
+      maxParticipants: 'activity-max-participants',
+      estimatedCost: 'activity-estimated-cost',
+    };
+    const field = document.getElementById(fieldIds[errorKey]);
+
+    if (!(field instanceof HTMLElement)) {
+      return;
+    }
+
+    field.focus({ preventScroll: true });
+    field.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    });
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (validateForm()) {
-      setIsPreview(true);
+    const firstInvalidField = validateForm();
+
+    if (firstInvalidField) {
+      focusFirstInvalidField(firstInvalidField);
+      return;
     }
+
+    setIsPreview(true);
   }
 
   async function handlePublish() {
@@ -543,6 +574,43 @@ export function CreateActivity() {
     }
   }
 
+  async function handleSharePublishedActivity() {
+    if (!publishedActivityId) {
+      return;
+    }
+
+    setShareMessage('');
+    const url = `${window.location.origin}/activities/${publishedActivityId}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: form.title,
+          text: t('create.detail.shareInvitation'),
+          url,
+        });
+        return;
+      } catch (error) {
+        if (
+          error instanceof DOMException &&
+          error.name === 'AbortError'
+        ) {
+          return;
+        }
+
+        setShareMessage(t('create.success.shareError'));
+        return;
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareMessage(t('create.detail.linkCopied'));
+    } catch {
+      setShareMessage(t('create.success.shareError'));
+    }
+  }
+
   function handleCreateAnother() {
     setForm(initialForm);
     setDateText('');
@@ -554,6 +622,7 @@ export function CreateActivity() {
     setIsPreview(false);
     setIsPublishing(false);
     setPublishError('');
+    setShareMessage('');
     setPublishedActivityId(null);
   }
 
@@ -670,6 +739,13 @@ export function CreateActivity() {
           </button>
           <button
             type="button"
+            onClick={handleSharePublishedActivity}
+            className="rounded-full border border-primary/40 px-5 py-3 text-sm font-bold text-primary transition hover:bg-primary/10"
+          >
+            {t('create.actions.sharePlan')}
+          </button>
+          <button
+            type="button"
             onClick={() => navigate('/')}
             className="rounded-full border border-border px-5 py-3 text-sm font-bold text-muted-foreground transition hover:bg-muted hover:text-foreground"
           >
@@ -683,6 +759,11 @@ export function CreateActivity() {
             {t('create.actions.createAnother')}
           </button>
         </div>
+          {shareMessage && (
+            <p className="mt-4 text-xs font-semibold text-primary" role="status">
+              {shareMessage}
+            </p>
+          )}
       </section>
     );
   }

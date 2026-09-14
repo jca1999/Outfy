@@ -1,0 +1,556 @@
+We are continuing development of Outfy.
+
+The Create Plan flow is already working correctly:
+
+- manual date/time masks
+- native date/time pickers
+- validation
+- review
+- real publishing
+- success screen
+- Activity Detail
+- Join / Leave
+
+This task is ONLY two UX improvements to the existing Create Plan flow:
+
+1. After successful publication, allow the user to SHARE the newly published
+   activity directly from the success screen.
+
+2. When "Review plan" validation fails, automatically scroll/focus the FIRST
+   invalid field so mobile users immediately understand what needs fixing.
+
+Do NOT redesign the page.
+
+==================================================
+MODE / STRICT SCOPE
+==================================================
+
+Modify ONLY:
+
+1. artifacts/outfy/src/pages/create-activity.tsx
+2. artifacts/outfy/src/i18n/locales/es/activities.json
+3. artifacts/outfy/src/i18n/locales/en/activities.json
+
+You MAY inspect the existing Activity Detail page READ-ONLY to understand and
+mirror its current share behavior.
+
+DO NOT modify Activity Detail.
+
+DO NOT modify any other file.
+
+DO NOT modify:
+
+- API
+- Supabase
+- database
+- migrations
+- Activity Detail
+- Profile
+- My Plans
+- Home
+- Explore
+- Settings
+- Join/Leave
+- App.tsx
+- router
+- package.json
+- dependencies
+- workflows
+- .replit
+- deployment
+
+DO NOT publish or redeploy.
+
+==================================================
+PART 1 — SHARE FROM SUCCESS SCREEN
+==================================================
+
+CURRENT FLOW:
+
+Publish activity
+-> success screen
+-> user must currently click "View plan"
+-> only then can they share it from Activity Detail
+
+Improve this.
+
+Once publishing succeeds and:
+
+publishedActivityId
+
+exists, the success screen must offer a direct:
+
+Spanish:
+"Compartir plan"
+
+English:
+"Share plan"
+
+action.
+
+==================================================
+SHARE URL
+==================================================
+
+Use the REAL published activity URL:
+
+`${window.location.origin}/activities/${publishedActivityId}`
+
+Do NOT share a temporary/create/review URL.
+
+Do NOT change the activity publishing API.
+
+==================================================
+SHARE BEHAVIOR
+==================================================
+
+Mirror the existing working sharing UX from Activity Detail as closely as
+possible.
+
+Preferred behavior:
+
+1. If Web Share API is available:
+
+navigator.share(...)
+
+Use a useful activity title/text and the real activity URL.
+
+2. If Web Share API is unavailable:
+
+copy the real activity URL to the clipboard.
+
+Do NOT introduce a dependency.
+
+Do NOT implement a custom share modal.
+
+==================================================
+SHARE FEEDBACK
+==================================================
+
+For clipboard fallback, give visible short feedback.
+
+Spanish:
+"Enlace copiado"
+
+English:
+"Link copied"
+
+If sharing/copying genuinely fails:
+
+Spanish:
+"No hemos podido compartir el plan."
+
+English:
+"We couldn't share the plan."
+
+Do NOT display technical browser errors.
+
+If the user cancels the native Web Share dialog, do not show an alarming error.
+
+==================================================
+SUCCESS SCREEN LAYOUT
+==================================================
+
+Preserve the current success screen design.
+
+It currently contains actions such as:
+
+- View plan
+- Back home
+- Create another
+
+Add Share plan naturally to this existing action group.
+
+Recommended order:
+
+Primary:
+"Ver plan"
+
+Secondary/prominent:
+"Compartir plan"
+
+Then:
+"Volver al inicio"
+"Crear otro plan"
+
+Do not make the screen cluttered.
+
+Ensure it still works well on narrow mobile screens.
+
+==================================================
+PART 2 — SCROLL TO FIRST VALIDATION ERROR
+==================================================
+
+CURRENT PROBLEM:
+
+On mobile, the Create Plan form is long.
+
+If the user is near the bottom and presses:
+
+"Revisar plan"
+
+while an earlier required field is invalid, validation correctly prevents
+continuing, but the user may not see the error.
+
+This makes it appear as though the button/page did nothing or is still
+loading.
+
+Fix this.
+
+==================================================
+EXPECTED BEHAVIOR
+==================================================
+
+When the user presses Review Plan:
+
+1. Run the EXISTING validation.
+2. If there are no errors:
+   -> continue to Review exactly as today.
+3. If there are errors:
+   -> identify the FIRST invalid field in visual/form order.
+   -> smoothly scroll that field into view.
+   -> focus the relevant form control when appropriate.
+
+The user must immediately see:
+
+- the field
+- its error message
+- what needs fixing
+
+==================================================
+ERROR ORDER
+==================================================
+
+Use the same visual order as the form.
+
+For example:
+
+1. title
+2. category
+3. subcategory
+4. date
+5. start time
+6. end time
+7. city when physical
+8. max participants when limited
+9. estimated cost when paid
+
+Do not scroll to a later error if an earlier visible field is also invalid.
+
+==================================================
+SCROLL POSITION
+==================================================
+
+Use smooth scrolling.
+
+Prefer behavior equivalent to:
+
+scrollIntoView({
+  behavior: 'smooth',
+  block: 'center'
+})
+
+or another implementation that keeps:
+
+- field label
+- input
+- error message
+
+comfortably visible.
+
+Do NOT scroll the input flush against the very top of the viewport.
+
+This must work properly on mobile.
+
+==================================================
+FOCUS
+==================================================
+
+After identifying the first invalid field, focus its appropriate control when
+possible.
+
+Examples:
+
+Title
+-> title input
+
+Category
+-> category select
+
+Date
+-> visible editable date input
+
+Start time
+-> visible editable start-time input
+
+City
+-> city input
+
+Max participants
+-> number input
+
+Cost
+-> estimated-cost input
+
+For radio/choice groups, focus a sensible first control or scroll to the
+group container.
+
+Do not open native date/time pickers automatically.
+
+Focus must NOT trigger the calendar/time picker.
+
+==================================================
+IMPORTANT — CURRENT DATE/TIME IMPLEMENTATION
+==================================================
+
+The current date/time implementation is FINALLY working.
+
+Do NOT redesign it.
+
+Do NOT modify:
+
+- masks
+- Calendar/Clock buttons
+- native picker overlays
+- date/time parsing
+- manual editing
+- invalid-date/time validation
+- canonical values
+
+Only make sure the VISIBLE editable date/time control can be targeted for
+scroll/focus when it is the first validation error.
+
+==================================================
+IMPLEMENTATION QUALITY
+==================================================
+
+Do not add arbitrary fixed delays like:
+
+setTimeout(..., 500)
+
+Prefer a clean React/browser approach.
+
+It is acceptable to:
+
+- compute the first invalid field before/while setting errors
+- use requestAnimationFrame after React renders the error state
+- use existing element IDs
+- use refs if cleaner
+
+Avoid maintaining a large duplicate map of form logic if existing IDs can be
+used safely.
+
+==================================================
+IMPORTANT VALIDATION BEHAVIOR
+==================================================
+
+Do NOT change which fields are required.
+
+Do NOT change validation rules.
+
+Do NOT remove or replace the existing inline error messages.
+
+This task only improves WHAT HAPPENS after validation discovers errors.
+
+Example:
+
+User is at bottom of page.
+
+Title is empty.
+
+User presses:
+"Revisar plan"
+
+Expected:
+
+- Review does NOT open
+- page smoothly scrolls back to Title
+- Title receives focus
+- existing error message is visible
+
+==================================================
+MULTIPLE ERRORS
+==================================================
+
+If several fields are invalid:
+
+scroll ONLY to the first one.
+
+Do not jump through every invalid field.
+
+The other inline errors may still be rendered normally.
+
+After the user fixes the first error and presses Review again:
+
+if another error remains, scroll to the next first invalid field.
+
+==================================================
+PRESERVE
+==================================================
+
+Do NOT change:
+
+- Create Activity API
+- publishing
+- success detection
+- form state shape
+- participant settings
+- cost logic
+- categories
+- location logic
+- timezone logic
+- Review UI
+- Activity Detail
+- Join/Leave
+
+==================================================
+I18N
+==================================================
+
+Use the existing activities namespace.
+
+Add only the minimum ES/EN keys needed for:
+
+- Share plan
+- Link copied
+- Share failure
+
+Before creating new keys, inspect whether equivalent Share translations
+already exist and reuse them if appropriate.
+
+Do not hardcode visible text.
+
+Keep ES and EN translation structures equivalent.
+
+==================================================
+MANDATORY TESTS
+==================================================
+
+TEST A — SHARE AFTER PUBLISH
+
+Create/publish a test plan.
+
+On success screen confirm:
+
+- "Compartir plan" is immediately available
+- no need to enter Activity Detail first
+
+Click Share.
+
+Desktop/browser without Web Share:
+-> URL is copied
+-> "Enlace copiado"
+
+Supported mobile/browser:
+-> native share sheet opens
+
+Confirm URL is:
+
+/activities/{realPublishedActivityId}
+
+==================================================
+TEST B — FIRST ERROR FROM BOTTOM OF FORM
+==================================================
+
+Start a new plan.
+
+Leave Title empty.
+
+Fill or navigate far enough down the page to reach Review Plan.
+
+Press Review Plan.
+
+Expected:
+
+- no Review screen
+- automatic smooth scroll to Title
+- Title field focused
+- Title validation message visible
+
+==================================================
+TEST C — ERROR IN MIDDLE
+==================================================
+
+Fill Title/category correctly.
+
+Leave Date invalid/missing.
+
+Scroll to bottom.
+
+Press Review Plan.
+
+Expected:
+
+- scroll to Date
+- visible date text field is brought into view/focused
+- do NOT automatically open native calendar picker
+- error visible
+
+==================================================
+TEST D — MULTIPLE ERRORS
+==================================================
+
+Create several validation errors.
+
+Press Review.
+
+Expected:
+
+- exactly ONE automatic scroll
+- goes to earliest invalid field
+
+Fix it.
+
+Press Review again.
+
+Expected:
+
+- goes to the next earliest invalid field
+
+==================================================
+TEST E — VALID FORM
+==================================================
+
+Complete a valid form.
+
+Press Review.
+
+Expected:
+
+- Review screen opens exactly as before
+- no unnecessary scrolling
+
+==================================================
+FINAL VALIDATION
+==================================================
+
+1. Confirm ONLY the three allowed files changed.
+2. Run frontend TypeScript/typecheck/build.
+3. Validate ES/EN JSON.
+4. Confirm Create Plan still publishes real activities.
+5. Confirm date/time masks still work.
+6. Confirm native date/time picker buttons still work.
+7. Confirm validation rules did NOT change.
+8. Confirm failed Review scrolls to first error.
+9. Confirm successful Review behaves exactly as before.
+10. Confirm Share works directly from publication success.
+11. Confirm existing "View plan" still works.
+12. Confirm Activity Detail Share was NOT modified.
+
+==================================================
+REPORT BACK
+==================================================
+
+Report:
+
+1. Exact files modified.
+2. Share-success implementation.
+3. Web Share / clipboard fallback behavior.
+4. First-error detection implementation.
+5. Scroll/focus implementation.
+6. Mobile behavior tested.
+7. Typecheck/build result.
+8. Any limitation discovered.
+
+DO NOT publish.
+DO NOT redeploy.
