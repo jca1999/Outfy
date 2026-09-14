@@ -1,0 +1,287 @@
+We are continuing development of Outfy.
+
+The real activity detail page is working and loads real Supabase activity data correctly.
+
+However, several i18n keys are being rendered literally in the UI instead of translated.
+
+Examples currently visible:
+
+- detail.back
+- detail.share
+- detail.organizer
+- detail.date
+- detail.location
+- detail.participants
+- detail.participantsLimited
+- detail.cost
+- detail.description
+
+The activity data itself is correct.
+
+This task is ONLY to fix the activity-detail translations.
+
+==================================================
+MODE / SAFETY
+==================================================
+
+STRICT SCOPE.
+
+You may modify ONLY:
+
+1. artifacts/outfy/src/pages/activity-detail.tsx
+2. artifacts/outfy/src/i18n/locales/es/activities.json
+3. artifacts/outfy/src/i18n/locales/en/activities.json
+
+DO NOT modify any other file.
+
+Do NOT modify:
+
+- API
+- Supabase
+- database
+- migrations
+- authentication
+- activity-api.ts
+- App.tsx
+- Create Plan
+- Profile
+- Home
+- Settings
+- Explore
+- activity-taxonomy.ts
+- package.json
+- dependencies
+- workflows
+- .replit
+- deployment
+
+DO NOT publish or redeploy.
+
+==================================================
+GOAL
+==================================================
+
+Fix all activity-detail translation keys so NO raw i18n key such as:
+
+detail.back
+
+or:
+
+detail.participantsLimited
+
+is visible to the user.
+
+==================================================
+FIRST — INSPECT EXISTING TRANSLATIONS
+==================================================
+
+Before changing anything:
+
+Inspect:
+
+- activity-detail.tsx
+- es/activities.json
+- en/activities.json
+
+Determine whether:
+
+A. the required keys already exist but activity-detail.tsx is using the
+wrong namespace/key path,
+
+OR
+
+B. the required keys are missing from the locale JSON files.
+
+Use the smallest safe correction.
+
+Do NOT duplicate translation keys unnecessarily.
+
+==================================================
+NAMESPACE
+==================================================
+
+Activity Detail must use the existing:
+
+activities
+
+translation namespace.
+
+Do NOT create a new namespace.
+
+Make sure calls to t(...) match the actual structure in activities.json.
+
+==================================================
+REQUIRED DETAIL TRANSLATIONS
+==================================================
+
+Ensure the following concepts display correctly.
+
+SPANISH:
+
+Back:
+"Volver"
+
+Share:
+"Compartir"
+
+Organizer:
+"Organiza"
+
+Date:
+"Fecha y hora"
+
+Location:
+"Lugar"
+
+Participants:
+"Participantes"
+
+Cost:
+"Coste"
+
+Description:
+"Descripción"
+
+Unlimited:
+"Sin límite"
+
+Link copied:
+"Enlace copiado"
+
+Loading:
+"Cargando plan..."
+
+Not found:
+"Plan no encontrado"
+
+Generic load error:
+"No hemos podido cargar este plan."
+
+Share error:
+"No hemos podido compartir el plan."
+
+ENGLISH:
+
+Back:
+"Back"
+
+Share:
+"Share"
+
+Organizer:
+"Organized by"
+
+Date:
+"Date & time"
+
+Location:
+"Location"
+
+Participants:
+"Participants"
+
+Cost:
+"Cost"
+
+Description:
+"Description"
+
+Unlimited:
+"No limit"
+
+Link copied:
+"Link copied"
+
+Loading:
+"Loading plan..."
+
+Not found:
+"Plan not found"
+
+Generic load error:
+"We couldn't load this plan."
+
+Share error:
+"We couldn't share the plan."
+
+==================================================
+PARTICIPANT TEXT
+==================================================
+
+Fix the participant summary currently displaying a raw key.
+
+For LIMITED activities, display a natural translated value such as:
+
+Spanish:
+"1 de 2 participantes"
+
+English:
+"1 of 2 participants"
+
+Use the real:
+
+memberCount
+maxParticipants
+
+values.
+
+For UNLIMITED activities:
+
+Spanish:
+"1 participante · Sin límite"
+
+English:
+"1 participant · No limit"
+
+Handle singular/plural naturally if the existing implementation already
+has suitable i18n support.
+
+Do not hardcode activity counts.
+
+==================================================
+PRESERVE EVERYTHING ELSE
+==================================================
+
+Do NOT redesign the page.
+
+Preserve:
+
+- title
+- category/subcategory chips
+- organizer data
+- locale-aware date/time
+- physical/online location
+- participant counts
+- cost
+- description
+- share behavior
+- back navigation
+- responsive design
+
+Do not change API requests or data loading.
+
+==================================================
+VALIDATION
+==================================================
+
+After implementing:
+
+1. Review git diff.
+2. Confirm ONLY the three allowed files changed.
+3. Run frontend TypeScript/typecheck/build.
+4. Validate both locale JSON files.
+5. Confirm no visible raw `detail.*` keys remain.
+6. Confirm Spanish detail page renders all labels in Spanish.
+7. Confirm English detail page renders all labels in English.
+8. Confirm participant count uses the real values.
+9. Confirm taxonomy translations still work.
+10. Confirm Share behavior was not changed.
+
+Report:
+- root cause
+- exact files changed
+- translation keys fixed/added
+- validation result
+
+DO NOT publish.
+DO NOT redeploy.

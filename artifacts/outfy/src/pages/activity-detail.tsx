@@ -76,7 +76,7 @@ export function ActivityDetail() {
       try {
         await navigator.share({
           title: activity.title,
-          text: t('detail.shareInvitation'),
+          text: t('create.detail.shareInvitation'),
           url,
         });
         return;
@@ -84,35 +84,35 @@ export function ActivityDetail() {
         if (error instanceof DOMException && error.name === 'AbortError') {
           return;
         }
-        setShareMessage(t('detail.shareError'));
+        setShareMessage(t('create.detail.shareError'));
         return;
       }
     }
 
     try {
       await navigator.clipboard.writeText(url);
-      setShareMessage(t('detail.linkCopied'));
+      setShareMessage(t('create.detail.linkCopied'));
     } catch {
-      setShareMessage(t('detail.shareError'));
+      setShareMessage(t('create.detail.shareError'));
     }
   }
 
   if (loadState !== 'ready' || !activity) {
     const title =
       loadState === 'loading'
-        ? t('detail.loading')
+        ? t('create.detail.loading')
         : loadState === 'not-found'
-          ? t('detail.notFoundTitle')
+          ? t('create.detail.notFoundTitle')
           : loadState === 'unauthorized'
-            ? t('detail.sessionErrorTitle')
-            : t('detail.loadErrorTitle');
+            ? t('create.detail.sessionErrorTitle')
+            : t('create.detail.loadErrorTitle');
     const message =
       loadState === 'not-found'
-        ? t('detail.notFoundMessage')
+        ? t('create.detail.notFoundMessage')
         : loadState === 'unauthorized'
-          ? t('detail.sessionErrorMessage')
+          ? t('create.detail.sessionErrorMessage')
           : loadState === 'error'
-            ? t('detail.loadErrorMessage')
+            ? t('create.detail.loadErrorMessage')
             : '';
 
     return (
@@ -130,7 +130,7 @@ export function ActivityDetail() {
             onClick={() => navigate('/')}
             className="mt-7 rounded-full bg-primary px-5 py-3 text-sm font-bold text-primary-foreground"
           >
-            {t('detail.backHome')}
+            {t('create.detail.backHome')}
           </button>
         )}
       </section>
@@ -170,21 +170,21 @@ export function ActivityDetail() {
   const organizer =
     activity.organizer.displayName ||
     activity.organizer.username ||
-    t('detail.unknownOrganizer');
+    t('create.detail.unknownOrganizer');
   const location =
     activity.locationType === 'physical'
       ? [activity.city, activity.meetingPoint].filter(Boolean).join(' · ')
-      : activity.onlinePlatform || t('detail.onlineNoPlatform');
+      : activity.onlinePlatform || t('create.detail.onlineNoPlatform');
   const locationType = t(`locationTypes.${activity.locationType}`);
   const participants =
     activity.participationMode === 'limited'
-      ? t('detail.participantsLimited', {
+      ? t('create.detail.participantsLimited', {
           count: activity.memberCount,
           max: activity.maxParticipants,
         })
-      : `${t('detail.participantsUnlimited', {
+      : `${t('create.detail.participantsUnlimited', {
           count: activity.memberCount,
-        })} · ${t('detail.unlimited')}`;
+        })} · ${t('create.detail.unlimited')}`;
   const cost =
     activity.costType === 'free'
       ? t('create.cost.free')
@@ -201,7 +201,7 @@ export function ActivityDetail() {
           className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground transition hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4" />
-          {t('detail.back')}
+          {t('create.detail.back')}
         </button>
         <button
           type="button"
@@ -209,7 +209,7 @@ export function ActivityDetail() {
           className="inline-flex items-center gap-2 rounded-full border border-primary/40 px-4 py-2 text-xs font-bold text-primary transition hover:bg-primary/10"
         >
           <Share2 className="h-4 w-4" />
-          {t('detail.share')}
+          {t('create.detail.share')}
         </button>
       </div>
 
@@ -239,24 +239,24 @@ export function ActivityDetail() {
         </header>
 
         <div className="grid gap-4 p-6 sm:grid-cols-2 sm:p-9">
-          <DetailItem icon={CalendarDays} label={t('detail.date')}>
+          <DetailItem icon={CalendarDays} label={t('create.detail.date')}>
             {startsLabel}
             {endsLabel ? ` – ${endsLabel}` : ''}
           </DetailItem>
-          <DetailItem icon={MapPin} label={t('detail.location')}>
+          <DetailItem icon={MapPin} label={t('create.detail.location')}>
             {locationType} · {location}
           </DetailItem>
-          <DetailItem icon={Users} label={t('detail.participants')}>
+          <DetailItem icon={Users} label={t('create.detail.participants')}>
             {participants}
           </DetailItem>
-          <DetailItem icon={CircleDollarSign} label={t('detail.cost')}>
+          <DetailItem icon={CircleDollarSign} label={t('create.detail.cost')}>
             {cost}
           </DetailItem>
 
           {activity.description && (
             <section className="mt-3 border-t border-border pt-6 sm:col-span-2">
               <h2 className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">
-                {t('detail.description')}
+                {t('create.detail.description')}
               </h2>
               <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-foreground">
                 {activity.description}
