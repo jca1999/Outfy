@@ -1,0 +1,609 @@
+We are continuing development of Outfy.
+
+The current Profile/HomeLocation flow is working correctly and the Spain location selector has been corrected to use Province -> City.
+
+The next step is to implement the DATABASE FOUNDATION for real activities.
+
+This task will create the Supabase migration for:
+
+- activities
+- activity_members
+- constraints
+- indexes
+- RLS
+- automatic organizer membership
+
+IMPORTANT:
+
+CREATE THE MIGRATION FILE ONLY.
+
+DO NOT EXECUTE THE MIGRATION.
+DO NOT APPLY SQL TO THE LIVE SUPABASE DATABASE.
+DO NOT CONNECT THE CREATE PLAN UI YET.
+DO NOT IMPLEMENT PUBLISHING YET.
+
+==================================================
+MODE / SAFETY
+==================================================
+
+STRICT SAFETY SCOPE.
+
+You may CREATE ONLY:
+
+supabase/migrations/007_activities.sql
+
+You may READ any project files necessary to verify:
+
+- existing migration numbering
+- current Supabase architecture
+- current Create Plan fields
+- activity-taxonomy.ts
+- current user/auth ID structure
+
+DO NOT modify any existing file.
+
+In particular DO NOT modify:
+
+- migrations 001-006
+- frontend code
+- backend/API code
+- auth code
+- LocationPicker
+- Profile
+- Home
+- Create Plan
+- App.tsx
+- package.json
+- dependencies
+- .replit
+- workflows
+- ports
+- deployment
+- environment variables
+
+DO NOT publish.
+DO NOT redeploy.
+DO NOT execute SQL.
+
+If migration 007 already exists, STOP and report it rather than overwriting it.
+
+==================================================
+FIRST — VERIFY CURRENT STATE
+==================================================
+
+Before creating the migration:
+
+1. Confirm the latest checked-in migration number.
+2. Confirm 006_profile_schema_reconciliation.sql exists.
+3. Verify that activities/activity_members are not already defined in checked-in migrations.
+4. Read the current Create Plan form and activity-taxonomy.ts so the database model matches the existing UI.
+
+If there is a major incompatibility with the schema below, STOP and explain it rather than silently inventing a different model.
+
+==================================================
+TABLE 1 — public.activities
+==================================================
+
+Create:
+
+public.activities
+
+Recommended columns:
+
+id
+- uuid
+- primary key
+- default gen_random_uuid()
+
+creator_id
+- uuid
+- NOT NULL
+- references auth.users(id)
+- on delete cascade
+
+title
+- text
+- NOT NULL
+
+description
+- text
+- nullable
+
+category
+- text
+- NOT NULL
+
+subcategory
+- text
+- NOT NULL
+
+starts_at
+- timestamptz
+- NOT NULL
+
+ends_at
+- timestamptz
+- nullable
+
+timezone_name
+- text
+- NOT NULL
+
+location_type
+- text
+- NOT NULL
+
+country_code
+- text
+- nullable
+
+region_code
+- text
+- nullable
+
+region_name
+- text
+- nullable
+
+city
+- text
+- nullable
+
+latitude
+- double precision
+- nullable
+
+longitude
+- double precision
+- nullable
+
+meeting_point
+- text
+- nullable
+
+online_platform
+- text
+- nullable
+
+participation_mode
+- text
+- NOT NULL
+- default 'limited'
+
+max_participants
+- integer
+- nullable
+
+cost_type
+- text
+- NOT NULL
+- default 'free'
+
+estimated_cost
+- numeric(10,2)
+- nullable
+
+currency
+- text
+- nullable
+
+status
+- text
+- NOT NULL
+- default 'active'
+
+created_at
+- timestamptz
+- NOT NULL
+- default now()
+
+updated_at
+- timestamptz
+- NOT NULL
+- default now()
+
+==================================================
+ACTIVITY CONSTRAINTS
+==================================================
+
+Add sensible database CHECK constraints.
+
+TITLE
+
+Trimmed title must not be empty.
+
+If the current Create Plan UI already defines a title maximum length, match it.
+
+If it does not, use a reasonable initial limit of 120 characters.
+
+DESCRIPTION
+
+If the current UI already defines a maximum, match it.
+
+Otherwise use a reasonable safety limit without making normal activity descriptions impractical.
+
+CATEGORY / SUBCATEGORY
+
+Store stable taxonomy IDs as text.
+
+DO NOT store translated labels.
+
+DO NOT create a PostgreSQL enum containing every taxonomy item.
+
+Taxonomy evolution should not require a database enum migration.
+
+LOCATION TYPE
+
+Allowed:
+
+physical
+online
+
+Physical activities:
+
+- city must be present and non-empty
+
+Online activities:
+
+- physical location fields may be null
+- online_platform remains optional
+
+Do NOT require coordinates because manually entered cities may not have them yet.
+
+Validate coordinates when present:
+
+latitude between -90 and 90
+longitude between -180 and 180
+
+TIME
+
+If ends_at is present:
+
+ends_at must be greater than starts_at.
+
+PARTICIPATION MODE
+
+Allowed:
+
+limited
+unlimited
+
+If limited:
+
+max_participants must be >= 2
+
+If unlimited:
+
+max_participants must be NULL
+
+IMPORTANT:
+For this model, max_participants represents the TOTAL number of members in the activity, including the organizer.
+
+COST TYPE
+
+Allowed:
+
+free
+paid
+each_own
+
+For free:
+
+estimated_cost must be NULL
+currency must be NULL
+
+For paid:
+
+estimated_cost must be > 0
+currency must be present and non-empty
+
+For each_own:
+
+estimated_cost and currency may remain NULL.
+
+Do NOT restrict the database permanently to only EUR/USD.
+
+Currency should be stored using an uppercase ISO-style code.
+
+STATUS
+
+Allowed:
+
+active
+completed
+cancelled
+
+No hard-delete UI behavior is being implemented yet.
+
+==================================================
+TABLE 2 — public.activity_members
+==================================================
+
+Create:
+
+public.activity_members
+
+Columns:
+
+activity_id
+- uuid
+- NOT NULL
+- references public.activities(id)
+- on delete cascade
+
+user_id
+- uuid
+- NOT NULL
+- references auth.users(id)
+- on delete cascade
+
+role
+- text
+- NOT NULL
+- default 'participant'
+
+joined_at
+- timestamptz
+- NOT NULL
+- default now()
+
+Use a composite primary key:
+
+(activity_id, user_id)
+
+Allowed roles:
+
+organizer
+participant
+
+This must prevent duplicate memberships automatically.
+
+==================================================
+AUTOMATIC ORGANIZER MEMBERSHIP
+==================================================
+
+When an activity is created, its creator must automatically become a member with:
+
+role = 'organizer'
+
+Implement this at DATABASE LEVEL.
+
+Prefer an AFTER INSERT trigger on public.activities.
+
+The trigger must insert:
+
+activity_id = NEW.id
+user_id = NEW.creator_id
+role = 'organizer'
+
+Make this safe and deterministic.
+
+If a SECURITY DEFINER function is used:
+
+- set an explicit safe search_path
+- schema-qualify important objects
+- do not expose unnecessary execution permissions
+
+The organizer invariant must not depend on the frontend remembering to make a second insert.
+
+==================================================
+UPDATED_AT
+==================================================
+
+Ensure updated_at changes automatically when an activity row is updated.
+
+Use a small trigger/function if appropriate.
+
+Do not modify unrelated tables.
+
+==================================================
+INDEXES
+==================================================
+
+Add useful initial indexes for expected Outfy queries.
+
+At minimum consider:
+
+activities creator_id
+
+activities status + starts_at
+
+activities city + status + starts_at
+
+activities category + status + starts_at
+
+activity_members user_id
+
+Do not add excessive speculative indexes.
+
+The primary key already covers:
+
+activity_members(activity_id, user_id)
+
+==================================================
+RLS — ACTIVITIES
+==================================================
+
+Enable RLS on:
+
+public.activities
+
+Initial policies should support future authenticated access even though the current API uses a privileged server-side Supabase client.
+
+READ
+
+Authenticated users may read active activities.
+
+Creators should also be able to read their own activities regardless of active/completed/cancelled state.
+
+INSERT
+
+Authenticated users may create an activity only when:
+
+creator_id = auth.uid()
+
+UPDATE
+
+Authenticated users may update only activities they created.
+
+Ensure ownership cannot be changed to another user.
+
+DELETE
+
+Do NOT create a normal authenticated hard-delete policy in this first version.
+
+Cancellation will eventually be implemented by updating status.
+
+==================================================
+RLS — ACTIVITY MEMBERS
+==================================================
+
+Enable RLS on:
+
+public.activity_members
+
+READ
+
+Create an initial sensible policy allowing authenticated users to read membership information for activities they are allowed to view.
+
+Be careful to avoid RLS recursion.
+
+JOIN
+
+Authenticated users may insert ONLY themselves:
+
+user_id = auth.uid()
+
+and normal self-join must use:
+
+role = 'participant'
+
+A client must NOT be able to insert themselves as organizer.
+
+The automatic activity-creator trigger is responsible for organizer membership.
+
+LEAVE
+
+Users may delete their own PARTICIPANT membership.
+
+Do NOT allow the organizer membership to be removed using the normal self-leave policy.
+
+ROLE CHANGES
+
+Do NOT allow normal authenticated clients to arbitrarily change membership roles.
+
+Do not add a broad UPDATE policy for activity_members.
+
+==================================================
+IMPORTANT CAPACITY NOTE
+==================================================
+
+Do NOT try to implement safe participant-capacity enforcement through simple RLS in this migration.
+
+Concurrent joining will later require an atomic RPC/server operation.
+
+The database should contain max_participants, but the real join operation will be implemented later.
+
+==================================================
+SECURITY ARCHITECTURE
+==================================================
+
+The current Outfy API uses a privileged server-side Supabase client.
+
+This means server operations may bypass normal RLS.
+
+That is expected.
+
+RLS should still exist as defense in depth and for potential future authenticated direct access.
+
+Do NOT:
+
+- expose service-role credentials
+- put Supabase admin keys in frontend code
+- alter the existing authentication architecture
+
+==================================================
+COMMENTS / MAINTAINABILITY
+==================================================
+
+Add concise SQL comments where they genuinely help explain:
+
+- stable taxonomy IDs
+- organizer membership trigger
+- meaning of max_participants
+- important RLS behavior
+
+Do not over-comment obvious SQL.
+
+==================================================
+MIGRATION SAFETY
+==================================================
+
+This is a NEW migration intended for a database that does not yet have these tables.
+
+Do not edit old migrations.
+
+Do not silently DROP existing objects.
+
+Where appropriate, make helper functions/triggers safely replaceable, but do not hide unexpected table conflicts.
+
+If public.activities or public.activity_members already exist in the live database, REPORT THIS and do not attempt destructive reconciliation.
+
+==================================================
+VALIDATION
+==================================================
+
+After creating the migration:
+
+1. Review git diff.
+
+2. Confirm ONLY this file was created:
+
+supabase/migrations/007_activities.sql
+
+3. Confirm no existing file changed.
+
+4. Perform static SQL review for:
+   - valid PostgreSQL/Supabase syntax
+   - foreign keys
+   - constraints
+   - indexes
+   - RLS
+   - policies
+   - triggers
+   - SECURITY DEFINER safety if used
+
+5. Confirm:
+   - creator_id references auth.users(id)
+   - creator automatically becomes organizer
+   - duplicate memberships are impossible
+   - translated taxonomy labels are not stored
+   - unlimited plans use max_participants NULL
+   - physical/online rules are represented
+   - cost rules are represented
+   - timestamps use timestamptz
+   - no hard-delete policy exists
+   - no capacity/join RPC has been invented yet
+
+6. DO NOT execute the migration.
+
+==================================================
+REPORT BACK
+==================================================
+
+Report:
+
+1. Exact file created.
+2. Full table structures.
+3. Constraints added.
+4. Indexes added.
+5. RLS policies added.
+6. How organizer membership is created.
+7. How updated_at is maintained.
+8. Any design decision or limitation.
+9. Confirmation that the migration was NOT executed.
+10. Confirmation that no other file changed.
+
+DO NOT publish.
+DO NOT redeploy.
+DO NOT execute SQL.
