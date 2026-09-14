@@ -1,0 +1,1001 @@
+We are continuing development of Outfy.
+
+PROFILE AVATAR FOUNDATION IS ALREADY LIVE.
+
+Migration 010_profile_avatar_storage has ALREADY been applied successfully.
+
+Current live Supabase state:
+
+public.profiles:
+- avatar_path text nullable
+
+Constraint:
+- avatar_path may only be NULL or:
+  {profile.id}/avatar.webp
+
+Private Storage bucket:
+
+avatars
+
+Configuration:
+- public = false
+- file_size_limit = 1048576 bytes
+- allowed_mime_types = image/webp
+
+DO NOT modify the database or this migration.
+
+==================================================
+MAIN GOAL
+==================================================
+
+Implement the COMPLETE first version of profile avatar customization:
+
+1. User selects an image.
+2. User sees a crop editor BEFORE uploading.
+3. User can move/reposition the image.
+4. User can zoom in/out.
+5. User can see how the avatar will look as a circle.
+6. User confirms.
+7. Browser generates a cropped 512x512 WebP.
+8. ONLY that processed WebP is sent to the Outfy API.
+9. API uploads it to the private Supabase avatars bucket.
+10. profiles.avatar_path is updated.
+11. Profile immediately displays the new avatar.
+12. User can later replace it.
+13. User can remove it and return to the existing default/initials avatar.
+
+The ORIGINAL source image must NEVER be uploaded to Supabase.
+
+==================================================
+IMPORTANT — INSPECT FIRST
+==================================================
+
+Before modifying code:
+
+Inspect the existing project and identify:
+
+- current Profile page component
+- current Profile API/frontend data module
+- current backend profile/auth routes
+- existing authenticated-session helper
+- existing privileged Supabase server client
+- current avatar/initials rendering in Profile
+- existing Profile ES/EN translation files
+- whether a suitable image crop dependency already exists
+
+Reuse existing architecture.
+
+Do NOT create duplicate profile systems.
+
+==================================================
+ALLOWED FILES
+==================================================
+
+You may modify ONLY the minimum files genuinely required among:
+
+- existing backend Profile/Auth route file
+- existing frontend Profile API module
+- existing Profile page/component
+- existing ES Profile translation file
+- existing EN Profile translation file
+
+PLUS ONLY IF REQUIRED for the cropper dependency:
+
+- package.json
+- the existing package manager lockfile
+
+If there is already a suitable crop library installed, reuse it and do NOT
+change package files.
+
+Do NOT modify unrelated files.
+
+==================================================
+DO NOT TOUCH
+==================================================
+
+DO NOT modify:
+
+- Supabase migrations
+- schema
+- RLS
+- Storage policies
+- activity routes
+- Activity Detail
+- Explore
+- Create Plan
+- Join/Leave
+- My Plans / Upcoming logic
+- Home
+- Settings unless the Profile avatar UI already lives there
+- App.tsx
+- routing
+- workflows
+- .replit
+- deployment
+- ports
+- environment variables
+
+DO NOT execute SQL.
+
+DO NOT publish or redeploy.
+
+==================================================
+CROPPER DEPENDENCY
+==================================================
+
+First check whether a suitable crop component already exists.
+
+If none exists, use:
+
+react-easy-crop
+
+Do NOT add a large image-editing framework.
+
+The dependency must only be used for selecting crop position / zoom.
+
+Actual final image generation must use the browser Canvas API.
+
+==================================================
+PROFILE AVATAR UX
+==================================================
+
+Preserve the current Profile design.
+
+The existing avatar area should become interactive.
+
+When there is NO custom avatar:
+
+preserve the current default avatar / initials behavior.
+
+Add a small theme-aware edit/camera affordance.
+
+When there IS a custom avatar:
+
+show the real avatar cropped visually as a circle.
+
+Use:
+
+object-fit: cover
+
+and keep the existing Outfy visual language.
+
+Do NOT use black hardcoded icons.
+
+Use theme semantic colors.
+
+==================================================
+CHANGE PHOTO ACTION
+==================================================
+
+Provide:
+
+Spanish:
+"Cambiar foto"
+
+English:
+"Change photo"
+
+If no custom photo exists, the wording may be:
+
+Spanish:
+"Añadir foto"
+
+English:
+"Add photo"
+
+Use the most natural state-specific wording.
+
+Selecting it opens the native file chooser.
+
+==================================================
+FILE INPUT
+==================================================
+
+Accept only source formats we can reliably process:
+
+image/jpeg
+image/png
+image/webp
+
+Do NOT accept:
+
+SVG
+GIF
+arbitrary files
+
+Use a hidden normal file input.
+
+Do not upload immediately after selection.
+
+==================================================
+SOURCE FILE LIMIT
+==================================================
+
+Before decoding the source image, reject extremely large files.
+
+Use a sensible source limit:
+
+15 MiB maximum.
+
+This limit applies ONLY to the local source selected by the user.
+
+It does NOT change the Supabase bucket's 1 MiB processed-output limit.
+
+Localized error:
+
+Spanish:
+"La imagen es demasiado grande. Elige una de menos de 15 MB."
+
+English:
+"The image is too large. Choose one under 15 MB."
+
+==================================================
+INVALID FORMAT
+==================================================
+
+If unsupported:
+
+Spanish:
+"Usa una imagen JPG, PNG o WebP."
+
+English:
+"Use a JPG, PNG or WebP image."
+
+Do not attempt to process SVG/GIF.
+
+==================================================
+CROP MODAL
+==================================================
+
+After selecting a valid image:
+
+DO NOT upload it.
+
+Open a modal/sheet containing the crop editor.
+
+The user must be able to:
+
+- drag image horizontally
+- drag image vertically
+- zoom in
+- zoom out
+
+It must work with:
+
+- mouse
+- touch
+- mobile
+
+==================================================
+CROP SHAPE
+==================================================
+
+The stored result is:
+
+SQUARE 1:1
+
+The editor should visually show the intended avatar as:
+
+CIRCULAR
+
+For example, if using react-easy-crop:
+
+- aspect = 1
+- cropShape = round
+
+The generated file must still be a normal square 512x512 image.
+
+Do NOT permanently make the image itself circular or transparent-mask it.
+
+The UI displays it circularly.
+
+This allows the same image file to be reused elsewhere later.
+
+==================================================
+ZOOM
+==================================================
+
+Include an obvious zoom control.
+
+A slider is appropriate.
+
+Use a sensible range similar to:
+
+1x to 3x
+
+The exact values may follow the crop library's requirements.
+
+The user must not be able to leave empty space inside the crop.
+
+==================================================
+PREVIEW
+==================================================
+
+The user specifically needs to see how the final avatar will look BEFORE
+saving it.
+
+The crop editor's round crop mask is required.
+
+Additionally, if cleanly feasible, show a small circular preview such as:
+
+"Vista previa" / "Preview"
+
+that reflects the selected crop.
+
+Do not upload anything to generate the preview.
+
+Use local object URLs / Canvas only.
+
+==================================================
+CROP MODAL ACTIONS
+==================================================
+
+Provide:
+
+Spanish:
+"Cancelar"
+"Guardar foto"
+
+English:
+"Cancel"
+"Save photo"
+
+Cancel:
+
+- closes editor
+- uploads nothing
+- preserves current avatar
+- cleans temporary object URLs/resources
+
+Save:
+
+- generates final processed avatar
+- uploads it
+- shows loading state
+- prevents duplicate clicks
+
+==================================================
+IMAGE OUTPUT
+==================================================
+
+When saving:
+
+Generate a new Canvas output at exactly:
+
+512 x 512 pixels
+
+Draw ONLY the selected cropped region.
+
+Encode as:
+
+image/webp
+
+Start with approximately:
+
+0.82 quality
+
+The final Blob must be:
+
+- image/webp
+- <= 1048576 bytes
+
+Do NOT upload the original source file.
+
+==================================================
+OUTPUT SIZE SAFETY
+==================================================
+
+512x512 WebP should normally be far below 1 MiB.
+
+Still verify the generated Blob size.
+
+If it is over 1 MiB:
+
+retry encoding at progressively lower reasonable WebP quality.
+
+Do not reduce below a visibly poor quality without reporting an error.
+
+A simple quality fallback such as approximately:
+
+0.82
+0.75
+0.68
+
+is enough.
+
+Do NOT build complex compression infrastructure.
+
+If it still exceeds 1 MiB:
+
+show a friendly processing error and upload nothing.
+
+==================================================
+IMAGE ORIENTATION
+==================================================
+
+Use normal modern browser image decoding so mobile photos display in their
+correct visual orientation.
+
+Do not manually rotate images unless current browser decoding requires it.
+
+Do not introduce an EXIF dependency unless absolutely necessary.
+
+==================================================
+BACKEND API
+==================================================
+
+Implement authenticated endpoints following the EXISTING Profile API route
+conventions.
+
+Recommended semantics:
+
+PUT /api/profile/avatar
+DELETE /api/profile/avatar
+GET /api/profile/avatar
+
+If the project has a better established `/api/me/...` convention, follow that
+instead.
+
+Do NOT create duplicate route architecture.
+
+==================================================
+UPLOAD REQUEST
+==================================================
+
+Preferred upload payload:
+
+raw image/webp request body
+
+because the browser already sends the FINAL processed WebP.
+
+Do NOT wrap the image in base64 JSON.
+
+Do NOT send the original image.
+
+If the existing server framework has a safe established multipart mechanism,
+it may be reused, but do NOT add a multipart dependency solely for one processed
+blob if raw binary bodies are straightforward.
+
+==================================================
+UPLOAD BACKEND SECURITY
+==================================================
+
+Authentication required.
+
+Derive user ID ONLY from the existing Outfy authenticated server session.
+
+The browser must NEVER send:
+
+userId
+profileId
+avatarPath
+
+as trusted identity information.
+
+Canonical path MUST be constructed SERVER-SIDE:
+
+`${authenticatedUserId}/avatar.webp`
+
+==================================================
+SERVER VALIDATION
+==================================================
+
+Before uploading verify:
+
+1. authenticated session exists
+2. content type is exactly image/webp
+3. body is not empty
+4. body <= 1048576 bytes
+5. binary content actually resembles a WebP file
+
+At minimum verify WebP container signature:
+
+bytes 0-3:
+RIFF
+
+bytes 8-11:
+WEBP
+
+Do NOT trust Content-Type alone.
+
+Reject invalid content safely.
+
+Do not expose raw Supabase/Postgres errors.
+
+==================================================
+STORAGE UPLOAD
+==================================================
+
+Upload through the EXISTING privileged server-side Supabase client to:
+
+bucket:
+avatars
+
+path:
+{authenticatedUserId}/avatar.webp
+
+Use overwrite/upsert behavior.
+
+The user should NOT accumulate:
+
+avatar1.webp
+avatar2.webp
+avatar3.webp
+
+There is only one canonical avatar object per account.
+
+Set:
+
+contentType = image/webp
+
+==================================================
+DATABASE UPDATE
+==================================================
+
+Only after successful Storage upload:
+
+update the authenticated user's:
+
+public.profiles.avatar_path
+
+to exactly:
+
+{authenticatedUserId}/avatar.webp
+
+Never accept the path from the frontend.
+
+==================================================
+FAILURE CONSISTENCY
+==================================================
+
+If Storage upload succeeds but updating profiles.avatar_path fails:
+
+perform best-effort cleanup or otherwise ensure the API does not falsely report
+success.
+
+Do not leave the profile pointing to an invalid file.
+
+Return a safe generic error.
+
+==================================================
+PRIVATE AVATAR READ
+==================================================
+
+The avatars bucket is PRIVATE.
+
+Do NOT change it to public.
+
+To display the current user's avatar:
+
+server reads profiles.avatar_path.
+
+If NULL:
+return avatarUrl = null
+
+If present:
+generate a temporary signed URL using the privileged Supabase server client.
+
+Use a reasonable lifetime such as:
+
+1 hour
+
+Do NOT persist signed URLs in public.profiles.
+
+Only avatar_path is persisted.
+
+==================================================
+GET AVATAR RESPONSE
+==================================================
+
+Return conceptually:
+
+{
+  avatarUrl: string | null
+}
+
+Do not expose service-role information.
+
+Do not expose another user's private data in this task.
+
+This endpoint is ONLY for the authenticated user's own avatar for now.
+
+==================================================
+UPLOAD RESPONSE
+==================================================
+
+After successful upload return enough information for immediate UI update,
+preferably a fresh signed URL:
+
+{
+  avatarUrl: "..."
+}
+
+The Profile should update immediately without a full-page reload.
+
+==================================================
+DELETE AVATAR
+==================================================
+
+Authenticated endpoint.
+
+Derive path server-side.
+
+Set:
+
+profiles.avatar_path = NULL
+
+Then remove:
+
+{authenticatedUserId}/avatar.webp
+
+from the avatars bucket.
+
+For consistency, prefer an order that never leaves the profile permanently
+pointing to a deleted file.
+
+If object removal fails after the profile path was cleared:
+
+do not restore a broken profile path.
+
+A private orphan at the canonical path is acceptable as a temporary cleanup
+issue because the next upload overwrites the same path.
+
+Return success if the user's profile has safely returned to no-avatar state.
+
+==================================================
+DELETE UI
+==================================================
+
+If a custom avatar exists, provide:
+
+Spanish:
+"Eliminar foto"
+
+English:
+"Remove photo"
+
+Require a small confirmation before deletion.
+
+Example:
+
+Spanish:
+"¿Eliminar tu foto de perfil?"
+
+English:
+"Remove your profile photo?"
+
+Do not make deletion easy to trigger accidentally.
+
+After deletion:
+
+- avatarUrl becomes null
+- current default/initials avatar appears again immediately
+
+==================================================
+CACHE / REPLACEMENT
+==================================================
+
+Replacing an avatar must visually show the NEW image immediately.
+
+Do not let the browser display the previous cached image.
+
+A newly generated signed URL or safe cache-busting mechanism is acceptable.
+
+Do not create versioned Storage files.
+
+Canonical Storage path remains unchanged.
+
+==================================================
+LOADING STATES
+==================================================
+
+While processing locally:
+
+Spanish:
+"Preparando foto..."
+
+English:
+"Preparing photo..."
+
+While uploading:
+
+Spanish:
+"Guardando foto..."
+
+English:
+"Saving photo..."
+
+While deleting:
+
+Spanish:
+"Eliminando..."
+
+English:
+"Removing..."
+
+Prevent duplicate operations.
+
+==================================================
+ERROR STATES
+==================================================
+
+Generic processing error:
+
+Spanish:
+"No hemos podido preparar la imagen."
+
+English:
+"We couldn't prepare the image."
+
+Upload error:
+
+Spanish:
+"No hemos podido guardar tu foto."
+
+English:
+"We couldn't save your photo."
+
+Delete error:
+
+Spanish:
+"No hemos podido eliminar tu foto."
+
+English:
+"We couldn't remove your photo."
+
+Do not expose raw API/Supabase errors.
+
+==================================================
+ACCESSIBILITY
+==================================================
+
+Ensure:
+
+- avatar edit action has accessible label
+- crop modal can be keyboard navigated
+- buttons are real buttons
+- Escape closes crop modal when safe
+- focus does not become trapped incorrectly
+- zoom slider has an accessible label
+- avatar img has appropriate alt text
+
+==================================================
+MOBILE UX
+==================================================
+
+This feature is especially important on mobile.
+
+Test:
+
+- selecting image
+- crop drag with finger
+- pinch/zoom if crop library supports it
+- zoom slider
+- circular crop view
+- modal height
+- Save/Cancel buttons
+- no horizontal overflow
+
+Do not let action buttons disappear below an unusable modal viewport.
+
+==================================================
+DO NOT IMPLEMENT YET
+==================================================
+
+Do NOT add avatars yet to:
+
+- Explore cards
+- Activity Detail organizer
+- participants
+- chat
+- messages
+- ratings
+- other users' profiles
+
+For this task:
+
+ONLY the current user's Profile avatar.
+
+Once the storage/upload system is proven, we will reuse it elsewhere.
+
+==================================================
+I18N
+==================================================
+
+All new visible strings must use the existing Profile translation namespace.
+
+Modify both ES and EN equivalently.
+
+Do not hardcode visible text.
+
+==================================================
+SECURITY REQUIREMENTS
+==================================================
+
+Confirm:
+
+- original image never reaches backend
+- backend receives only processed WebP
+- frontend sends no trusted user ID
+- server constructs canonical path
+- bucket remains private
+- no public Storage policy
+- no direct browser service-role use
+- no base64 stored in DB
+- no image binary stored in profiles
+- avatar_path remains the only persisted reference
+- server validates WebP magic bytes
+- server enforces <= 1 MiB
+
+==================================================
+MANDATORY TESTS
+==================================================
+
+TEST 1 — NO AVATAR
+
+Open Profile.
+
+Expected:
+existing default/initials avatar.
+
+==================================================
+TEST 2 — SELECT PHOTO
+
+Select a JPG/PNG/WebP.
+
+Expected:
+
+- crop editor opens
+- nothing is uploaded yet
+
+==================================================
+TEST 3 — CROP
+
+Move image left/right/up/down.
+
+Zoom in/out.
+
+Expected:
+round crop representation changes accordingly.
+
+==================================================
+TEST 4 — CANCEL
+
+Select an image, change crop, press Cancel.
+
+Expected:
+
+- current avatar unchanged
+- nothing uploaded
+
+==================================================
+TEST 5 — SAVE
+
+Select and crop image.
+
+Press Save.
+
+Expected:
+
+- output generated 512x512
+- WebP
+- <=1 MiB
+- upload succeeds
+- modal closes
+- Profile immediately shows custom avatar
+
+==================================================
+TEST 6 — RELOAD
+
+Reload Profile.
+
+Expected:
+same avatar loads from private Storage via signed URL.
+
+==================================================
+TEST 7 — REPLACE
+
+Change photo again.
+
+Expected:
+
+- new crop
+- same canonical Storage path
+- new image immediately visible
+- no accumulation of versioned avatar files
+
+==================================================
+TEST 8 — REMOVE
+
+Remove photo and confirm.
+
+Expected:
+
+- profiles.avatar_path becomes NULL
+- UI returns to default/initials avatar
+- canonical Storage object is removed/best-effort cleaned
+
+==================================================
+TEST 9 — INVALID FILE
+
+Try unsupported file.
+
+Expected:
+friendly localized error.
+No upload.
+
+==================================================
+TEST 10 — LARGE SOURCE
+
+Try source >15 MiB.
+
+Expected:
+rejected before processing/upload.
+
+==================================================
+TEST 11 — SERVER INVALID BODY
+
+Verify upload route rejects:
+
+- non-WebP content type
+- fake WebP content
+- body >1 MiB
+
+Do not place invalid files in Storage.
+
+==================================================
+REGRESSION TESTS
+==================================================
+
+Confirm after implementation:
+
+- Profile still loads normally
+- My Plans still works
+- Upcoming still works
+- Edit Profile still works
+- language switching still works
+- no activity feature changed
+
+==================================================
+FINAL VALIDATION
+==================================================
+
+1. Review git diff.
+2. Confirm only necessary allowed files changed.
+3. Confirm migration 010 was NOT modified.
+4. Confirm no SQL was executed.
+5. Run API typecheck/build.
+6. Run frontend typecheck/build.
+7. Validate ES/EN JSON.
+8. Confirm avatars bucket remains private.
+9. Confirm original images are never uploaded.
+10. Confirm final output is exactly 512x512 WebP.
+11. Confirm output <=1 MiB.
+12. Confirm canonical path is USER_ID/avatar.webp.
+13. Confirm replace/remove behavior.
+14. Confirm actual mobile crop interaction.
+
+==================================================
+REPORT BACK
+==================================================
+
+Report:
+
+1. Existing Profile/backend files identified.
+2. Exact files modified.
+3. Crop library reused/installed.
+4. Crop/zoom implementation.
+5. 512x512 WebP generation implementation.
+6. Compression behavior.
+7. Upload endpoint implementation.
+8. WebP binary validation.
+9. Private signed-URL implementation.
+10. Delete implementation.
+11. Profile UI implementation.
+12. Actual browser/mobile tests.
+13. API build/typecheck.
+14. Frontend build/typecheck.
+15. Any limitation discovered.
+
+DO NOT publish.
+DO NOT redeploy.

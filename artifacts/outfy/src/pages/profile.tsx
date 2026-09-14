@@ -1,14 +1,18 @@
 import {
   ArrowRight,
   CalendarDays,
+  Camera,
   Edit3,
+  Loader2,
   MapPin,
   RefreshCw,
   Settings as SettingsIcon,
+  Trash2,
   UserRound,
   Users,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import Cropper, { type Area } from 'react-easy-crop';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'wouter';
 
@@ -18,13 +22,97 @@ import {
   type MyCreatedActivity,
   type MyJoinedActivity,
 } from '@/activities/activity-api';
+import {
+  deleteProfileAvatar,
+  getProfileAvatar,
+  uploadProfileAvatar,
+} from '@/auth/auth-api';
 import { useAuth } from '@/auth/auth-context';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+
+const SOURCE_IMAGE_MAX_BYTES = 15 * 1024 * 1024;
+const AVATAR_OUTPUT_SIZE = 512;
+const AVATAR_OUTPUT_MAX_BYTES = 1048576;
+const SUPPORTED_SOURCE_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+]);
+
+async function loadLocalImage(source: string) {
+  const image = new Image();
+  image.src = source;
+  await image.decode();
+  return image;
+}
+
+function canvasToWebp(canvas: HTMLCanvasElement, quality: number) {
+  return new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, 'image/webp', quality);
+  });
+}
+
+async function createAvatarBlob(source: string, crop: Area) {
+  const image = await loadLocalImage(source);
+  const canvas = document.createElement('canvas');
+  canvas.width = AVATAR_OUTPUT_SIZE;
+  canvas.height = AVATAR_OUTPUT_SIZE;
+  const context = canvas.getContext('2d');
+
+  if (!context) {
+    throw new Error('Canvas is unavailable.');
+  }
+
+  context.drawImage(
+    image,
+    crop.x,
+    crop.y,
+    crop.width,
+    crop.height,
+    0,
+    0,
+    AVATAR_OUTPUT_SIZE,
+    AVATAR_OUTPUT_SIZE,
+  );
+
+  for (const quality of [0.82, 0.75, 0.68]) {
+    const blob = await canvasToWebp(canvas, quality);
+    if (
+      blob?.type === 'image/webp' &&
+      blob.size > 0 &&
+      blob.size <= AVATAR_OUTPUT_MAX_BYTES
+    ) {
+      return blob;
+    }
+  }
+
+  throw new Error('Unable to create a valid avatar.');
+}
 
 export function Profile() {
   const { t, i18n } = useTranslation(['profile', 'activities']);
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const [tab, setTab] = useState<'created' | 'upcoming'>('created');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const avatarVersionRef = useRef(0);
+  const localAvatarUrlRef = useRef<string | null>(null);
+  const avatarBusyRef = useRef(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [cropSource, setCropSource] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedArea, setCroppedArea] = useState<Area | null>(null);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [avatarOperation, setAvatarOperation] = useState<
+    'idle' | 'preparing' | 'uploading' | 'deleting'
+  >('idle');
 
   const [createdActivities, setCreatedActivities] = useState<MyCreatedActivity[]>([]);
   const [createdState, setCreatedState] = useState<
@@ -101,6 +189,169 @@ export function Profile() {
       active = false;
     };
   }, [tab]);
+
+  useEffect(() => {
+    let active = true;
+    const requestVersion = avatarVersionRef.current;
+
+    getProfileAvatar()
+      .then((result) => {
+        if (active && avatarVersionRef.current === requestVersion) {
+          setAvatarUrl(result.avatarUrl);
+        }
+      })
+      .catch(() => {
+        if (active && avatarVersionRef.current === requestVersion) {
+          setAvatarError(t('avatar.loadError'));
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [t]);
+
+  useEffect(() => {
+    return () => {
+      if (cropSource) URL.revokeObjectURL(cropSource);
+    };
+  }, [cropSource]);
+
+  useEffect(() => {
+    return () => {
+      if (localAvatarUrlRef.current) {
+        URL.revokeObjectURL(localAvatarUrlRef.current);
+      }
+    };
+  }, []);
+
+  const closeCropEditor = useCallback(() => {
+    setCropSource(null);
+    setCroppedArea(null);
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+  }, []);
+
+  const handleCropComplete = useCallback(
+    (_croppedArea: Area, croppedAreaPixels: Area) => {
+      setCroppedArea(croppedAreaPixels);
+    },
+    [],
+  );
+
+  function handleFileSelection(file: File | undefined) {
+    setAvatarError(null);
+    if (!file) return;
+
+    if (!SUPPORTED_SOURCE_TYPES.has(file.type)) {
+      setAvatarError(t('avatar.invalidFormat'));
+      return;
+    }
+
+    if (file.size > SOURCE_IMAGE_MAX_BYTES) {
+      setAvatarError(t('avatar.sourceTooLarge'));
+      return;
+    }
+
+    setCropSource(URL.createObjectURL(file));
+    setCrop({ x: 0, y: 0 });
+    setZoom(1);
+    setCroppedArea(null);
+  }
+
+  async function saveAvatar() {
+    if (
+      !cropSource ||
+      !croppedArea ||
+      avatarOperation !== 'idle' ||
+      avatarBusyRef.current
+    ) {
+      return;
+    }
+
+    let uploadStarted = false;
+    avatarBusyRef.current = true;
+    setAvatarError(null);
+    setAvatarOperation('preparing');
+    try {
+      const avatar = await createAvatarBlob(cropSource, croppedArea);
+      uploadStarted = true;
+      avatarVersionRef.current += 1;
+      setAvatarOperation('uploading');
+      const result = await uploadProfileAvatar(avatar);
+      if (localAvatarUrlRef.current) {
+        URL.revokeObjectURL(localAvatarUrlRef.current);
+        localAvatarUrlRef.current = null;
+      }
+      if (result.avatarUrl) {
+        setAvatarUrl(result.avatarUrl);
+      } else {
+        const localAvatarUrl = URL.createObjectURL(avatar);
+        localAvatarUrlRef.current = localAvatarUrl;
+        setAvatarUrl(localAvatarUrl);
+      }
+      closeCropEditor();
+    } catch {
+      if (uploadStarted) {
+        try {
+          const currentAvatar = await getProfileAvatar();
+          if (localAvatarUrlRef.current) {
+            URL.revokeObjectURL(localAvatarUrlRef.current);
+            localAvatarUrlRef.current = null;
+          }
+          setAvatarUrl(currentAvatar.avatarUrl);
+        } catch {
+          // Preserve the current UI if server-state reconciliation also fails.
+        }
+      }
+      setAvatarError(
+        uploadStarted
+          ? t('avatar.uploadError')
+          : t('avatar.processingError'),
+      );
+    } finally {
+      avatarBusyRef.current = false;
+      setAvatarOperation('idle');
+    }
+  }
+
+  async function removeAvatar() {
+    if (
+      avatarOperation !== 'idle' ||
+      avatarBusyRef.current ||
+      !window.confirm(t('avatar.removeConfirm'))
+    ) {
+      return;
+    }
+
+    avatarBusyRef.current = true;
+    avatarVersionRef.current += 1;
+    setAvatarError(null);
+    setAvatarOperation('deleting');
+    try {
+      await deleteProfileAvatar();
+      if (localAvatarUrlRef.current) {
+        URL.revokeObjectURL(localAvatarUrlRef.current);
+        localAvatarUrlRef.current = null;
+      }
+      setAvatarUrl(null);
+    } catch {
+      try {
+        const currentAvatar = await getProfileAvatar();
+        if (localAvatarUrlRef.current) {
+          URL.revokeObjectURL(localAvatarUrlRef.current);
+          localAvatarUrlRef.current = null;
+        }
+        setAvatarUrl(currentAvatar.avatarUrl);
+      } catch {
+        // Preserve the current UI if server-state reconciliation also fails.
+      }
+      setAvatarError(t('avatar.deleteError'));
+    } finally {
+      avatarBusyRef.current = false;
+      setAvatarOperation('idle');
+    }
+  }
 
   const visibleName =
     user?.displayName?.trim() ||
@@ -221,9 +472,70 @@ export function Profile() {
 
       <section className="rounded-[26px] border border-border bg-card p-6 soft-shadow sm:p-8">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-          <div className="flex h-24 w-24 shrink-0 items-center justify-center rounded-[28px] bg-primary text-2xl font-bold text-primary-foreground">
-            {initials || (
-              <UserRound className="h-8 w-8" />
+          <div className="flex shrink-0 flex-col items-center gap-3">
+            <div className="relative">
+              <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-primary text-2xl font-bold text-primary-foreground">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={t('avatar.alt')}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  initials || <UserRound className="h-8 w-8" />
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={avatarOperation !== 'idle'}
+                aria-label={
+                  avatarUrl ? t('avatar.changePhoto') : t('avatar.addPhoto')
+                }
+                title={
+                  avatarUrl ? t('avatar.changePhoto') : t('avatar.addPhoto')
+                }
+                className="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full border-4 border-card bg-primary text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Camera className="h-4 w-4" />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(event) => {
+                  handleFileSelection(event.target.files?.[0]);
+                  event.target.value = '';
+                }}
+              />
+            </div>
+
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={avatarOperation !== 'idle'}
+              className="text-xs font-bold text-primary transition hover:text-primary/80 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {avatarUrl ? t('avatar.changePhoto') : t('avatar.addPhoto')}
+            </button>
+
+            {avatarUrl && (
+              <button
+                type="button"
+                onClick={removeAvatar}
+                disabled={avatarOperation !== 'idle'}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-destructive transition hover:text-destructive/80 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {avatarOperation === 'deleting' ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="h-3.5 w-3.5" />
+                )}
+                {avatarOperation === 'deleting'
+                  ? t('avatar.removing')
+                  : t('avatar.removePhoto')}
+              </button>
             )}
           </div>
 
@@ -256,6 +568,15 @@ export function Profile() {
             </div>
           </div>
         </div>
+
+        {avatarError && (
+          <p
+            className="mt-5 rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
+            role="alert"
+          >
+            {avatarError}
+          </p>
+        )}
       </section>
 
       <section aria-labelledby="my-plans-title" className="space-y-4">
@@ -429,6 +750,94 @@ export function Profile() {
           </div>
         )}
       </section>
+
+      <Dialog
+        open={Boolean(cropSource)}
+        onOpenChange={(open) => {
+          if (!open && avatarOperation === 'idle') closeCropEditor();
+        }}
+      >
+        <DialogContent className="flex max-h-[92dvh] flex-col sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{t('avatar.cropTitle')}</DialogTitle>
+            <DialogDescription>
+              {t('avatar.cropDescription')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="relative h-[min(54vh,420px)] min-h-64 w-full overflow-hidden rounded-2xl bg-muted">
+            {cropSource && (
+              <Cropper
+                image={cropSource}
+                crop={crop}
+                zoom={zoom}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                minZoom={1}
+                maxZoom={3}
+                onCropChange={setCrop}
+                onZoomChange={setZoom}
+                onCropComplete={handleCropComplete}
+              />
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor="avatar-zoom"
+              className="text-xs font-bold text-muted-foreground"
+            >
+              {t('avatar.zoom')}
+            </label>
+            <input
+              id="avatar-zoom"
+              type="range"
+              min={1}
+              max={3}
+              step={0.01}
+              value={zoom}
+              onChange={(event) => setZoom(Number(event.target.value))}
+              className="w-full accent-primary"
+            />
+          </div>
+
+          {avatarError && (
+            <p
+              className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
+              role="alert"
+            >
+              {avatarError}
+            </p>
+          )}
+
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={closeCropEditor}
+              disabled={avatarOperation !== 'idle'}
+              className="rounded-full border border-border px-5 py-2.5 text-sm font-bold transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {t('avatar.cancel')}
+            </button>
+            <button
+              type="button"
+              onClick={saveAvatar}
+              disabled={!croppedArea || avatarOperation !== 'idle'}
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {avatarOperation !== 'idle' && (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              )}
+              {avatarOperation === 'preparing'
+                ? t('avatar.preparing')
+                : avatarOperation === 'uploading'
+                  ? t('avatar.saving')
+                  : t('avatar.savePhoto')}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -14,6 +14,28 @@
     "backToProfile": "Volver al perfil"
   },
 
+  "avatar": {
+    "alt": "Tu foto de perfil",
+    "addPhoto": "Añadir foto",
+    "changePhoto": "Cambiar foto",
+    "removePhoto": "Eliminar foto",
+    "removeConfirm": "¿Eliminar tu foto de perfil?",
+    "cropTitle": "Ajusta tu foto",
+    "cropDescription": "Mueve y amplía la imagen para elegir cómo se verá tu avatar.",
+    "zoom": "Zoom",
+    "cancel": "Cancelar",
+    "savePhoto": "Guardar foto",
+    "preparing": "Preparando foto…",
+    "saving": "Guardando foto…",
+    "removing": "Eliminando…",
+    "sourceTooLarge": "La imagen es demasiado grande. Elige una de menos de 15 MB.",
+    "invalidFormat": "Usa una imagen JPG, PNG o WebP.",
+    "processingError": "No hemos podido preparar la imagen.",
+    "uploadError": "No hemos podido guardar tu foto.",
+    "deleteError": "No hemos podido eliminar tu foto.",
+    "loadError": "No hemos podido cargar tu foto de perfil."
+  },
+
   "editProfile": {
     "eyebrow": "Tu perfil",
     "title": "Editar perfil",

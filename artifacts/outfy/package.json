@@ -77,6 +77,7 @@
   "dependencies": {
     "@countrystatecity/countries-browser": "^1.0.4",
     "i18next": "^26.4.1",
+    "react-easy-crop": "^5.5.6",
     "react-i18next": "^17.0.13"
   }
 }

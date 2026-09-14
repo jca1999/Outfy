@@ -46,6 +46,10 @@ export interface AuthMessageResponse {
   email?: string | null;
 }
 
+export interface ProfileAvatarResponse {
+  avatarUrl: string | null;
+}
+
 export class AuthApiError extends Error {
   status: number;
 
@@ -86,6 +90,32 @@ async function request<T>(
   }
 
   return payload as T;
+}
+
+async function avatarRequest(
+  init: RequestInit = {},
+): Promise<ProfileAvatarResponse> {
+  const response = await fetch('/api/auth/profile/avatar', {
+    ...init,
+    credentials: 'include',
+  });
+  const payload = (await response.json().catch(() => null)) as
+    | { error?: string }
+    | ProfileAvatarResponse
+    | null;
+
+  if (!response.ok) {
+    const message =
+      payload &&
+      typeof payload === 'object' &&
+      'error' in payload &&
+      typeof payload.error === 'string'
+        ? payload.error
+        : 'No se ha podido completar la solicitud.';
+    throw new AuthApiError(message, response.status);
+  }
+
+  return payload as ProfileAvatarResponse;
 }
 
 export function getSession() {
@@ -154,6 +184,24 @@ export function updateProfile(input: {
     method: 'PATCH',
     body: JSON.stringify(input),
   });
+}
+
+export function getProfileAvatar() {
+  return avatarRequest();
+}
+
+export function uploadProfileAvatar(avatar: Blob) {
+  return avatarRequest({
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'image/webp',
+    },
+    body: avatar,
+  });
+}
+
+export function deleteProfileAvatar() {
+  return avatarRequest({ method: 'DELETE' });
 }
 
 export function signOut() {

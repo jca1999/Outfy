@@ -1,5 +1,12 @@
 import { createHash } from "node:crypto";
-import { Router, type IRouter, type Request, type Response } from "express";
+import {
+  Router,
+  raw,
+  type IRouter,
+  type NextFunction,
+  type Request,
+  type Response,
+} from "express";
 import {
   getSupabaseAdmin,
   getSupabaseAuth,
@@ -14,6 +21,9 @@ const router: IRouter = Router();
 const ACCESS_COOKIE = "outfy_access_token";
 const REFRESH_COOKIE = "outfy_refresh_token";
 const RECOVERY_COOKIE = "outfy_recovery_token";
+const AVATAR_BUCKET = "avatars";
+const AVATAR_MAX_BYTES = 1048576;
+const AVATAR_SIGNED_URL_SECONDS = 60 * 60;
 const SESSION_COOKIE_OPTIONS = {
   httpOnly: true,
   sameSite: "lax" as const,
@@ -314,6 +324,54 @@ function sendError(response: Response, status: number, message: string) {
   response.status(status).json({ error: message });
 }
 
+const parseAvatarBody = raw({
+  type: "image/webp",
+  limit: AVATAR_MAX_BYTES,
+});
+
+function avatarBodyMiddleware(
+  request: Request,
+  response: Response,
+  next: NextFunction,
+) {
+  parseAvatarBody(request, response, (error) => {
+    if (!error) {
+      next();
+      return;
+    }
+
+    const parserError = error as { type?: string; status?: number };
+    if (
+      parserError.type === "entity.too.large" ||
+      parserError.status === 413
+    ) {
+      sendError(response, 413, "La imagen procesada es demasiado grande.");
+      return;
+    }
+
+    sendError(response, 400, "No se ha podido procesar la imagen.");
+  });
+}
+
+function avatarPathFor(userId: string) {
+  return `${userId}/avatar.webp`;
+}
+
+function isWebpBuffer(value: unknown): value is Buffer {
+  return (
+    Buffer.isBuffer(value) &&
+    value.length >= 12 &&
+    value.subarray(0, 4).toString("ascii") === "RIFF" &&
+    value.subarray(8, 12).toString("ascii") === "WEBP"
+  );
+}
+
+async function createAvatarSignedUrl(path: string) {
+  return getSupabaseAdmin()
+    .storage.from(AVATAR_BUCKET)
+    .createSignedUrl(path, AVATAR_SIGNED_URL_SECONDS);
+}
+
 function profileNotificationPreferences(
   profile?: ProfileLookup,
 ): NotificationPreferences {
@@ -524,6 +582,201 @@ router.get("/auth/session", async (request, response) => {
     clearSession(response);
     response.json({ authenticated: false, user: null });
   }
+});
+
+router.get("/auth/profile/avatar", async (request, response) => {
+  const session = await currentSession(request, response);
+  if (!session) {
+    sendError(response, 401, "Authentication required.");
+    return;
+  }
+
+  const canonicalPath = avatarPathFor(session.user.id);
+  const { data: profile, error: profileError } = await getSupabaseAdmin()
+    .from("profiles")
+    .select("avatar_path")
+    .eq("id", session.user.id)
+    .maybeSingle();
+
+  if (profileError) {
+    request.log.error(
+      { err: profileError },
+      "Unable to read profile avatar path",
+    );
+    sendError(response, 500, "No se ha podido cargar la foto de perfil.");
+    return;
+  }
+
+  if (!profile?.avatar_path) {
+    response.json({ avatarUrl: null });
+    return;
+  }
+
+  if (profile.avatar_path !== canonicalPath) {
+    request.log.error(
+      { userId: session.user.id },
+      "Profile avatar path is not canonical",
+    );
+    sendError(response, 500, "No se ha podido cargar la foto de perfil.");
+    return;
+  }
+
+  const { data, error } = await createAvatarSignedUrl(canonicalPath);
+  if (error || !data?.signedUrl) {
+    request.log.error({ err: error }, "Unable to sign profile avatar URL");
+    sendError(response, 500, "No se ha podido cargar la foto de perfil.");
+    return;
+  }
+
+  response.json({ avatarUrl: data.signedUrl });
+});
+
+router.put(
+  "/auth/profile/avatar",
+  avatarBodyMiddleware,
+  async (request, response) => {
+    const session = await currentSession(request, response);
+    if (!session) {
+      sendError(response, 401, "Authentication required.");
+      return;
+    }
+
+    if (request.get("content-type")?.trim().toLowerCase() !== "image/webp") {
+      sendError(response, 415, "La imagen debe estar en formato WebP.");
+      return;
+    }
+
+    if (!Buffer.isBuffer(request.body) || request.body.length === 0) {
+      sendError(response, 400, "La imagen está vacía.");
+      return;
+    }
+
+    if (request.body.length > AVATAR_MAX_BYTES) {
+      sendError(response, 413, "La imagen procesada es demasiado grande.");
+      return;
+    }
+
+    if (!isWebpBuffer(request.body)) {
+      sendError(response, 400, "El archivo no es una imagen WebP válida.");
+      return;
+    }
+
+    const canonicalPath = avatarPathFor(session.user.id);
+    const admin = getSupabaseAdmin();
+    const { data: previousProfile, error: previousProfileError } = await admin
+      .from("profiles")
+      .select("avatar_path")
+      .eq("id", session.user.id)
+      .maybeSingle();
+
+    if (previousProfileError || !previousProfile) {
+      request.log.error(
+        { err: previousProfileError },
+        "Unable to read profile before avatar upload",
+      );
+      sendError(response, 500, "No se ha podido guardar la foto de perfil.");
+      return;
+    }
+
+    const { error: uploadError } = await admin.storage
+      .from(AVATAR_BUCKET)
+      .upload(canonicalPath, request.body, {
+        contentType: "image/webp",
+        upsert: true,
+        cacheControl: "0",
+      });
+
+    if (uploadError) {
+      request.log.error({ err: uploadError }, "Unable to upload profile avatar");
+      sendError(response, 500, "No se ha podido guardar la foto de perfil.");
+      return;
+    }
+
+    if (previousProfile.avatar_path !== canonicalPath) {
+      const { data: updatedProfile, error: updateError } = await admin
+        .from("profiles")
+        .update({ avatar_path: canonicalPath })
+        .eq("id", session.user.id)
+        .select("id")
+        .maybeSingle();
+
+      if (updateError || !updatedProfile) {
+        request.log.error(
+          { err: updateError },
+          "Unable to save profile avatar path",
+        );
+
+        const { error: cleanupError } = await admin.storage
+          .from(AVATAR_BUCKET)
+          .remove([canonicalPath]);
+        if (cleanupError) {
+          request.log.error(
+            { err: cleanupError },
+            "Unable to clean up unreferenced profile avatar",
+          );
+        }
+
+        sendError(response, 500, "No se ha podido guardar la foto de perfil.");
+        return;
+      }
+    }
+
+    const { data: signedAvatar, error: signedAvatarError } =
+      await createAvatarSignedUrl(canonicalPath);
+    if (signedAvatarError || !signedAvatar?.signedUrl) {
+      request.log.error(
+        { err: signedAvatarError },
+        "Unable to sign uploaded profile avatar URL",
+      );
+    }
+
+    response.json({ avatarUrl: signedAvatar?.signedUrl ?? null });
+  },
+);
+
+router.delete("/auth/profile/avatar", async (request, response) => {
+  const session = await currentSession(request, response);
+  if (!session) {
+    sendError(response, 401, "Authentication required.");
+    return;
+  }
+
+  const canonicalPath = avatarPathFor(session.user.id);
+  const admin = getSupabaseAdmin();
+  const { data: updatedProfile, error: updateError } = await admin
+    .from("profiles")
+    .update({ avatar_path: null })
+    .eq("id", session.user.id)
+    .select("id")
+    .maybeSingle();
+
+  if (updateError || !updatedProfile) {
+    request.log.error(
+      { err: updateError },
+      "Unable to clear profile avatar path",
+    );
+    sendError(response, 500, "No se ha podido eliminar la foto de perfil.");
+    return;
+  }
+
+  try {
+    const { error: removeError } = await admin.storage
+      .from(AVATAR_BUCKET)
+      .remove([canonicalPath]);
+    if (removeError) {
+      request.log.error(
+        { err: removeError },
+        "Unable to remove profile avatar object",
+      );
+    }
+  } catch (error) {
+    request.log.error(
+      { err: error },
+      "Unable to remove profile avatar object",
+    );
+  }
+
+  response.json({ avatarUrl: null });
 });
 
 router.post("/auth/sign-in", async (request, response) => {
