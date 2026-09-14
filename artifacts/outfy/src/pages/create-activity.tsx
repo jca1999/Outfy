@@ -154,6 +154,7 @@ export function CreateActivity() {
     event: PointerEvent<HTMLInputElement>,
   ) {
     const input = event.currentTarget;
+    input.focus();
 
     if (typeof input.showPicker !== 'function') {
       return;
