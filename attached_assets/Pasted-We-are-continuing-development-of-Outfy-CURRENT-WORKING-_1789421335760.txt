@@ -1,0 +1,792 @@
+We are continuing development of Outfy.
+
+CURRENT WORKING STATE:
+
+- Real activities can be created and published.
+- Profile -> My Plans already shows activities CREATED by the current user.
+- Explore uses real activities.
+- Activity Detail works.
+- Join / Leave works with real activity_members.
+- Membership roles are:
+  organizer
+  participant
+- Users can join an activity created by another user.
+
+NEXT GOAL:
+
+Add a real "Upcoming" section to Profile so users can easily find activities
+they joined as PARTICIPANTS.
+
+==================================================
+MODE / STRICT SCOPE
+==================================================
+
+You may modify ONLY:
+
+1. artifacts/api-server/src/routes/activities.ts
+
+2. artifacts/outfy/src/activities/activity-api.ts
+
+3. The EXISTING Profile page component that currently contains:
+   My Plans / Created activities.
+
+4. The EXISTING ES Profile/Activities translation file(s) already used by that
+   Profile section.
+
+5. The corresponding EN translation file(s).
+
+First inspect the current Profile implementation and reuse its existing
+structure.
+
+DO NOT create a second Profile page.
+
+DO NOT modify any other file.
+
+==================================================
+DO NOT TOUCH
+==================================================
+
+Do NOT modify:
+
+- Create Plan
+- Explore
+- Activity Detail
+- Join/Leave implementation
+- Home
+- Settings
+- App.tsx
+- routing
+- authentication architecture
+- Supabase migrations
+- database schema
+- RLS
+- RPCs
+- package.json
+- dependencies
+- .replit
+- workflows
+- deployment
+- environment variables
+
+DO NOT execute SQL.
+
+DO NOT publish.
+DO NOT redeploy.
+
+==================================================
+GOAL
+==================================================
+
+Profile should now allow the user to see:
+
+MY PLANS
+
+1. Created / Propuestos
+   -> activities created by the current user
+   -> THIS ALREADY WORKS
+
+2. Upcoming / Próximos
+   -> future active activities created by OTHER users
+      where the current user has membership role = participant
+
+Do NOT implement History yet.
+
+==================================================
+IMPORTANT EXISTING UI
+==================================================
+
+Inspect the current My Plans/Profile section before changing it.
+
+Preserve:
+
+- current Profile design
+- current Created cards
+- current Created loading/error behavior
+- current navigation to Activity Detail
+
+Do not redesign the whole section.
+
+Extend it cleanly.
+
+==================================================
+BACKEND — JOINED UPCOMING ENDPOINT
+==================================================
+
+Add an authenticated endpoint such as:
+
+GET /api/activities/joined
+
+Use the project's existing routing conventions.
+
+IMPORTANT:
+
+There are already routes such as:
+
+GET /api/activities
+GET /api/activities/mine
+GET /api/activities/:id
+
+Make sure:
+
+/api/activities/joined
+
+cannot be interpreted as:
+
+:id = "joined"
+
+Register/order the static route appropriately.
+
+==================================================
+AUTHENTICATION
+==================================================
+
+Authentication is required.
+
+Get the current user's ID ONLY from the existing Outfy server session.
+
+The frontend must NEVER send:
+
+userId
+participantId
+creatorId
+
+to retrieve the user's Upcoming plans.
+
+==================================================
+DATABASE SOURCE
+==================================================
+
+Use:
+
+public.activity_members
+
+to determine participation.
+
+The current user must have:
+
+activity_members.user_id = authenticated user ID
+
+AND:
+
+activity_members.role = 'participant'
+
+Then fetch the corresponding activities.
+
+This is important:
+
+DO NOT determine joined activities only from creator_id.
+
+DO NOT fake participation on the frontend.
+
+==================================================
+UPCOMING FILTER
+==================================================
+
+For this section return only activities that are:
+
+status = active
+
+AND:
+
+starts_at > current server time
+
+These are "Upcoming".
+
+Do NOT include:
+
+- past activities
+- cancelled activities
+- completed activities
+
+Do NOT delete or modify them.
+
+Past participated activities will be used later for History.
+
+==================================================
+ORGANIZER / CREATED PLANS
+==================================================
+
+Do NOT return organizer memberships in Upcoming.
+
+If the current user created the activity, it already belongs in:
+
+Created / Propuestos
+
+For Upcoming use ONLY:
+
+role = participant
+
+This avoids duplicate cards between:
+
+Created
+and
+Upcoming
+
+==================================================
+SORTING
+==================================================
+
+Sort Upcoming by:
+
+starts_at ASC
+
+Nearest upcoming activity first.
+
+Example:
+
+Tomorrow
+-> first
+
+Next week
+-> after
+
+Next month
+-> later
+
+==================================================
+RETURNED DATA
+==================================================
+
+Return enough data for the SAME style of activity cards already used in the
+Profile.
+
+At minimum:
+
+- id
+- title
+- category
+- subcategory if currently used
+- startsAt
+- endsAt if currently used
+- locationType
+- city
+- onlinePlatform if useful
+- participationMode
+- maxParticipants
+- memberCount
+- status
+
+Do NOT expose:
+
+- participant user IDs
+- email
+- private profile data
+- exact GPS coordinates
+- auth information
+
+==================================================
+MEMBER COUNT
+==================================================
+
+memberCount must come from real:
+
+public.activity_members
+
+Do NOT add participant_count to the schema.
+
+Do NOT calculate a fake count on the frontend.
+
+Reuse the existing server-side counting approach already used by:
+
+My Plans
+or
+Explore
+
+if one is suitable.
+
+Avoid unnecessary N+1 queries.
+
+==================================================
+FRONTEND API
+==================================================
+
+In:
+
+artifacts/outfy/src/activities/activity-api.ts
+
+add a typed function such as:
+
+getMyJoinedActivities()
+
+or:
+
+getMyUpcomingActivities()
+
+Follow existing naming/style.
+
+Use the normal Outfy API.
+
+Do NOT add direct Supabase access.
+
+Use existing credentials/session conventions.
+
+==================================================
+PROFILE UI
+==================================================
+
+Extend the existing:
+
+My Plans
+
+section.
+
+Recommended structure:
+
+Spanish:
+
+Mis planes
+
+[ Propuestos ] [ Próximos ]
+
+English:
+
+My plans
+
+[ Created ] [ Upcoming ]
+
+Use the existing Outfy visual style.
+
+==================================================
+TABS / SWITCHING
+==================================================
+
+If the Profile currently already has a suitable subsection navigation pattern,
+reuse it.
+
+Otherwise add a simple lightweight two-option tab/switch:
+
+Propuestos / Created
+Próximos / Upcoming
+
+Requirements:
+
+- visually clear active state
+- keyboard accessible
+- mobile friendly
+- no routing change required
+- switching tabs must NOT reload the whole application
+
+Do NOT add History tab yet.
+
+==================================================
+CREATED TAB
+==================================================
+
+The existing Created / Propuestos behavior MUST remain intact.
+
+Do NOT rewrite it unnecessarily.
+
+When selected:
+
+show the exact existing real created-activity cards.
+
+==================================================
+UPCOMING TAB
+==================================================
+
+When selected:
+
+show real upcoming joined activities.
+
+Each card should use the same visual language as Created cards.
+
+At minimum show:
+
+- title
+- translated category
+- localized date/time
+- city or Online
+- real participant count
+- status if current card design includes it
+
+Clicking a card:
+
+navigate to:
+
+/activities/{id}
+
+Use existing Wouter navigation.
+
+==================================================
+VERY IMPORTANT TEST FLOW
+==================================================
+
+Use two accounts.
+
+ACCOUNT A:
+creates an activity.
+
+ACCOUNT B:
+finds it through Explore.
+joins it.
+
+Then Account B opens:
+
+Profile -> My Plans -> Upcoming
+
+Expected:
+
+the joined activity appears.
+
+Click it:
+
+Activity Detail opens.
+
+Expected there:
+
+"Leave plan" / "Abandonar plan"
+
+because membership already exists.
+
+==================================================
+LEAVE SYNCHRONIZATION
+==================================================
+
+Important UX case:
+
+Account B opens the activity and leaves it.
+
+Then returns to Profile -> Upcoming.
+
+The activity should no longer appear after the Profile/Upcoming data is
+re-fetched.
+
+A normal re-fetch when Profile mounts or when Upcoming is selected is enough.
+
+Do NOT implement realtime subscriptions.
+
+Do NOT implement polling.
+
+Do NOT duplicate Leave logic inside Profile cards.
+
+Leave remains:
+
+Profile card
+-> Activity Detail
+-> Leave
+
+==================================================
+EMPTY STATE — UPCOMING
+==================================================
+
+If the user has not joined any upcoming activities:
+
+Spanish title:
+
+"No tienes ningún plan próximo"
+
+Spanish supporting text:
+
+"Cuando te unas a un plan, aparecerá aquí."
+
+English title:
+
+"You don't have any upcoming plans"
+
+English supporting text:
+
+"When you join a plan, it will appear here."
+
+If it fits naturally with the current UI, optionally provide an existing
+navigation action:
+
+Spanish:
+"Explorar planes"
+
+English:
+"Explore plans"
+
+Use the EXISTING Explore route.
+
+Do NOT create a new route.
+
+==================================================
+LOADING
+==================================================
+
+Do not block the whole Profile.
+
+Use a lightweight loading/skeleton state inside the My Plans section.
+
+Created and Upcoming can maintain their own loading state if needed.
+
+Avoid unnecessary duplicate requests.
+
+==================================================
+ERROR STATE
+==================================================
+
+If Upcoming fails to load:
+
+Spanish:
+
+"No hemos podido cargar tus próximos planes."
+
+English:
+
+"We couldn't load your upcoming plans."
+
+Provide:
+
+"Reintentar"
+"Retry"
+
+if this fits cleanly with the current Profile implementation.
+
+Do not break the rest of Profile.
+
+Do not expose technical API errors.
+
+==================================================
+DATE / TIME
+==================================================
+
+Use the current app language.
+
+Spanish:
+localized Spanish date/time
+
+English:
+localized English date/time
+
+Reuse the formatting approach already used by existing activity cards where
+possible.
+
+Do NOT show ISO strings.
+
+==================================================
+CATEGORY
+==================================================
+
+Use the existing taxonomy translations.
+
+Do NOT display raw IDs such as:
+
+sports
+social
+football
+city_walk
+
+==================================================
+LOCATION
+==================================================
+
+Physical:
+
+show city.
+
+Online:
+
+show localized:
+Online
+
+Do NOT show latitude/longitude.
+
+==================================================
+FULL ACTIVITIES
+==================================================
+
+If the user is ALREADY a participant in an activity that later becomes full:
+
+it MUST still appear in Upcoming.
+
+Being full does not remove an existing participant.
+
+If the current Profile card design supports a Full badge, it may be shown.
+
+Do NOT disable/open differently.
+
+==================================================
+DO NOT IMPLEMENT HISTORY
+==================================================
+
+Do NOT show past participant activities yet.
+
+They remain stored in activity_members.
+
+We will use those records in the NEXT Profile phase:
+
+History.
+
+Do not delete old memberships.
+
+==================================================
+DO NOT IMPLEMENT YET
+==================================================
+
+Do NOT implement:
+
+- History
+- ratings/reviews
+- participant avatars
+- participant list
+- activity editing
+- activity cancellation
+- organizer controls
+- chat
+- messages
+- notifications
+- connections
+- likes
+- realtime
+- map
+- GPS search
+- Join/Leave directly on Profile cards
+
+==================================================
+I18N
+==================================================
+
+Reuse existing translation keys whenever possible.
+
+Add only the minimum keys needed for:
+
+- Created / Propuestos if not already present
+- Upcoming / Próximos
+- Upcoming empty title
+- Upcoming empty supporting text
+- Explore plans if used
+- Upcoming load error
+- Retry if not already reusable
+
+Keep ES and EN structures equivalent.
+
+Do not hardcode visible strings.
+
+==================================================
+SECURITY VALIDATION
+==================================================
+
+Confirm:
+
+- frontend sends no userId
+- server derives current user from session
+- membership query filters current user
+- role must equal participant
+- no direct frontend Supabase access
+- no SQL added
+- no migration changes
+- no RLS changes
+- no private participant data returned
+
+==================================================
+MANDATORY TESTS
+==================================================
+
+TEST 1 — CREATED STILL WORKS
+
+Profile -> My Plans -> Created
+
+Expected:
+
+existing created activities still appear exactly as before.
+
+==================================================
+TEST 2 — JOINED UPCOMING
+
+Account B joins Account A's future activity.
+
+Open:
+
+Profile -> My Plans -> Upcoming
+
+Expected:
+
+activity appears.
+
+==================================================
+TEST 3 — CARD NAVIGATION
+
+Tap Upcoming activity.
+
+Expected:
+
+existing Activity Detail opens.
+
+Expected membership state:
+
+participant / Leave plan.
+
+==================================================
+TEST 4 — LEAVE
+
+Leave the plan from Activity Detail.
+
+Return to Profile -> Upcoming.
+
+Expected after re-fetch:
+
+activity no longer appears.
+
+==================================================
+TEST 5 — ORGANIZER DUPLICATION
+
+Account A opens Profile.
+
+Its created activity:
+
+must appear in Created.
+
+It must NOT also appear in Upcoming merely because the organizer is an
+activity_member.
+
+==================================================
+TEST 6 — PAST PARTICIPATION
+
+If Account B has membership in an activity whose start is already in the past:
+
+it must NOT appear in Upcoming.
+
+Do NOT delete the membership.
+
+==================================================
+TEST 7 — EMPTY ACCOUNT
+
+Account with no joined upcoming activities:
+
+Upcoming shows the clean empty state.
+
+Profile remains functional.
+
+==================================================
+FINAL VALIDATION
+==================================================
+
+1. Review git diff.
+2. Confirm only allowed files changed.
+3. Run API TypeScript/typecheck/build.
+4. Run frontend TypeScript/typecheck/build.
+5. Validate modified ES/EN JSON.
+6. Confirm Created remains functional.
+7. Confirm Explore remains functional.
+8. Confirm Activity Detail remains functional.
+9. Confirm Join/Leave remains functional.
+10. Confirm Upcoming uses real participant memberships.
+11. Confirm past plans are excluded.
+12. Confirm organizer-created plans are not duplicated in Upcoming.
+13. Confirm no SQL/schema/migration changes.
+
+==================================================
+REPORT BACK
+==================================================
+
+Report:
+
+1. Exact Profile file modified.
+2. Exact files changed.
+3. New Upcoming endpoint.
+4. Membership query/filtering.
+5. Sorting.
+6. Profile tab implementation.
+7. Created behavior preservation.
+8. Upcoming card implementation.
+9. Empty/loading/error states.
+10. Join -> Upcoming test.
+11. Leave -> disappearance test.
+12. Organizer duplication test.
+13. API typecheck/build.
+14. Frontend typecheck/build.
+15. Any limitation found.
+
+DO NOT publish.
+DO NOT redeploy.
