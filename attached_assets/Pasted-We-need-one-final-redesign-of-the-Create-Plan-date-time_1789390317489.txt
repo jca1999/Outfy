@@ -1,0 +1,489 @@
+We need one final redesign of the Create Plan date/time controls.
+
+The current native date/time-input approach has caused repeated UX problems.
+
+We now want a robust hybrid approach:
+
+- visible editable TEXT field
+- native date/time picker still available
+- clicking anywhere in the visible field opens the picker
+- user can ALSO type the value manually
+- custom visible Calendar / Clock icons
+- icons must work on Outfy's dark theme
+- no browser-native picker icons visible
+- no overlapping native text
+
+==================================================
+STRICT SCOPE
+==================================================
+
+Modify ONLY:
+
+artifacts/outfy/src/pages/create-activity.tsx
+
+DO NOT modify any other file.
+
+DO NOT modify:
+- translations
+- API
+- Supabase
+- migrations
+- Activity Detail
+- App.tsx
+- package.json
+- dependencies
+- workflows
+- deployment
+- .replit
+
+DO NOT publish or redeploy.
+
+==================================================
+FIELDS
+==================================================
+
+Redesign ONLY:
+
+- Date
+- Start time
+- Optional end time
+
+==================================================
+DESIRED UX
+==================================================
+
+DATE:
+
+Visible field:
+
+[ dd/mm/aaaa                 calendar icon ]
+
+The user can:
+
+A. Click anywhere inside the field:
+   -> native calendar opens
+
+B. Type manually:
+   -> for example 15/09/2026
+
+TIME:
+
+[ hh:mm                       clock icon ]
+
+The user can:
+
+A. Click anywhere:
+   -> native time picker opens
+
+B. Type manually:
+   -> for example 18:30
+
+==================================================
+IMPORTANT ARCHITECTURE
+==================================================
+
+Do NOT use the native input type="date" or type="time" as the visible field.
+
+Instead:
+
+1. Use a normal visible text input for the user-facing control.
+
+2. Keep a separate native input:
+   - type="date"
+   - or type="time"
+
+   only for opening the browser/native picker.
+
+The native picker input must be visually hidden but still usable through a ref.
+
+Do NOT use display:none if that prevents showPicker().
+
+It can be positioned safely out of the visible UI or made fully transparent.
+
+==================================================
+DATE STATE
+==================================================
+
+IMPORTANT:
+
+Do NOT change the existing underlying form state format.
+
+form.date must continue using:
+
+YYYY-MM-DD
+
+because publishing already depends on that format.
+
+The visible text field should display:
+
+DD/MM/YYYY
+
+==================================================
+DATE MANUAL INPUT
+==================================================
+
+Allow manual typing in:
+
+DD/MM/YYYY
+
+Example:
+
+15/09/2026
+
+Keep separate local display text if necessary.
+
+When the value becomes a valid date:
+
+15/09/2026
+
+convert it internally to:
+
+2026-09-15
+
+and update:
+
+form.date
+
+Use simple local parsing.
+
+Do NOT install a date library.
+
+Validate:
+
+- exactly valid day/month/year
+- actual real calendar date
+
+Examples:
+
+31/02/2026 -> invalid
+29/02/2025 -> invalid
+29/02/2028 -> valid
+
+Do not silently convert invalid dates into different dates.
+
+If the typed value is incomplete, allow the user to continue typing without
+immediately destroying the text.
+
+==================================================
+DATE PICKER SELECTION
+==================================================
+
+When the hidden native date picker changes:
+
+Example native value:
+
+2026-09-15
+
+Update:
+
+form.date = "2026-09-15"
+
+and visible text:
+
+15/09/2026
+
+==================================================
+TIME STATE
+==================================================
+
+Do NOT change the existing state format.
+
+form.startTime
+form.endTime
+
+must remain:
+
+HH:mm
+
+==================================================
+TIME MANUAL INPUT
+==================================================
+
+Allow typing:
+
+HH:mm
+
+Examples:
+
+09:30
+18:45
+
+Validate:
+
+00:00 through 23:59
+
+Do not accept invalid values such as:
+
+25:90
+
+Allow incomplete typing while the user is editing.
+
+When valid, update the existing form state.
+
+==================================================
+TIME PICKER SELECTION
+==================================================
+
+The hidden native time picker should update the visible text field and the
+existing form state.
+
+==================================================
+CLICKING THE WHOLE FIELD
+==================================================
+
+The visible control/wrapper must be the full click target.
+
+Clicking:
+
+- left
+- center
+- right
+- icon area
+- top
+- bottom
+
+must all trigger the same native picker.
+
+Use refs:
+
+datePickerRef
+startTimePickerRef
+endTimePickerRef
+
+and call:
+
+showPicker()
+
+directly from the user's click where supported.
+
+Fallback:
+focus the visible text input if showPicker() is unavailable.
+
+==================================================
+IMPORTANT — MANUAL TYPING MUST STILL WORK
+==================================================
+
+Do not make the visible text input readOnly.
+
+The user must be able to type.
+
+The field should receive keyboard focus normally.
+
+Opening the picker from a click must NOT permanently prevent keyboard input.
+
+Preserve normal:
+
+- tab navigation
+- keyboard editing
+- selection
+- backspace/delete
+
+==================================================
+CUSTOM ICONS
+==================================================
+
+Add:
+
+CalendarDays
+for Date
+
+Clock3
+for Start time and End time
+
+Use the existing lucide-react icons already available in the project.
+
+IMPORTANT DARK THEME REQUIREMENT:
+
+Do NOT use:
+
+text-black
+black
+#000
+
+Use theme-aware Outfy styling such as:
+
+text-muted-foreground
+
+or another existing semantic theme color.
+
+The icons must remain visible against the current dark background.
+
+Do not use the browser-native calendar/clock icon.
+
+==================================================
+LAYOUT
+==================================================
+
+The custom icon should be inside the right side of the visible rounded field.
+
+Use sufficient right padding on the text input so typed text never overlaps
+the icon.
+
+Example conceptually:
+
+[ 15/09/2026                         ◷ ]
+
+The icon must not cover typed text.
+
+==================================================
+PLACEHOLDERS
+==================================================
+
+Date visible text input:
+
+placeholder="dd/mm/aaaa"
+
+Time visible inputs:
+
+placeholder="hh:mm"
+
+Use the existing muted placeholder styling.
+
+There must be NO duplicate placeholder behind it.
+
+==================================================
+VALIDATION INTEGRATION
+==================================================
+
+Preserve the existing required validation:
+
+- Date required
+- Start time required
+- End time optional
+- End time must be later than Start time
+
+The existing validateForm() behavior should continue using the canonical:
+
+form.date
+form.startTime
+form.endTime
+
+Do not rewrite unrelated validation.
+
+If manually typed text is invalid when the user attempts Review Plan,
+surface the existing field validation appropriately rather than sending a bad
+canonical value.
+
+==================================================
+PUBLISHING MUST NOT CHANGE
+==================================================
+
+The existing publishing code currently constructs:
+
+new Date(`${form.date}T${form.startTime}:00`)
+
+Do NOT change this logic in this task.
+
+Therefore canonical state must remain:
+
+date -> YYYY-MM-DD
+time -> HH:mm
+
+==================================================
+REMOVE OLD IMPLEMENTATION
+==================================================
+
+Remove the current complicated:
+
+dateTimeNativeInputClassName
+dateTimeDisplayClassName
+
+architecture if no longer needed.
+
+Remove old:
+
+openNativePicker(event)
+
+logic if replaced by the ref-based picker helper.
+
+Do not leave dead code.
+
+Do not leave old overlapping native inputs.
+
+==================================================
+EXPECTED RESULT
+==================================================
+
+Date:
+
+Fecha
+┌────────────────────────────┐
+│ dd/mm/aaaa               📅 │
+└────────────────────────────┘
+
+Click anywhere:
+-> native calendar opens
+
+OR type:
+
+15/09/2026
+
+Both produce:
+
+form.date = "2026-09-15"
+
+Time:
+
+Hora de inicio
+┌────────────────────────────┐
+│ hh:mm                    🕒 │
+└────────────────────────────┘
+
+Click anywhere:
+-> native time picker opens
+
+OR type:
+
+18:30
+
+Both produce:
+
+form.startTime = "18:30"
+
+Icons must be clearly visible in dark mode and must NOT be black.
+
+==================================================
+PRESERVE
+==================================================
+
+Do NOT change:
+
+- categories
+- location
+- people
+- cost
+- Review Plan
+- Publish Plan
+- API request
+- timezone handling
+- success screen
+
+==================================================
+VALIDATION
+==================================================
+
+After implementation:
+
+1. Confirm ONLY create-activity.tsx changed.
+2. Run frontend typecheck/build.
+3. Confirm date field can be manually typed.
+4. Confirm start time can be manually typed.
+5. Confirm end time can be manually typed.
+6. Confirm selecting via native picker also works.
+7. Confirm clicking anywhere in each visible field opens the picker.
+8. Confirm icons are visible in dark theme.
+9. Confirm icons are NOT black/hardcoded.
+10. Confirm no native calendar/clock indicator appears.
+11. Confirm no duplicated date/time text exists.
+12. Confirm invalid manual dates are not converted silently.
+13. Confirm publishing still receives YYYY-MM-DD and HH:mm values.
+
+Report:
+- exact implementation approach
+- manual parsing behavior
+- picker synchronization
+- icon styling
+- build/typecheck result
+
+DO NOT publish.
+DO NOT redeploy.
