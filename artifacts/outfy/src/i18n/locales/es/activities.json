@@ -106,6 +106,26 @@
       "cancelled": "Cancelado"
     }
   },
+  "explore": {
+    "eyebrow": "Elige tu siguiente plan",
+    "title": "Explorar",
+    "intro": "Actividades reales y próximas para que encontrar tu siguiente plan sea fácil.",
+    "searchPlaceholder": "Busca por actividad o ciudad",
+    "clearSearch": "Limpiar búsqueda",
+    "allCategories": "Todas",
+    "results": "{{count}} plan encontrado",
+    "results_other": "{{count}} planes encontrados",
+    "upcomingFirst": "Próximos primero",
+    "loading": "Cargando planes",
+    "noResultsTitle": "No hemos encontrado planes",
+    "noResultsDescription": "Prueba con otra búsqueda o cambia los filtros.",
+    "noPlansTitle": "Ahora mismo no hay planes disponibles",
+    "noPlansDescription": "Vuelve pronto para descubrir nuevos planes.",
+    "loadError": "No hemos podido cargar los planes.",
+    "retry": "Reintentar",
+    "clearFilters": "Limpiar filtros",
+    "full": "Completo"
+  },
   "create": {
     "eyebrow": "NUEVO PLAN",
     "title": "¿Qué te apetece hacer?",

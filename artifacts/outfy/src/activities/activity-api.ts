@@ -84,6 +84,17 @@ export type MyCreatedActivitiesResponse = {
   activities: MyCreatedActivity[];
 };
 
+export type ExploreActivity = MyCreatedActivity;
+
+export type ExploreActivitiesResponse = {
+  activities: ExploreActivity[];
+};
+
+export type ExploreActivityFilters = {
+  search?: string;
+  category?: string;
+};
+
 export type ActivityMembershipResponse = {
   result: 'joined' | 'already_member' | 'left' | 'not_member';
   memberCount: number;
@@ -202,6 +213,37 @@ export async function getMyCreatedActivities() {
   }
 
   return payload as MyCreatedActivitiesResponse;
+}
+
+export async function getActivities(filters: ExploreActivityFilters = {}) {
+  const searchParams = new URLSearchParams();
+  const search = filters.search?.trim();
+
+  if (search) {
+    searchParams.set('search', search.slice(0, 100));
+  }
+  if (filters.category) {
+    searchParams.set('category', filters.category);
+  }
+
+  const query = searchParams.toString();
+  const response = await fetch(`/api/activities${query ? `?${query}` : ''}`, {
+    credentials: 'include',
+  });
+  const payload = (await response.json().catch(() => null)) as
+    | ActivityErrorPayload
+    | ExploreActivitiesResponse
+    | null;
+
+  if (!response.ok) {
+    throw activityApiError(
+      payload && 'activities' in payload ? null : payload,
+      response.status,
+      'The activities could not be loaded.',
+    );
+  }
+
+  return payload as ExploreActivitiesResponse;
 }
 
 export async function joinActivity(activityId: string) {

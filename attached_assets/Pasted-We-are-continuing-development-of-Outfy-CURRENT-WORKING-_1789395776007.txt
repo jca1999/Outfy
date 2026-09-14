@@ -1,0 +1,838 @@
+We are continuing development of Outfy.
+
+CURRENT WORKING STATE:
+
+- Real activities can be created and published.
+- Users can see their created activities in Profile -> My Plans.
+- Activity Detail works.
+- Join / Leave works with real memberships.
+- Past start dates/times cannot be published.
+- Share works.
+- Explore/Search currently does NOT reliably show/search the real published
+  activities.
+
+We now need to connect EXPLORE / SEARCH to REAL activity data.
+
+==================================================
+MAIN GOAL
+==================================================
+
+A user should be able to:
+
+Explore
+-> see real upcoming activities
+-> search for a published activity
+-> tap the result
+-> open /activities/:id
+-> join it from Activity Detail using the already working membership flow
+
+Example test:
+
+Account A publishes:
+"Prueba Outfy"
+
+Account B opens Explore and searches:
+"Prueba Outfy"
+
+Expected:
+the real activity appears.
+
+==================================================
+MODE / STRICT SCOPE
+==================================================
+
+You may modify ONLY:
+
+1. artifacts/api-server/src/routes/activities.ts
+
+2. artifacts/outfy/src/activities/activity-api.ts
+
+3. The EXISTING Explore/Search page component that currently renders Outfy's
+   Explore screen.
+
+   FIRST identify the existing Explore page file.
+   Modify that existing page only.
+   Do NOT create a second Explore page.
+   Do NOT modify routing.
+
+4. artifacts/outfy/src/i18n/locales/es/activities.json
+
+5. artifacts/outfy/src/i18n/locales/en/activities.json
+
+If the existing Explore page uses another EXISTING translation namespace,
+you may modify the equivalent existing ES/EN files for that namespace instead.
+
+Do NOT create a new translation namespace.
+
+==================================================
+DO NOT TOUCH
+==================================================
+
+Do NOT modify:
+
+- Create Plan
+- date/time controls
+- Activity Detail
+- Join/Leave logic
+- Profile
+- My Plans
+- Home
+- Settings
+- authentication architecture
+- App.tsx
+- router
+- Supabase schema
+- migrations
+- RLS
+- RPCs
+- package.json
+- dependencies
+- .replit
+- workflows
+- ports
+- deployment
+- environment variables
+
+DO NOT execute SQL.
+
+DO NOT publish.
+DO NOT redeploy.
+
+==================================================
+IMPORTANT FIRST STEP
+==================================================
+
+Inspect the CURRENT Explore implementation before changing it.
+
+Determine:
+
+- existing Explore page file
+- current visual layout
+- current search input
+- current mock/demo activity data
+- existing filters/buttons/chips
+- existing empty/loading states if any
+
+PRESERVE the current Outfy visual design where possible.
+
+Replace fake/mock activity content with real API data.
+
+Do not redesign Explore from scratch.
+
+==================================================
+ARCHITECTURE
+==================================================
+
+Preserve:
+
+Frontend
+-> Outfy API
+-> privileged server-side Supabase client
+-> database
+
+The frontend must NOT query Supabase directly.
+
+Do NOT add a Supabase frontend client.
+
+==================================================
+BACKEND — REAL EXPLORE ENDPOINT
+==================================================
+
+Implement a real activity listing/search endpoint.
+
+Prefer a clean endpoint such as:
+
+GET /api/activities
+
+with optional query parameters.
+
+IMPORTANT:
+
+Do not conflict with existing:
+
+GET /api/activities/:id
+GET /api/activities/mine
+
+Preserve existing routes.
+
+==================================================
+DEFAULT EXPLORE RESULTS
+==================================================
+
+Without a search query, return real discoverable activities.
+
+For this MVP, return only activities that are:
+
+status = active
+
+AND:
+
+starts_at > current server time
+
+Do NOT show:
+
+- cancelled activities
+- completed activities
+- activities whose start time is already in the past
+
+Do NOT mutate their database status.
+
+This is only a discovery filter.
+
+==================================================
+SEARCH
+==================================================
+
+Support a text query, for example:
+
+GET /api/activities?search=Prueba%20Outfy
+
+Search should be:
+
+- case-insensitive
+- partial-match friendly
+
+At minimum search:
+
+- activity title
+
+Also support useful matching against:
+
+- city
+
+If it can be done cleanly with the existing query structure, also include:
+
+- description
+
+But TITLE search is mandatory.
+
+Examples:
+
+Activity:
+"Partido de fútbol en Zaragoza"
+
+Search:
+"fútbol"
+-> match
+
+Search:
+"zaragoza"
+-> match if city is Zaragoza
+
+Search:
+"partido"
+-> match
+
+Do NOT build fuzzy-search infrastructure or install a search dependency.
+
+No Elasticsearch.
+No external search service.
+
+==================================================
+SEARCH INPUT SAFETY
+==================================================
+
+Trim search text.
+
+Apply a sensible maximum search length.
+
+Do not build raw SQL strings from user input.
+
+Use safe Supabase query methods.
+
+Do not expose database errors.
+
+==================================================
+OPTIONAL FILTERS
+==================================================
+
+Inspect the existing Explore UI.
+
+If it ALREADY contains filter controls that can be connected cleanly, support
+the following where applicable:
+
+category
+locationType
+city
+
+Do NOT invent a huge new filter interface.
+
+If the current Explore page already shows category chips/buttons, connect them
+to real query/filter logic.
+
+If those filters do not currently exist, focus first on:
+
+- real listing
+- text search
+
+and preserve the existing UI.
+
+==================================================
+CATEGORY FILTER
+==================================================
+
+If implemented:
+
+category must use the existing stable ActivityCategoryId values.
+
+Examples:
+
+sports
+music
+social
+gaming
+
+Do NOT filter using translated labels.
+
+==================================================
+LOCATION TYPE FILTER
+==================================================
+
+If implemented, accept only:
+
+physical
+online
+
+Do not invent additional location types.
+
+==================================================
+CITY FILTER
+==================================================
+
+If implemented:
+
+perform a case-insensitive city match.
+
+Do not use exact GPS location.
+
+Do not expose coordinates.
+
+Do not implement radius/nearby search yet.
+
+==================================================
+SORTING
+==================================================
+
+Default Explore ordering:
+
+starts_at ASC
+
+Meaning:
+
+the nearest upcoming activities appear first.
+
+Do not sort by creation date as the primary discovery order.
+
+==================================================
+RESULT LIMIT
+==================================================
+
+Add a sensible initial result limit.
+
+For example:
+
+20 or 30 activities.
+
+Do not implement infinite scroll yet.
+
+Do not load an unbounded table.
+
+Pagination can be added later.
+
+==================================================
+RETURNED CARD DATA
+==================================================
+
+Return enough data for Explore cards:
+
+- id
+- title
+- category
+- subcategory if useful
+- startsAt
+- endsAt if already available
+- locationType
+- city
+- onlinePlatform if useful
+- participationMode
+- maxParticipants
+- memberCount
+- status
+
+Optionally include organizer display name ONLY if it is already safely and
+cleanly available through existing server patterns.
+
+Do NOT expose:
+
+- email
+- participant IDs
+- private profile data
+- exact coordinates
+- internal auth information
+
+==================================================
+MEMBER COUNT
+==================================================
+
+Use real:
+
+public.activity_members
+
+data.
+
+Do NOT add/store participant_count in activities.
+
+Avoid an unnecessary N+1 query if possible.
+
+A safe two-query approach is acceptable:
+
+1. fetch resulting activity IDs
+2. fetch membership rows/counts for those activity IDs
+3. aggregate counts server-side
+
+Keep it simple and correct.
+
+==================================================
+FRONTEND API
+==================================================
+
+In:
+
+artifacts/outfy/src/activities/activity-api.ts
+
+add/reuse typed functionality such as:
+
+getActivities(filters)
+
+The exact function name may follow existing conventions.
+
+Support at least:
+
+search?: string
+
+and any existing filters that were actually connected.
+
+Use the project's existing authenticated fetch conventions.
+
+Do NOT add direct Supabase code.
+
+==================================================
+EXPLORE — REMOVE MOCK DATA
+==================================================
+
+The Explore page must stop presenting fake activities as if they were real.
+
+Replace mock/demo activity arrays with the real API response.
+
+If mock constants become unused, remove them from the Explore page.
+
+Do not remove shared components unnecessarily.
+
+==================================================
+INITIAL LOAD
+==================================================
+
+When Explore opens:
+
+load upcoming active activities automatically.
+
+The user should NOT need to type something before seeing plans.
+
+Example:
+
+Explore
+-> upcoming real plans immediately appear.
+
+==================================================
+SEARCH BEHAVIOR
+==================================================
+
+Use the existing search input.
+
+Typing text should search real activities.
+
+Avoid sending a network request on every single keystroke without control.
+
+Use a small debounce, approximately:
+
+250-400 ms
+
+OR submit-on-search if that better matches the existing UI.
+
+Prefer debounce if Explore currently behaves like live search.
+
+Do not install a debounce dependency.
+
+==================================================
+SEARCH CLEAR
+==================================================
+
+If the user clears the search:
+
+return to the normal upcoming activity list.
+
+Do not leave stale results from the previous query.
+
+==================================================
+LOADING STATE
+==================================================
+
+While loading/searching:
+
+show a subtle loading/skeleton state consistent with Outfy.
+
+Do not replace the whole application with a giant spinner.
+
+Do not make it look as though the application froze.
+
+==================================================
+NO RESULTS
+==================================================
+
+If there are no matching activities:
+
+Spanish:
+"No hemos encontrado planes"
+
+Supporting:
+"Prueba con otra búsqueda o cambia los filtros."
+
+English:
+"We couldn't find any plans"
+
+Supporting:
+"Try another search or change the filters."
+
+If there are simply zero upcoming activities with no search/filter:
+
+Spanish:
+"Ahora mismo no hay planes disponibles"
+
+English:
+"There are no plans available right now"
+
+Keep the distinction if it is clean to implement.
+
+==================================================
+ERROR STATE
+==================================================
+
+If the API request fails:
+
+Spanish:
+"No hemos podido cargar los planes."
+
+English:
+"We couldn't load the plans."
+
+Provide:
+
+Spanish:
+"Reintentar"
+
+English:
+"Retry"
+
+Do not expose raw technical errors.
+
+==================================================
+ACTIVITY CARD
+==================================================
+
+Preserve the existing card design if one already exists.
+
+Each real activity card should show enough information to decide whether to
+open it.
+
+At minimum:
+
+- title
+- translated category
+- date/time
+- location
+- participant count
+
+For limited activities show:
+
+memberCount / maxParticipants
+
+Example:
+
+2 / 6 personas
+
+For unlimited:
+
+show memberCount plus the existing unlimited wording if available.
+
+==================================================
+FULL STATE
+==================================================
+
+For limited activity:
+
+full =
+memberCount >= maxParticipants
+
+If full, show a subtle badge:
+
+Spanish:
+"Completo"
+
+English:
+"Full"
+
+DO NOT hide full activities from Explore.
+
+Users may still want to open/read/share them.
+
+Activity Detail already owns the actual Join-blocking logic.
+
+==================================================
+CATEGORY TRANSLATION
+==================================================
+
+Do NOT show raw IDs:
+
+sports
+social
+city_walk
+
+Use the existing taxonomy translation keys.
+
+Example:
+
+t(`categories.${activity.category}`)
+
+and existing subcategory keys where appropriate.
+
+==================================================
+DATE / TIME
+==================================================
+
+Display localized human-readable dates.
+
+Spanish app:
+Spanish formatting.
+
+English app:
+English formatting.
+
+Do NOT show raw ISO strings.
+
+Do NOT change the underlying stored timestamps.
+
+==================================================
+LOCATION
+==================================================
+
+Physical:
+show city.
+
+Online:
+show localized "Online".
+
+Do not show latitude/longitude.
+
+==================================================
+CARD NAVIGATION
+==================================================
+
+The entire activity card should be clickable/tappable.
+
+Navigate to:
+
+/activities/{activity.id}
+
+Use the existing Wouter/navigation mechanism.
+
+Do NOT create another detail page.
+
+==================================================
+OWN ACTIVITIES
+==================================================
+
+Do NOT automatically hide activities created by the current user.
+
+For this MVP, the user's own active upcoming plans may also appear in Explore.
+
+This helps testing and is a reasonable discovery behavior.
+
+Later we can visually label:
+
+"Tu plan"
+
+if desired, but DO NOT add that feature in this task unless it already comes
+naturally from existing response data.
+
+==================================================
+MEMBERSHIP
+==================================================
+
+Do NOT implement Join/Leave inside the Explore cards.
+
+The existing flow remains:
+
+Explore card
+-> Activity Detail
+-> Join / Leave
+
+This avoids duplicating membership logic.
+
+==================================================
+RESPONSIVE
+==================================================
+
+Test especially on mobile.
+
+Search field and cards must remain easy to use.
+
+Use the existing responsive layout.
+
+Do not create horizontal overflow.
+
+==================================================
+I18N
+==================================================
+
+Reuse existing translation keys whenever possible.
+
+Add only the minimum required ES/EN keys for:
+
+- no results
+- no plans available
+- loading if required
+- load error
+- retry
+- full badge
+
+Keep both languages structurally equivalent.
+
+Do not hardcode visible Spanish/English text in React.
+
+==================================================
+DO NOT IMPLEMENT YET
+==================================================
+
+Do NOT implement:
+
+- GPS distance search
+- map
+- radius search
+- recommendations algorithm
+- personalization ranking
+- likes
+- favorites
+- participant avatars
+- Join/Leave directly in cards
+- chat
+- realtime
+- pagination/infinite scroll
+- paid boosts
+- private activities
+- advanced sorting UI
+- organizer management
+
+This task is the FIRST real discovery/search version only.
+
+==================================================
+MANDATORY TWO-ACCOUNT TEST
+==================================================
+
+Use:
+
+ACCOUNT A
+-> existing account that created a real plan
+
+ACCOUNT B
+-> different Outfy account
+
+TEST:
+
+1. Account A has an ACTIVE FUTURE activity.
+2. Log in as Account B.
+3. Open Explore.
+4. Confirm the real activity can appear in the upcoming results.
+5. Search using part of its exact title.
+6. Confirm the activity appears.
+7. Search using different capitalization.
+8. Confirm case-insensitive matching works.
+9. If physical, search its city.
+10. Confirm city matching works.
+11. Tap the card.
+12. Confirm existing Activity Detail opens.
+13. Confirm existing Join button works there.
+14. Return to Explore.
+15. Confirm search still functions normally.
+
+==================================================
+PAST ACTIVITY TEST
+==================================================
+
+If an existing old test activity has a start time already in the past:
+
+confirm it does NOT appear in normal Explore results.
+
+Do NOT delete it.
+
+It will be useful later for History.
+
+==================================================
+SECURITY VALIDATION
+==================================================
+
+Confirm:
+
+- frontend does not query Supabase
+- no arbitrary user ID is used
+- no SQL was added
+- no migrations changed
+- no RLS changed
+- only safe activity fields are returned
+- search input is safely handled
+- technical DB errors are not exposed
+
+==================================================
+FINAL VALIDATION
+==================================================
+
+1. Review git diff.
+2. Confirm only allowed files changed.
+3. Run API TypeScript/typecheck/build.
+4. Run frontend TypeScript/typecheck/build.
+5. Validate ES/EN JSON.
+6. Confirm Profile -> My Plans still works.
+7. Confirm Create Plan still works.
+8. Confirm Activity Detail still works.
+9. Confirm Join/Leave still works.
+10. Confirm upcoming activities load without searching.
+11. Confirm title search works.
+12. Confirm city search works.
+13. Confirm search is case-insensitive.
+14. Confirm past plans are excluded.
+15. Confirm full plans are visible but marked Full.
+16. Confirm activity card navigation works.
+
+==================================================
+REPORT BACK
+==================================================
+
+Report:
+
+1. Existing Explore file identified.
+2. Exact files modified.
+3. Mock data removed/replaced.
+4. New listing/search endpoint.
+5. Search fields supported.
+6. Filters connected, if any.
+7. Sorting and result limit.
+8. memberCount implementation.
+9. Explore card contents.
+10. Loading/empty/error states.
+11. Responsive/mobile test.
+12. Two-account search test result.
+13. API build/typecheck.
+14. Frontend build/typecheck.
+15. Any limitation discovered.
+
+DO NOT publish.
+DO NOT redeploy.

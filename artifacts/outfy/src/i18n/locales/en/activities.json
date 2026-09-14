@@ -106,6 +106,26 @@
       "cancelled": "Cancelled"
     }
   },
+  "explore": {
+    "eyebrow": "Choose your next plan",
+    "title": "Explore",
+    "intro": "Real upcoming activities that make finding your next plan easy.",
+    "searchPlaceholder": "Search by activity or city",
+    "clearSearch": "Clear search",
+    "allCategories": "All",
+    "results": "{{count}} plan found",
+    "results_other": "{{count}} plans found",
+    "upcomingFirst": "Upcoming first",
+    "loading": "Loading plans",
+    "noResultsTitle": "We couldn't find any plans",
+    "noResultsDescription": "Try another search or change the filters.",
+    "noPlansTitle": "There are no plans available right now",
+    "noPlansDescription": "Check back soon to discover new plans.",
+    "loadError": "We couldn't load the plans.",
+    "retry": "Retry",
+    "clearFilters": "Clear filters",
+    "full": "Full"
+  },
   "create": {
     "eyebrow": "NEW PLAN",
     "title": "What do you want to do?",

@@ -61,6 +61,21 @@ type MembershipRpcRow = {
 const router: IRouter = Router();
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const ACTIVITY_CATEGORIES = new Set([
+  "sports",
+  "music",
+  "movies",
+  "outdoors",
+  "social",
+  "food",
+  "gaming",
+  "board_games",
+  "culture",
+  "travel",
+  "learning",
+  "other",
+]);
+const EXPLORE_RESULT_LIMIT = 30;
 const SERVER_OWNED_FIELDS = new Set([
   "creatorId",
   "creator_id",
@@ -331,6 +346,122 @@ router.post("/activities", async (request, response) => {
       "Unable to create activity",
     );
     response.status(500).json({ error: "The activity could not be published." });
+  }
+});
+
+router.get("/activities", async (request, response) => {
+  let session;
+  try {
+    session = await currentSession(request, response);
+  } catch (error) {
+    request.log.error({ err: error }, "Unable to authenticate activity explorer");
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  if (!session) {
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  const search =
+    typeof request.query.search === "string"
+      ? request.query.search.trim().slice(0, 100)
+      : "";
+  const category =
+    typeof request.query.category === "string"
+      ? request.query.category.trim()
+      : "";
+
+  if (category && !ACTIVITY_CATEGORIES.has(category)) {
+    response.status(400).json({ error: "The activity category is invalid." });
+    return;
+  }
+
+  const selectedFields =
+    "id,title,category,subcategory,starts_at,ends_at,timezone_name,location_type,city,online_platform,participation_mode,max_participants,status,activity_members(count)";
+  const startsAfter = new Date().toISOString();
+
+  function exploreQuery(searchColumn?: "title" | "city" | "description") {
+    let query = getSupabaseAdmin()
+      .from("activities")
+      .select(selectedFields)
+      .eq("status", "active")
+      .gt("starts_at", startsAfter);
+
+    if (category) {
+      query = query.eq("category", category);
+    }
+
+    if (search && searchColumn) {
+      query = query.ilike(searchColumn, `%${search}%`);
+    }
+
+    return query
+      .order("starts_at", { ascending: true })
+      .limit(EXPLORE_RESULT_LIMIT);
+  }
+
+  try {
+    const results = search
+      ? await Promise.all([
+          exploreQuery("title"),
+          exploreQuery("city"),
+          exploreQuery("description"),
+        ])
+      : [await exploreQuery()];
+    const failedResult = results.find((result) => result.error);
+
+    if (failedResult?.error) {
+      request.log.error(
+        { err: failedResult.error, userId: session.user.id },
+        "Unable to explore activities",
+      );
+      response.status(500).json({ error: "The activities could not be loaded." });
+      return;
+    }
+
+    const activitiesById = new Map<
+      string,
+      NonNullable<(typeof results)[number]["data"]>[number]
+    >();
+    for (const result of results) {
+      for (const activity of result.data ?? []) {
+        activitiesById.set(activity.id, activity);
+      }
+    }
+
+    const activities = [...activitiesById.values()]
+      .sort(
+        (left, right) =>
+          Date.parse(left.starts_at) - Date.parse(right.starts_at),
+      )
+      .slice(0, EXPLORE_RESULT_LIMIT);
+
+    response.json({
+      activities: activities.map((activity) => ({
+        id: activity.id,
+        title: activity.title,
+        category: activity.category,
+        subcategory: activity.subcategory,
+        startsAt: activity.starts_at,
+        endsAt: activity.ends_at,
+        timezoneName: activity.timezone_name,
+        locationType: activity.location_type,
+        city: activity.city,
+        onlinePlatform: activity.online_platform,
+        participationMode: activity.participation_mode,
+        maxParticipants: activity.max_participants,
+        memberCount: activity.activity_members?.[0]?.count ?? 0,
+        status: activity.status,
+      })),
+    });
+  } catch (error) {
+    request.log.error(
+      { err: error, userId: session.user.id },
+      "Unable to explore activities",
+    );
+    response.status(500).json({ error: "The activities could not be loaded." });
   }
 });
 
