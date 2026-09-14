@@ -233,7 +233,7 @@ export function ActivityDetail() {
             {activity.title}
           </h1>
           <p className="mt-4 text-sm text-muted-foreground">
-            {t('detail.organizer')}{' '}
+            {t('create.detail.organizer')}{' '}
             <span className="font-bold text-foreground">{organizer}</span>
           </p>
         </header>
