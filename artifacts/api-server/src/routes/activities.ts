@@ -300,6 +300,14 @@ router.post("/activities", async (request, response) => {
     return;
   }
 
+  if (Date.parse(activity.starts_at) <= Date.now()) {
+    response.status(400).json({
+      error: "The activity start time must be in the future.",
+      code: "activity_start_in_past",
+    });
+    return;
+  }
+
   try {
     const { data, error } = await getSupabaseAdmin()
       .from("activities")

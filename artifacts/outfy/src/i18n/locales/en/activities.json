@@ -195,7 +195,8 @@
     },
     "publish": {
       "error": "We couldn't publish your plan. Please try again.",
-      "authError": "Your session has expired. Sign in again to publish your plan."
+      "authError": "Your session has expired. Sign in again to publish your plan.",
+      "startInPast": "The start time for this plan has already passed. Go back and choose a new one."
     },
     "success": {
       "eyebrow": "PUBLISHED",
@@ -251,6 +252,7 @@
       "invalidDate": "Enter a valid date.",
       "startTime": "Choose a start time.",
       "invalidTime": "Enter a valid time.",
+      "startInPast": "The start date and time must be later than the current time.",
       "endTimeBeforeStart": "The end time must be after the start time.",
       "city": "Add the city for the plan.",
       "maxParticipants": "Choose at least 2 participants.",

@@ -1,0 +1,613 @@
+We are continuing development of Outfy.
+
+The Create Plan flow is currently working correctly:
+
+- date/time manual masks
+- native date/time pickers
+- invalid date/time validation
+- scroll/focus to the first validation error
+- Review Plan
+- real publishing
+- Share Plan from success screen
+
+We now need ONE additional business rule:
+
+AN ACTIVITY MUST NOT BE CREATED WITH A START DATE/TIME THAT IS ALREADY IN THE PAST.
+
+Example:
+
+Current local date/time:
+14/09/2026 18:00
+
+INVALID:
+13/09/2026 20:00
+14/09/2026 15:00
+14/09/2026 17:59
+
+VALID:
+14/09/2026 18:05
+14/09/2026 20:00
+15/09/2026 09:00
+
+Do NOT require an arbitrary minimum such as 30 minutes.
+
+Any genuinely future start time is valid.
+
+==================================================
+MODE / STRICT SCOPE
+==================================================
+
+You may modify ONLY:
+
+1. artifacts/outfy/src/pages/create-activity.tsx
+2. artifacts/api-server/src/routes/activities.ts
+3. artifacts/outfy/src/activities/activity-api.ts
+   ONLY if required to expose an existing/stable API error code cleanly
+4. artifacts/outfy/src/i18n/locales/es/activities.json
+5. artifacts/outfy/src/i18n/locales/en/activities.json
+
+DO NOT modify any other file.
+
+DO NOT modify:
+
+- database
+- Supabase schema
+- migrations
+- RLS
+- RPCs
+- Activity Detail
+- Join/Leave
+- Profile
+- My Plans
+- Explore
+- Home
+- Settings
+- App.tsx
+- router
+- package.json
+- dependencies
+- workflows
+- .replit
+- deployment
+
+DO NOT execute SQL.
+
+DO NOT publish or redeploy.
+
+==================================================
+IMPORTANT PRINCIPLE
+==================================================
+
+Implement the rule in TWO layers:
+
+1. FRONTEND UX
+2. BACKEND VALIDATION
+
+Frontend validation improves the experience.
+
+Backend validation is authoritative and prevents bypassing the UI.
+
+==================================================
+PART 1 — CALENDAR MINIMUM DATE
+==================================================
+
+In Create Plan, prevent the native DATE picker from selecting a calendar day
+before today.
+
+Set the native date input's:
+
+min
+
+to TODAY in the user's LOCAL calendar date.
+
+IMPORTANT:
+
+Do NOT derive today's YYYY-MM-DD using:
+
+new Date().toISOString().slice(0, 10)
+
+because UTC conversion can produce the wrong calendar day near midnight.
+
+Create/use a small helper that produces local:
+
+YYYY-MM-DD
+
+from:
+
+getFullYear()
+getMonth()
+getDate()
+
+Example:
+
+2026-09-14
+
+Do NOT change the existing visible DD/MM/YYYY format.
+
+Do NOT change the working date mask.
+
+Do NOT change the native picker architecture.
+
+==================================================
+MANUAL TYPING
+==================================================
+
+The user can still type a date manually.
+
+Therefore the input min attribute is NOT sufficient.
+
+Examples:
+
+User manually types yesterday
+-> must be rejected by form validation.
+
+User manually types today with a past start time
+-> must be rejected.
+
+==================================================
+PART 2 — REVIEW PLAN VALIDATION
+==================================================
+
+When the user presses:
+
+Review Plan
+
+keep all existing validation.
+
+After confirming that:
+
+- date itself is complete and valid
+- start time itself is complete and valid
+
+construct the intended LOCAL start date/time from:
+
+form.date
+form.startTime
+
+The existing canonical formats are:
+
+form.date:
+YYYY-MM-DD
+
+form.startTime:
+HH:mm
+
+Compare that intended start moment with the browser's current time.
+
+If:
+
+startDateTime <= current time
+
+the form is invalid.
+
+Do NOT enter Review mode.
+
+==================================================
+IMPORTANT — LOCAL TIME
+==================================================
+
+Treat the entered date/time as a LOCAL date/time, consistent with the existing
+publishing implementation.
+
+Do not accidentally parse the user-entered time as UTC.
+
+A reasonable comparison is based on the same local Date construction already
+used by the current publishing flow:
+
+new Date(`${form.date}T${form.startTime}:00`)
+
+Do not redesign timezone handling in this task.
+
+==================================================
+VALIDATION MESSAGE
+==================================================
+
+Add a localized error.
+
+Spanish:
+
+"La fecha y hora de inicio deben ser posteriores al momento actual."
+
+English:
+
+"The start date and time must be later than the current time."
+
+Do not hardcode the strings in React.
+
+Use the existing activities translation namespace.
+
+==================================================
+WHERE TO SHOW THE ERROR
+==================================================
+
+Associate this error with the START DATE/TIME area.
+
+Prefer attaching it to the Date field/error area if that integrates most
+cleanly with the current first-error scrolling system.
+
+Alternatively attach it to Start Time if the date is today and only the time
+is the problem.
+
+But keep the implementation simple and predictable.
+
+Most importantly:
+
+when this is the first validation error and the user presses Review Plan:
+
+- do NOT enter Review
+- automatically scroll to the relevant Date/Start Time field
+- focus the visible editable control
+- show the error clearly
+
+Reuse the first-error scroll/focus system that already works.
+
+Do NOT create a second scrolling implementation.
+
+==================================================
+WHILE TYPING
+==================================================
+
+Do NOT show the "past date/time" error aggressively while the user is still
+typing an incomplete date or time.
+
+Only evaluate this rule once:
+
+- date is complete and valid
+- start time is complete and valid
+
+On Review Plan it MUST always be evaluated.
+
+If an existing past-time error is visible and the user corrects the value to a
+future date/time, clear the error naturally.
+
+==================================================
+END TIME
+==================================================
+
+Preserve the existing rule:
+
+end time must be later than start time.
+
+Do NOT add a separate "end time must be in the future" rule.
+
+If the start is valid and in the future, and the end is later than the start,
+the existing logic is sufficient for same-day activities.
+
+Do not redesign multi-day activities in this task.
+
+==================================================
+PART 3 — BACKEND PROTECTION
+==================================================
+
+The API endpoint that creates activities must independently reject an activity
+whose startsAt is not in the future.
+
+Find the existing POST activity creation route.
+
+After normal request validation and before inserting:
+
+parse the supplied startsAt.
+
+Reject if:
+
+startsAt <= current server time
+
+Use a stable safe API error code such as:
+
+activity_start_in_past
+
+Use an appropriate 400-series status, preferably:
+
+400 Bad Request
+
+or the project's existing validation-error convention.
+
+Do NOT expose raw server/Postgres/Supabase errors.
+
+==================================================
+IMPORTANT BACKEND RULE
+==================================================
+
+The server receives the already converted ISO instant.
+
+Therefore backend validation should compare the absolute startsAt instant with:
+
+new Date()
+
+Do NOT try to reinterpret startsAt using a city/timezone.
+
+Do NOT change timezone conversion.
+
+Do NOT trust the frontend validation alone.
+
+==================================================
+PUBLISH RACE / TIME PASSES
+==================================================
+
+There is an edge case:
+
+The user may Review a plan while the start is still in the future, wait on the
+Review screen, and press Publish only after the start time has already passed.
+
+The backend MUST reject that publication.
+
+If the frontend receives:
+
+activity_start_in_past
+
+show a friendly localized error rather than a generic failure.
+
+Spanish:
+
+"La hora de inicio de este plan ya ha pasado. Vuelve atrás y elige una nueva."
+
+English:
+
+"The start time for this plan has already passed. Go back and choose a new one."
+
+Keep the user on the Review screen.
+
+Do NOT report successful publication.
+
+The user can use the existing Back to Edit action to correct the date/time.
+
+==================================================
+DO NOT CHANGE PUBLISHING FORMAT
+==================================================
+
+Preserve the existing construction of:
+
+startsAt
+
+endsAt
+
+timezoneName
+
+and the existing API payload.
+
+Do NOT change:
+
+form.date
+form.startTime
+form.endTime
+
+canonical formats.
+
+==================================================
+DO NOT BLOCK TODAY
+==================================================
+
+Today itself must remain selectable.
+
+Example:
+
+Current:
+14/09/2026 15:00
+
+Date:
+14/09/2026
+
+Start:
+20:00
+
+VALID.
+
+Therefore:
+
+native date min = today
+
+NOT tomorrow.
+
+The date+time validation decides whether today's chosen time is still valid.
+
+==================================================
+BOUNDARY RULE
+==================================================
+
+If the selected start is exactly equal to the current instant/minute when
+validation occurs, treat it as not valid.
+
+Rule:
+
+startDateTime must be strictly GREATER THAN now.
+
+Do not add arbitrary extra minutes.
+
+==================================================
+PRESERVE CURRENT DATE/TIME UX
+==================================================
+
+This is extremely important.
+
+The date/time controls are now working correctly.
+
+DO NOT redesign them.
+
+Do NOT change:
+
+- input masks
+- automatic /
+- automatic :
+- manual typing
+- Backspace behavior
+- Calendar icon
+- Clock icons
+- native picker overlay behavior
+- dark-theme icon colors
+- DD/MM/YYYY visible format
+- HH:mm visible format
+- invalid date validation
+- invalid time validation
+
+Only add the minimum-date and past-start rule.
+
+==================================================
+I18N
+==================================================
+
+Use the existing activities namespace.
+
+Add/reuse only the minimum keys required for:
+
+1. invalid past start during form validation
+2. start became past before publishing
+
+Keep ES and EN translation structures equivalent.
+
+==================================================
+MANDATORY TESTS
+==================================================
+
+Use the ACTUAL current local time when testing.
+
+TEST 1 — YESTERDAY
+
+Select/type yesterday.
+
+Choose any start time.
+
+Press Review Plan.
+
+Expected:
+
+- Review does not open
+- past-start error appears
+- page scrolls/focuses to the relevant field
+
+==================================================
+TEST 2 — TODAY, PAST TIME
+
+Select today.
+
+Choose a start time clearly earlier than the current time.
+
+Press Review.
+
+Expected:
+
+- blocked
+- clear past-start error
+- automatic scroll/focus
+
+==================================================
+TEST 3 — TODAY, FUTURE TIME
+
+Select today.
+
+Choose a future time.
+
+Expected:
+
+- accepted
+- Review opens
+
+==================================================
+TEST 4 — TOMORROW
+
+Select tomorrow.
+
+Choose a valid time.
+
+Expected:
+
+- accepted
+
+==================================================
+TEST 5 — NATIVE CALENDAR
+
+Open Calendar picker.
+
+Expected:
+
+- dates before today cannot be selected normally
+- today remains selectable
+- future days selectable
+
+==================================================
+TEST 6 — MANUAL BYPASS
+
+Manually type an old but otherwise valid date.
+
+Expected:
+
+- mask continues working
+- Review validation still blocks it
+
+==================================================
+TEST 7 — SERVER PROTECTION
+
+Verify the activity creation endpoint rejects a startsAt value in the past with:
+
+activity_start_in_past
+
+Do NOT modify the database manually.
+
+Do NOT create invalid database records for testing.
+
+==================================================
+TEST 8 — TIME PASSES WHILE REVIEWING
+
+If practical to simulate safely:
+
+reach Review with a near-future start,
+then ensure the API-side validation correctly rejects it if startsAt is already
+past at publication time.
+
+A direct API/unit-style route test is acceptable.
+
+Do not wait around unnecessarily in the browser.
+
+==================================================
+REGRESSION TESTS
+==================================================
+
+Confirm:
+
+- manual date mask still works
+- manual time mask still works
+- Calendar button still works
+- Clock buttons still work
+- invalid calendar dates still show their existing error
+- invalid times still show their existing error
+- end-before-start still works
+- first-error scrolling still works
+- valid Review still works
+- valid Publish still works
+- Share after publishing still works
+
+==================================================
+FINAL VALIDATION
+==================================================
+
+1. Review git diff.
+2. Confirm ONLY allowed files changed.
+3. Run API TypeScript/typecheck/build.
+4. Run frontend TypeScript/typecheck/build.
+5. Validate ES/EN JSON.
+6. Confirm no SQL was executed.
+7. Confirm no migration/RLS/schema changes.
+8. Confirm frontend prevents past starts.
+9. Confirm backend independently prevents past starts.
+10. Confirm valid future activities still publish normally.
+
+==================================================
+REPORT BACK
+==================================================
+
+Report:
+
+1. Exact files modified.
+2. Local-date min implementation.
+3. Frontend past-start validation.
+4. Integration with first-error scroll/focus.
+5. Backend protection.
+6. API error code/status.
+7. Publish-review race handling.
+8. ES/EN translations added/reused.
+9. Frontend build/typecheck.
+10. API build/typecheck.
+11. Actual browser tests performed.
+12. Any limitation discovered.
+
+DO NOT publish.
+DO NOT redeploy.

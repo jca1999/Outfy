@@ -144,19 +144,16 @@ export async function createActivity(input: CreateActivityRequest) {
   });
 
   const payload = (await response.json().catch(() => null)) as
-    | { error?: string }
+    | ActivityErrorPayload
     | CreateActivityResponse
     | null;
 
   if (!response.ok) {
-    const message =
-      payload &&
-      typeof payload === 'object' &&
-      'error' in payload &&
-      typeof payload.error === 'string'
-        ? payload.error
-        : 'The activity could not be published.';
-    throw new ActivityApiError(message, response.status);
+    throw activityApiError(
+      payload && 'activity' in payload ? null : payload,
+      response.status,
+      'The activity could not be published.',
+    );
   }
 
   return payload as CreateActivityResponse;

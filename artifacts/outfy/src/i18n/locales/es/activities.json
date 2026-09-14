@@ -195,7 +195,8 @@
     },
     "publish": {
       "error": "No hemos podido publicar tu plan. Inténtalo de nuevo.",
-      "authError": "Tu sesión ha caducado. Inicia sesión de nuevo para publicar el plan."
+      "authError": "Tu sesión ha caducado. Inicia sesión de nuevo para publicar el plan.",
+      "startInPast": "La hora de inicio de este plan ya ha pasado. Vuelve atrás y elige una nueva."
     },
     "success": {
       "eyebrow": "PUBLICADO",
@@ -251,6 +252,7 @@
       "invalidDate": "Introduce una fecha válida.",
       "startTime": "Elige una hora de inicio.",
       "invalidTime": "Introduce una hora válida.",
+      "startInPast": "La fecha y hora de inicio deben ser posteriores al momento actual.",
       "endTimeBeforeStart": "La hora de fin debe ser posterior a la de inicio.",
       "city": "Escribe la ciudad del plan.",
       "maxParticipants": "Indica un mínimo de 2 participantes.",

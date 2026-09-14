@@ -96,6 +96,14 @@ function formatDateInputValue(value: string) {
   return `${day}/${month}/${year}`;
 }
 
+function getLocalDateInputMinimum(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
+
 function parseDateInputValue(value: string) {
   const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(
     value.trim(),
@@ -307,6 +315,7 @@ export function CreateActivity() {
       'startTime',
       parseTimeInputValue(maskedValue) ?? '',
     );
+    clearError('date');
   }
 
   function handleEndTimeTextChange(
@@ -332,6 +341,7 @@ export function CreateActivity() {
   function handleStartTimePickerChange(value: string) {
     setStartTimeText(value);
     updateForm('startTime', value);
+    clearError('date');
   }
 
   function handleEndTimePickerChange(value: string) {
@@ -411,6 +421,16 @@ export function CreateActivity() {
       nextErrors.startTime = startTimeText.trim()
         ? t('create.validation.invalidTime')
         : t('create.validation.startTime');
+    }
+
+    if (form.date && form.startTime) {
+      const startDateTime = new Date(
+        `${form.date}T${form.startTime}:00`,
+      );
+
+      if (startDateTime.getTime() <= Date.now()) {
+        nextErrors.date = t('create.validation.startInPast');
+      }
     }
 
     if (endTimeText.trim() && !form.endTime) {
@@ -565,9 +585,12 @@ export function CreateActivity() {
       setPublishedActivityId(result.activity.id);
     } catch (error) {
       setPublishError(
-        error instanceof ActivityApiError && error.status === 401
-          ? t('create.publish.authError')
-          : t('create.publish.error'),
+        error instanceof ActivityApiError &&
+          error.code === 'activity_start_in_past'
+          ? t('create.publish.startInPast')
+          : error instanceof ActivityApiError && error.status === 401
+            ? t('create.publish.authError')
+            : t('create.publish.error'),
       );
     } finally {
       setIsPublishing(false);
@@ -1142,6 +1165,7 @@ export function CreateActivity() {
                         ref={datePickerRef}
                         id="activity-date-picker"
                         type="date"
+                        min={getLocalDateInputMinimum()}
                         value={form.date}
                         onChange={(event) =>
                           handleDatePickerChange(
