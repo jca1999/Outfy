@@ -55,20 +55,60 @@ export type ActivityDetail = {
     displayName: string | null;
   };
   memberCount: number;
+  membershipRole: 'organizer' | 'participant' | null;
 };
 
 export type ActivityDetailResponse = {
   activity: ActivityDetail;
 };
 
+export type ActivityMembershipResponse = {
+  result: 'joined' | 'already_member' | 'left' | 'not_member';
+  memberCount: number;
+  maxParticipants: number | null;
+};
+
 export class ActivityApiError extends Error {
   status: number;
+  code?: string;
+  memberCount?: number;
+  maxParticipants?: number | null;
 
-  constructor(message: string, status: number) {
+  constructor(
+    message: string,
+    status: number,
+    details?: {
+      code?: string;
+      memberCount?: number;
+      maxParticipants?: number | null;
+    },
+  ) {
     super(message);
     this.name = 'ActivityApiError';
     this.status = status;
+    this.code = details?.code;
+    this.memberCount = details?.memberCount;
+    this.maxParticipants = details?.maxParticipants;
   }
+}
+
+type ActivityErrorPayload = {
+  error?: string;
+  code?: string;
+  memberCount?: number;
+  maxParticipants?: number | null;
+};
+
+function activityApiError(
+  payload: ActivityErrorPayload | null,
+  status: number,
+  fallback: string,
+) {
+  return new ActivityApiError(payload?.error ?? fallback, status, {
+    code: payload?.code,
+    memberCount: payload?.memberCount,
+    maxParticipants: payload?.maxParticipants,
+  });
 }
 
 export async function createActivity(input: CreateActivityRequest) {
@@ -122,4 +162,52 @@ export async function getActivity(id: string) {
   }
 
   return payload as ActivityDetailResponse;
+}
+
+export async function joinActivity(activityId: string) {
+  const response = await fetch(
+    `/api/activities/${encodeURIComponent(activityId)}/join`,
+    {
+      method: 'POST',
+      credentials: 'include',
+    },
+  );
+  const payload = (await response.json().catch(() => null)) as
+    | ActivityErrorPayload
+    | ActivityMembershipResponse
+    | null;
+
+  if (!response.ok) {
+    throw activityApiError(
+      payload,
+      response.status,
+      'The activity could not be joined.',
+    );
+  }
+
+  return payload as ActivityMembershipResponse;
+}
+
+export async function leaveActivity(activityId: string) {
+  const response = await fetch(
+    `/api/activities/${encodeURIComponent(activityId)}/membership`,
+    {
+      method: 'DELETE',
+      credentials: 'include',
+    },
+  );
+  const payload = (await response.json().catch(() => null)) as
+    | ActivityErrorPayload
+    | ActivityMembershipResponse
+    | null;
+
+  if (!response.ok) {
+    throw activityApiError(
+      payload,
+      response.status,
+      'The activity could not be left.',
+    );
+  }
+
+  return payload as ActivityMembershipResponse;
 }

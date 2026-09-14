@@ -1,0 +1,752 @@
+We are continuing development of Outfy.
+
+Real activities, activity detail, publishing and sharing are working.
+
+Migration 009_activity_membership_operations has now been applied successfully
+to the live Supabase database.
+
+The database now exposes trusted-server RPCs:
+
+public.join_activity_as_user(
+  p_activity_id uuid,
+  p_user_id uuid
+)
+
+public.leave_activity_as_user(
+  p_activity_id uuid,
+  p_user_id uuid
+)
+
+These RPCs:
+
+- are callable only by service_role
+- perform capacity-safe membership changes
+- protect organizer membership
+- return:
+  result
+  member_count
+  max_participants
+
+The next task is to implement REAL:
+
+JOIN ACTIVITY
+LEAVE ACTIVITY
+
+on the existing activity detail page.
+
+==================================================
+MODE / SAFETY
+==================================================
+
+STRICT SCOPE.
+
+You may MODIFY ONLY:
+
+1. artifacts/api-server/src/routes/activities.ts
+2. artifacts/outfy/src/activities/activity-api.ts
+3. artifacts/outfy/src/pages/activity-detail.tsx
+4. artifacts/outfy/src/i18n/locales/es/activities.json
+5. artifacts/outfy/src/i18n/locales/en/activities.json
+
+DO NOT modify any other file.
+
+Do NOT modify:
+
+- migrations
+- Supabase schema
+- RLS
+- RPC definitions
+- auth.ts
+- auth-api.ts
+- auth-context.tsx
+- App.tsx
+- Create Plan
+- Profile
+- Home
+- Settings
+- Explore
+- OutfyShell
+- LocationPicker
+- activity-taxonomy.ts
+- package.json
+- dependencies
+- .replit
+- workflows
+- ports
+- deployment
+- environment variables
+
+DO NOT execute SQL.
+DO NOT publish.
+DO NOT redeploy.
+
+==================================================
+ARCHITECTURE
+==================================================
+
+Preserve:
+
+Frontend
+-> authenticated Outfy API
+-> server-side Supabase privileged client
+-> trusted RPC
+
+The frontend must NEVER call the membership RPC directly.
+
+The frontend must NEVER send:
+
+- user ID
+- membership role
+- organizer role
+
+The API derives the user ID from the authenticated server session.
+
+==================================================
+GOAL
+==================================================
+
+The real Activity Detail page should now know whether the current user is:
+
+- organizer
+- participant
+- not a member
+
+and provide the correct action.
+
+ORGANIZER:
+
+Show a clear non-clickable state such as:
+
+Spanish:
+"Eres el organizador"
+
+English:
+"You’re the organizer"
+
+Do NOT show Join.
+Do NOT allow Leave through the normal participant flow.
+
+PARTICIPANT:
+
+Show:
+
+Spanish:
+"Abandonar plan"
+
+English:
+"Leave plan"
+
+NOT A MEMBER:
+
+Show:
+
+Spanish:
+"Unirme al plan"
+
+English:
+"Join plan"
+
+unless the activity is full or not active.
+
+==================================================
+GET ACTIVITY — CURRENT USER MEMBERSHIP
+==================================================
+
+Extend the existing:
+
+GET /api/activities/:id
+
+response.
+
+The API already has the authenticated user session.
+
+Determine whether that user has a row in:
+
+public.activity_members
+
+for the activity.
+
+Return a safe field such as:
+
+membershipRole:
+  "organizer"
+  "participant"
+  null
+
+Do NOT expose arbitrary member records.
+
+Do NOT expose other users' IDs.
+
+Keep the existing:
+
+memberCount
+maxParticipants
+
+behavior.
+
+==================================================
+RECOMMENDED DETAIL RESPONSE ADDITION
+==================================================
+
+Conceptually:
+
+{
+  activity: {
+    ...
+    memberCount,
+    membershipRole
+  }
+}
+
+Do not duplicate organizer identity logic.
+
+==================================================
+JOIN ENDPOINT
+==================================================
+
+Add:
+
+POST /api/activities/:id/join
+
+Requires valid Outfy session.
+
+The request body must NOT accept a user ID.
+
+Derive:
+
+p_user_id = authenticated session user ID
+
+Call:
+
+public.join_activity_as_user
+
+through the EXISTING privileged server-side Supabase client.
+
+Pass:
+
+p_activity_id = route activity ID
+p_user_id = authenticated user ID
+
+==================================================
+JOIN RESULT MAPPING
+==================================================
+
+Handle RPC results explicitly.
+
+joined
+
+Return success with:
+
+{
+  result: "joined",
+  memberCount,
+  maxParticipants
+}
+
+already_member
+
+Treat safely/idempotently.
+
+Return a successful response indicating:
+
+{
+  result: "already_member",
+  memberCount,
+  maxParticipants
+}
+
+full
+
+Return an appropriate conflict response, e.g. HTTP 409.
+
+Provide a stable API error/result code the frontend can map to:
+
+activity_full
+
+not_active
+
+Return conflict or appropriate state error.
+
+Stable code:
+
+activity_not_active
+
+not_found
+
+Return 404.
+
+Do NOT expose raw RPC/database errors.
+
+Unexpected RPC/database failure:
+500 with safe generic API error.
+
+==================================================
+LEAVE ENDPOINT
+==================================================
+
+Add:
+
+DELETE /api/activities/:id/membership
+
+Requires authenticated session.
+
+Do NOT accept a user ID in the body.
+
+Call:
+
+public.leave_activity_as_user
+
+using the authenticated session user ID.
+
+==================================================
+LEAVE RESULT MAPPING
+==================================================
+
+left
+
+Return success:
+
+{
+  result: "left",
+  memberCount,
+  maxParticipants
+}
+
+not_member
+
+Treat idempotently when the activity exists.
+
+Return a safe success/state response.
+
+If the RPC result clearly indicates the activity itself does not exist
+(e.g. its returned counts are null according to the current RPC contract),
+return 404.
+
+organizer_cannot_leave
+
+Return an appropriate conflict response.
+
+Stable API code:
+
+organizer_cannot_leave
+
+The organizer must never be removed through this endpoint.
+
+==================================================
+IMPORTANT SERVER SECURITY
+==================================================
+
+The server uses service_role and bypasses normal RLS.
+
+Therefore:
+
+- user identity must come ONLY from session
+- route activity ID must be validated
+- never trust frontend role
+- never trust frontend capacity
+- never perform capacity checking only in application code
+- always use the existing database RPC for join
+- always use the existing database RPC for leave
+
+Do NOT directly INSERT or DELETE activity_members from these routes.
+
+==================================================
+FRONTEND API
+==================================================
+
+Extend:
+
+artifacts/outfy/src/activities/activity-api.ts
+
+Add typed methods for:
+
+joinActivity(activityId)
+
+leaveActivity(activityId)
+
+Use:
+
+credentials: 'include'
+
+Do NOT add a frontend Supabase client.
+
+Create appropriate TypeScript response/error types.
+
+==================================================
+ACTIVITY DETAIL — MEMBERSHIP UI
+==================================================
+
+Modify:
+
+artifacts/outfy/src/pages/activity-detail.tsx
+
+Preserve all existing:
+
+- activity loading
+- title
+- taxonomy
+- organizer
+- date/time
+- location
+- participants
+- cost
+- description
+- Share
+- back navigation
+
+Add the membership action in a visually important but clean location.
+
+==================================================
+ORGANIZER STATE
+==================================================
+
+If:
+
+membershipRole === "organizer"
+
+show:
+
+"Eres el organizador"
+"You’re the organizer"
+
+This should NOT look like a disabled error button.
+
+It can be a subtle organizer status/action area.
+
+Do NOT allow the organizer to leave.
+
+==================================================
+PARTICIPANT STATE
+==================================================
+
+If:
+
+membershipRole === "participant"
+
+show a button:
+
+"Abandonar plan"
+"Leave plan"
+
+On press:
+
+- disable action while request is running
+- prevent duplicate requests
+- call leaveActivity()
+- if successful:
+  - membershipRole becomes null
+  - memberCount updates immediately using API response
+  - Join becomes available again if activity has space
+
+Do not reload the entire page unnecessarily.
+
+==================================================
+NON-MEMBER STATE
+==================================================
+
+If:
+
+membershipRole === null
+
+and the activity is active and not full:
+
+show primary CTA:
+
+"Unirme al plan"
+"Join plan"
+
+On press:
+
+- disable during request
+- prevent double requests
+- call joinActivity()
+- if joined/already_member:
+  - membershipRole becomes "participant"
+  - memberCount updates from API response
+
+Do not optimistically assume success before the server responds.
+
+==================================================
+FULL ACTIVITY
+==================================================
+
+For LIMITED activities:
+
+full = memberCount >= maxParticipants
+
+If the current user is NOT already a member and the plan is full:
+
+Do NOT show an enabled Join action.
+
+Show clearly:
+
+Spanish:
+"Plan completo"
+
+English:
+"Plan full"
+
+Optionally show:
+
+Spanish:
+"No quedan plazas"
+
+English:
+"No spots left"
+
+Do not implement waiting lists.
+
+==================================================
+AVAILABLE SPOTS
+==================================================
+
+Improve the participant area slightly.
+
+For a limited activity, in addition to:
+
+1 de 3 participantes
+
+display remaining availability naturally when useful.
+
+Examples:
+
+Spanish:
+"2 plazas disponibles"
+"1 plaza disponible"
+"Sin plazas disponibles"
+
+English:
+"2 spots available"
+"1 spot available"
+"No spots available"
+
+Remember:
+
+maxParticipants includes the organizer.
+
+Do NOT change database semantics.
+
+For unlimited activities:
+
+keep the existing unlimited presentation.
+
+==================================================
+LEAVE CONFIRMATION
+==================================================
+
+Do NOT add a large custom modal in this task.
+
+A simple existing-pattern confirmation is acceptable only if the project
+already has an established confirmation component/pattern.
+
+Otherwise keep Leave as a direct action for now.
+
+Do not introduce dependencies just for confirmation.
+
+==================================================
+LOADING STATES
+==================================================
+
+Use clear translated button states.
+
+JOIN:
+
+Spanish:
+"Uniéndome..."
+
+English:
+"Joining..."
+
+LEAVE:
+
+Spanish:
+"Saliendo..."
+
+English:
+"Leaving..."
+
+Disable the relevant action while pending.
+
+Prevent rapid repeated requests.
+
+==================================================
+ERROR HANDLING
+==================================================
+
+Show friendly translated errors.
+
+JOIN FULL:
+
+Spanish:
+"Este plan acaba de llenarse."
+
+English:
+"This plan just became full."
+
+This is important because the UI may have shown a free spot immediately
+before another user took it.
+
+NOT ACTIVE:
+
+Spanish:
+"Este plan ya no está disponible para unirse."
+
+English:
+"This plan is no longer available to join."
+
+GENERIC JOIN ERROR:
+
+Spanish:
+"No hemos podido unirte al plan. Inténtalo de nuevo."
+
+English:
+"We couldn't join the plan. Please try again."
+
+GENERIC LEAVE ERROR:
+
+Spanish:
+"No hemos podido sacarte del plan. Inténtalo de nuevo."
+
+English:
+"We couldn't leave the plan. Please try again."
+
+SESSION EXPIRED:
+follow the existing Outfy session handling style.
+
+Do not display raw server/database errors.
+
+==================================================
+STATE CONSISTENCY
+==================================================
+
+After successful join/leave:
+
+Update the UI from the authoritative RPC response:
+
+- memberCount
+- maxParticipants where returned
+- membershipRole
+
+Do not manually increment/decrement if the API already returns the actual
+database count.
+
+This avoids stale counts.
+
+==================================================
+SHARE
+==================================================
+
+Do NOT change the current Share behavior.
+
+Sharing must continue to work exactly as it does now.
+
+==================================================
+DO NOT IMPLEMENT YET
+==================================================
+
+Do NOT implement:
+
+- member list
+- participant avatars
+- kicking members
+- waiting lists
+- approval requests
+- activity editing
+- cancellation
+- organizer transfer
+- chat
+- notifications
+- Explore activity queries
+- profile activity lists
+- private activities
+- invitations
+
+==================================================
+I18N
+==================================================
+
+Use the existing:
+
+activities
+
+namespace.
+
+Add only the necessary ES/EN keys for:
+
+- Join plan
+- Joining
+- Leave plan
+- Leaving
+- You're the organizer
+- Plan full
+- available spots singular/plural
+- no spots
+- join full race-condition message
+- inactive activity
+- generic join error
+- generic leave error
+
+Keep ES and EN structures equivalent.
+
+Do not expose raw translation keys.
+
+==================================================
+VALIDATION
+==================================================
+
+After implementation:
+
+1. Review git diff.
+
+2. Confirm ONLY the five allowed files changed.
+
+3. Run API TypeScript/typecheck/build.
+
+4. Run frontend TypeScript/typecheck/build.
+
+5. Confirm no SQL was executed.
+
+6. Confirm migrations 007-009 were not changed.
+
+7. Confirm frontend never supplies user ID.
+
+8. Confirm API derives user ID from session.
+
+9. Confirm join uses ONLY:
+   join_activity_as_user
+
+10. Confirm leave uses ONLY:
+    leave_activity_as_user
+
+11. Confirm no direct membership INSERT/DELETE was added.
+
+12. Confirm organizer cannot leave.
+
+13. Confirm full activities cannot be joined.
+
+14. Confirm memberCount updates from the RPC response.
+
+15. Confirm Share behavior remains unchanged.
+
+==================================================
+REPORT BACK
+==================================================
+
+Report:
+
+1. Exact files modified.
+2. GET activity membership addition.
+3. Join endpoint.
+4. Leave endpoint.
+5. RPC result mapping.
+6. Membership UI states.
+7. Full-plan behavior.
+8. Available-spots display.
+9. Error/loading states.
+10. Security checks.
+11. API build/typecheck result.
+12. Frontend build/typecheck result.
+13. Any limitation found.
+
+DO NOT publish.
+DO NOT redeploy.

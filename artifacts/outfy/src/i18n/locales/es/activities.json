@@ -211,7 +211,20 @@
       "share": "Compartir",
       "shareInvitation": "Únete a este plan en Outfy.",
       "linkCopied": "Enlace copiado",
-      "shareError": "No hemos podido compartir la actividad. Inténtalo de nuevo."
+      "shareError": "No hemos podido compartir la actividad. Inténtalo de nuevo.",
+      "joinPlan": "Unirme al plan",
+      "joining": "Uniéndome...",
+      "leavePlan": "Abandonar plan",
+      "leaving": "Saliendo...",
+      "organizerStatus": "Eres el organizador",
+      "planFull": "Plan completo",
+      "spotsAvailable": "{{count}} plaza disponible",
+      "spotsAvailable_other": "{{count}} plazas disponibles",
+      "noSpots": "Sin plazas disponibles",
+      "joinFullError": "Este plan acaba de llenarse.",
+      "joinInactiveError": "Este plan ya no está disponible para unirse.",
+      "joinError": "No hemos podido unirte al plan. Inténtalo de nuevo.",
+      "leaveError": "No hemos podido sacarte del plan. Inténtalo de nuevo."
     },
     "validation": {
       "title": "Escribe un título para el plan.",

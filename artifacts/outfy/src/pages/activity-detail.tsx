@@ -6,13 +6,15 @@ import {
   Share2,
   Users,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useRoute } from 'wouter';
 
 import {
   ActivityApiError,
   getActivity,
+  joinActivity,
+  leaveActivity,
   type ActivityDetail as Activity,
 } from '@/activities/activity-api';
 
@@ -25,10 +27,23 @@ export function ActivityDetail() {
   const [activity, setActivity] = useState<Activity | null>(null);
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [shareMessage, setShareMessage] = useState('');
+  const [membershipPending, setMembershipPending] = useState<
+    'join' | 'leave' | null
+  >(null);
+  const [membershipError, setMembershipError] = useState('');
+  const [membershipUnavailable, setMembershipUnavailable] = useState(false);
+  const membershipRequestRef = useRef<symbol | null>(null);
+  const currentActivityIdRef = useRef<string | null>(params?.id ?? null);
+  currentActivityIdRef.current = params?.id ?? null;
 
   useEffect(() => {
     let active = true;
     setLoadState('loading');
+    setActivity(null);
+    setMembershipPending(null);
+    setMembershipError('');
+    setMembershipUnavailable(false);
+    membershipRequestRef.current = null;
 
     if (!params?.id) {
       setLoadState('not-found');
@@ -94,6 +109,125 @@ export function ActivityDetail() {
       setShareMessage(t('create.detail.linkCopied'));
     } catch {
       setShareMessage(t('create.detail.shareError'));
+    }
+  }
+
+  async function handleJoin() {
+    if (!activity || membershipRequestRef.current) return;
+
+    const activityId = activity.id;
+    const requestToken = Symbol('join-activity');
+    membershipRequestRef.current = requestToken;
+    setMembershipPending('join');
+    setMembershipError('');
+    try {
+      const result = await joinActivity(activityId);
+      if (
+        membershipRequestRef.current !== requestToken ||
+        currentActivityIdRef.current !== activityId
+      ) {
+        return;
+      }
+      setActivity((current) =>
+        current?.id === activityId
+          ? {
+              ...current,
+              membershipRole: 'participant',
+              memberCount: result.memberCount,
+              maxParticipants: result.maxParticipants,
+            }
+          : current,
+      );
+    } catch (error) {
+      if (
+        membershipRequestRef.current !== requestToken ||
+        currentActivityIdRef.current !== activityId
+      ) {
+        return;
+      }
+      if (error instanceof ActivityApiError) {
+        if (error.code === 'activity_full') {
+          setMembershipError(t('create.detail.joinFullError'));
+          if (typeof error.memberCount === 'number') {
+            setActivity((current) =>
+              current?.id === activityId
+                ? {
+                    ...current,
+                    memberCount: error.memberCount!,
+                    maxParticipants:
+                      error.maxParticipants ?? current.maxParticipants,
+                  }
+                : current,
+            );
+          }
+        } else if (error.code === 'activity_not_active') {
+          setMembershipUnavailable(true);
+          setMembershipError(t('create.detail.joinInactiveError'));
+        } else if (error.status === 401) {
+          setMembershipError(t('create.detail.sessionErrorMessage'));
+        } else {
+          setMembershipError(t('create.detail.joinError'));
+        }
+      } else {
+        setMembershipError(t('create.detail.joinError'));
+      }
+    } finally {
+      if (
+        membershipRequestRef.current === requestToken &&
+        currentActivityIdRef.current === activityId
+      ) {
+        membershipRequestRef.current = null;
+        setMembershipPending(null);
+      }
+    }
+  }
+
+  async function handleLeave() {
+    if (!activity || membershipRequestRef.current) return;
+
+    const activityId = activity.id;
+    const requestToken = Symbol('leave-activity');
+    membershipRequestRef.current = requestToken;
+    setMembershipPending('leave');
+    setMembershipError('');
+    try {
+      const result = await leaveActivity(activityId);
+      if (
+        membershipRequestRef.current !== requestToken ||
+        currentActivityIdRef.current !== activityId
+      ) {
+        return;
+      }
+      setActivity((current) =>
+        current?.id === activityId
+          ? {
+              ...current,
+              membershipRole: null,
+              memberCount: result.memberCount,
+              maxParticipants: result.maxParticipants,
+            }
+          : current,
+      );
+    } catch (error) {
+      if (
+        membershipRequestRef.current !== requestToken ||
+        currentActivityIdRef.current !== activityId
+      ) {
+        return;
+      }
+      if (error instanceof ActivityApiError && error.status === 401) {
+        setMembershipError(t('create.detail.sessionErrorMessage'));
+      } else {
+        setMembershipError(t('create.detail.leaveError'));
+      }
+    } finally {
+      if (
+        membershipRequestRef.current === requestToken &&
+        currentActivityIdRef.current === activityId
+      ) {
+        membershipRequestRef.current = null;
+        setMembershipPending(null);
+      }
     }
   }
 
@@ -185,6 +319,20 @@ export function ActivityDetail() {
       : `${t('create.detail.participantsUnlimited', {
           count: activity.memberCount,
         })} · ${t('create.detail.unlimited')}`;
+  const availableSpots =
+    activity.participationMode === 'limited' &&
+    activity.maxParticipants !== null
+      ? Math.max(activity.maxParticipants - activity.memberCount, 0)
+      : null;
+  const isFull = availableSpots === 0;
+  const availability =
+    availableSpots === null
+      ? ''
+      : availableSpots === 0
+        ? t('create.detail.noSpots')
+        : t('create.detail.spotsAvailable', {
+            count: availableSpots,
+          });
   const cost =
     activity.costType === 'free'
       ? t('create.cost.free')
@@ -238,6 +386,69 @@ export function ActivityDetail() {
           </p>
         </header>
 
+        <section className="flex flex-col gap-3 border-b border-border px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-9">
+          <div>
+            {activity.membershipRole === 'organizer' ? (
+              <p className="text-sm font-bold text-primary">
+                {t('create.detail.organizerStatus')}
+              </p>
+            ) : activity.membershipRole === null && isFull ? (
+              <>
+                <p className="text-sm font-bold">
+                  {t('create.detail.planFull')}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {t('create.detail.noSpots')}
+                </p>
+              </>
+            ) : activity.membershipRole === null &&
+              (activity.status !== 'active' || membershipUnavailable) ? (
+              <p className="text-sm font-semibold text-muted-foreground">
+                {t('create.detail.joinInactiveError')}
+              </p>
+            ) : null}
+            {membershipError && (
+              <p
+                className="mt-2 text-xs font-semibold text-destructive"
+                role="alert"
+              >
+                {membershipError}
+              </p>
+            )}
+          </div>
+
+          {activity.membershipRole === 'participant' ? (
+            <button
+              type="button"
+              onClick={handleLeave}
+              disabled={membershipPending !== null}
+              className="rounded-full border border-destructive/45 px-5 py-3 text-sm font-bold text-destructive transition hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {t(
+                membershipPending === 'leave'
+                  ? 'create.detail.leaving'
+                  : 'create.detail.leavePlan',
+              )}
+            </button>
+          ) : activity.membershipRole === null &&
+            activity.status === 'active' &&
+            !membershipUnavailable &&
+            !isFull ? (
+            <button
+              type="button"
+              onClick={handleJoin}
+              disabled={membershipPending !== null}
+              className="outfy-primary-action rounded-full bg-primary px-5 py-3 text-sm font-bold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {t(
+                membershipPending === 'join'
+                  ? 'create.detail.joining'
+                  : 'create.detail.joinPlan',
+              )}
+            </button>
+          ) : null}
+        </section>
+
         <div className="grid gap-4 p-6 sm:grid-cols-2 sm:p-9">
           <DetailItem icon={CalendarDays} label={t('create.detail.date')}>
             {startsLabel}
@@ -248,6 +459,11 @@ export function ActivityDetail() {
           </DetailItem>
           <DetailItem icon={Users} label={t('create.detail.participants')}>
             {participants}
+            {availability && (
+              <span className="block text-xs font-normal text-muted-foreground">
+                {availability}
+              </span>
+            )}
           </DetailItem>
           <DetailItem icon={CircleDollarSign} label={t('create.detail.cost')}>
             {cost}

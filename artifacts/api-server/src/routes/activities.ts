@@ -52,6 +52,12 @@ type ValidatedActivity = {
   currency: string | null;
 };
 
+type MembershipRpcRow = {
+  result: string;
+  member_count: number | null;
+  max_participants: number | null;
+};
+
 const router: IRouter = Router();
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -70,6 +76,26 @@ function bodyOf(request: Request): ActivityRequest {
   return request.body && typeof request.body === "object"
     ? (request.body as ActivityRequest)
     : {};
+}
+
+function membershipRpcRow(data: unknown): MembershipRpcRow | null {
+  if (!Array.isArray(data) || data.length !== 1) return null;
+
+  const row = data[0] as Record<string, unknown>;
+  if (
+    typeof row.result !== "string" ||
+    (row.member_count !== null && typeof row.member_count !== "number") ||
+    (row.max_participants !== null &&
+      typeof row.max_participants !== "number")
+  ) {
+    return null;
+  }
+
+  return {
+    result: row.result,
+    member_count: row.member_count,
+    max_participants: row.max_participants,
+  };
 }
 
 function requiredString(
@@ -348,7 +374,7 @@ router.get("/activities/:id", async (request, response) => {
       return;
     }
 
-    const [profileResult, memberResult] = await Promise.all([
+    const [profileResult, memberResult, membershipResult] = await Promise.all([
       getSupabaseAdmin()
         .from("profiles")
         .select("username,display_name")
@@ -358,13 +384,24 @@ router.get("/activities/:id", async (request, response) => {
         .from("activity_members")
         .select("*", { count: "exact", head: true })
         .eq("activity_id", activity.id),
+      getSupabaseAdmin()
+        .from("activity_members")
+        .select("role")
+        .eq("activity_id", activity.id)
+        .eq("user_id", session.user.id)
+        .maybeSingle(),
     ]);
 
-    if (profileResult.error || memberResult.error) {
+    if (
+      profileResult.error ||
+      memberResult.error ||
+      membershipResult.error
+    ) {
       request.log.error(
         {
           profileError: profileResult.error,
           memberError: memberResult.error,
+          membershipError: membershipResult.error,
           activityId,
         },
         "Unable to load activity details",
@@ -401,6 +438,11 @@ router.get("/activities/:id", async (request, response) => {
           displayName: profileResult.data?.display_name ?? null,
         },
         memberCount: memberResult.count ?? 0,
+        membershipRole:
+          membershipResult.data?.role === "organizer" ||
+          membershipResult.data?.role === "participant"
+            ? membershipResult.data.role
+            : null,
       },
     });
   } catch (error) {
@@ -409,6 +451,192 @@ router.get("/activities/:id", async (request, response) => {
       "Unable to load activity",
     );
     response.status(500).json({ error: "The activity could not be loaded." });
+  }
+});
+
+router.post("/activities/:id/join", async (request, response) => {
+  let session;
+  try {
+    session = await currentSession(request, response);
+  } catch (error) {
+    request.log.error({ err: error }, "Unable to authenticate activity join");
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  if (!session) {
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  const activityId = request.params.id;
+  if (!UUID_PATTERN.test(activityId)) {
+    response.status(404).json({
+      error: "Activity not found.",
+      code: "activity_not_found",
+    });
+    return;
+  }
+
+  try {
+    const { data, error } = await getSupabaseAdmin().rpc(
+      "join_activity_as_user",
+      {
+        p_activity_id: activityId,
+        p_user_id: session.user.id,
+      },
+    );
+    const result = membershipRpcRow(data);
+
+    if (error || !result) {
+      request.log.error(
+        { err: error, activityId, userId: session.user.id },
+        "Unable to join activity",
+      );
+      response.status(500).json({ error: "The activity could not be joined." });
+      return;
+    }
+
+    if (
+      (result.result === "joined" || result.result === "already_member") &&
+      result.member_count !== null
+    ) {
+      response.json({
+        result: result.result,
+        memberCount: result.member_count,
+        maxParticipants: result.max_participants,
+      });
+      return;
+    }
+
+    if (result.result === "full" && result.member_count !== null) {
+      response.status(409).json({
+        error: "The activity is full.",
+        code: "activity_full",
+        memberCount: result.member_count,
+        maxParticipants: result.max_participants,
+      });
+      return;
+    }
+
+    if (result.result === "not_active") {
+      response.status(409).json({
+        error: "The activity is not active.",
+        code: "activity_not_active",
+      });
+      return;
+    }
+
+    if (result.result === "not_found") {
+      response.status(404).json({
+        error: "Activity not found.",
+        code: "activity_not_found",
+      });
+      return;
+    }
+
+    request.log.error(
+      { rpcResult: result.result, activityId, userId: session.user.id },
+      "Unexpected join activity result",
+    );
+    response.status(500).json({ error: "The activity could not be joined." });
+  } catch (error) {
+    request.log.error(
+      { err: error, activityId, userId: session.user.id },
+      "Unable to join activity",
+    );
+    response.status(500).json({ error: "The activity could not be joined." });
+  }
+});
+
+router.delete("/activities/:id/membership", async (request, response) => {
+  let session;
+  try {
+    session = await currentSession(request, response);
+  } catch (error) {
+    request.log.error({ err: error }, "Unable to authenticate activity leave");
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  if (!session) {
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  const activityId = request.params.id;
+  if (!UUID_PATTERN.test(activityId)) {
+    response.status(404).json({
+      error: "Activity not found.",
+      code: "activity_not_found",
+    });
+    return;
+  }
+
+  try {
+    const { data, error } = await getSupabaseAdmin().rpc(
+      "leave_activity_as_user",
+      {
+        p_activity_id: activityId,
+        p_user_id: session.user.id,
+      },
+    );
+    const result = membershipRpcRow(data);
+
+    if (error || !result) {
+      request.log.error(
+        { err: error, activityId, userId: session.user.id },
+        "Unable to leave activity",
+      );
+      response.status(500).json({ error: "The activity could not be left." });
+      return;
+    }
+
+    if (result.result === "left" && result.member_count !== null) {
+      response.json({
+        result: result.result,
+        memberCount: result.member_count,
+        maxParticipants: result.max_participants,
+      });
+      return;
+    }
+
+    if (result.result === "not_member") {
+      if (result.member_count === null) {
+        response.status(404).json({
+          error: "Activity not found.",
+          code: "activity_not_found",
+        });
+        return;
+      }
+
+      response.json({
+        result: result.result,
+        memberCount: result.member_count,
+        maxParticipants: result.max_participants,
+      });
+      return;
+    }
+
+    if (result.result === "organizer_cannot_leave") {
+      response.status(409).json({
+        error: "The organizer cannot leave the activity.",
+        code: "organizer_cannot_leave",
+      });
+      return;
+    }
+
+    request.log.error(
+      { rpcResult: result.result, activityId, userId: session.user.id },
+      "Unexpected leave activity result",
+    );
+    response.status(500).json({ error: "The activity could not be left." });
+  } catch (error) {
+    request.log.error(
+      { err: error, activityId, userId: session.user.id },
+      "Unable to leave activity",
+    );
+    response.status(500).json({ error: "The activity could not be left." });
   }
 });
 

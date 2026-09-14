@@ -211,7 +211,20 @@
       "share": "Share",
       "shareInvitation": "Join this plan on Outfy.",
       "linkCopied": "Link copied",
-      "shareError": "We couldn't share the activity. Please try again."
+      "shareError": "We couldn't share the activity. Please try again.",
+      "joinPlan": "Join plan",
+      "joining": "Joining...",
+      "leavePlan": "Leave plan",
+      "leaving": "Leaving...",
+      "organizerStatus": "You’re the organizer",
+      "planFull": "Plan full",
+      "spotsAvailable": "{{count}} spot available",
+      "spotsAvailable_other": "{{count}} spots available",
+      "noSpots": "No spots available",
+      "joinFullError": "This plan just became full.",
+      "joinInactiveError": "This plan is no longer available to join.",
+      "joinError": "We couldn't join the plan. Please try again.",
+      "leaveError": "We couldn't leave the plan. Please try again."
     },
     "validation": {
       "title": "Add a title for the plan.",
