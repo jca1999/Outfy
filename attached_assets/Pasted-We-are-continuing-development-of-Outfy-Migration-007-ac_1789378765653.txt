@@ -1,0 +1,201 @@
+We are continuing development of Outfy.
+
+Migration 007_activities.sql has now been successfully applied to the live Supabase database.
+
+A post-migration Supabase security/performance audit found two activity-specific improvements that should be fixed before implementing real publishing.
+
+This task must CREATE ONLY a new migration file.
+
+DO NOT execute it.
+DO NOT modify migration 007.
+DO NOT modify application code.
+
+==================================================
+STRICT SCOPE
+==================================================
+
+You may CREATE ONLY:
+
+supabase/migrations/008_activity_security_hardening.sql
+
+You may READ existing migrations for context.
+
+DO NOT modify any existing file.
+
+DO NOT modify:
+- frontend
+- backend/API
+- auth
+- Supabase configuration
+- package.json
+- dependencies
+- .replit
+- workflows
+- deployment
+
+DO NOT execute SQL.
+DO NOT publish.
+DO NOT redeploy.
+
+==================================================
+ISSUE 1 — TRIGGER FUNCTION PERMISSIONS
+==================================================
+
+The live Supabase security advisor confirmed that:
+
+public.add_activity_organizer()
+
+still has EXECUTE permission for:
+
+- anon
+- authenticated
+
+even though migration 007 revoked EXECUTE from PUBLIC.
+
+This function is intended ONLY to run automatically through the
+AFTER INSERT trigger on public.activities.
+
+It must NOT be callable as an RPC by anonymous or authenticated users.
+
+In migration 008 explicitly revoke EXECUTE on:
+
+public.add_activity_organizer()
+
+from:
+
+- PUBLIC
+- anon
+- authenticated
+
+Do not remove or recreate the trigger.
+Do not modify the function body.
+Do not revoke privileges required for the database trigger itself.
+
+==================================================
+ISSUE 2 — RLS auth.uid() PERFORMANCE
+==================================================
+
+Supabase's performance advisor reported auth_rls_initplan warnings on the new activity policies.
+
+The policies currently call:
+
+auth.uid()
+
+directly.
+
+Update ONLY the activity-related RLS policies so auth.uid() is evaluated through:
+
+(select auth.uid())
+
+where appropriate.
+
+Preserve the EXACT existing authorization behavior.
+
+The affected policies are:
+
+PUBLIC.ACTIVITIES
+
+1.
+"Authenticated users can view available activities"
+
+Existing behavior:
+- active activities are visible
+- creator can also see their own non-active activities
+
+2.
+"Authenticated users can create their own activities"
+
+Existing behavior:
+- creator_id must equal authenticated user
+
+3.
+"Creators can update their own activities"
+
+Existing behavior:
+- only creator may update
+- ownership must remain the authenticated user
+
+PUBLIC.ACTIVITY_MEMBERS
+
+4.
+"Authenticated users can view visible activity members"
+
+Preserve:
+- membership rows are visible for active activities
+- creators can see memberships for their own activities
+
+5.
+"Authenticated users can join activities as participants"
+
+Preserve:
+- user_id must be authenticated user
+- role must be participant
+- activity must be active
+
+6.
+"Participants can leave activities"
+
+Preserve:
+- user can delete only their own membership
+- role must be participant
+
+==================================================
+IMPORTANT
+==================================================
+
+Prefer ALTER POLICY where PostgreSQL safely supports the required change.
+
+If ALTER POLICY cannot express a specific change safely, use DROP POLICY + CREATE POLICY for that policy only.
+
+Do NOT:
+- broaden permissions
+- add DELETE access to activities
+- add UPDATE access to activity_members
+- allow organizer self-creation
+- change activity visibility
+- change capacity behavior
+- add new RPCs
+
+==================================================
+DO NOT FIX UNRELATED ADVISORS
+==================================================
+
+The Supabase audit also contains older warnings related to other existing Outfy objects such as:
+
+- handle_new_user
+- normalize_profile_username
+- leaked password protection
+- profiles RLS
+
+DO NOT change those in this migration.
+
+This migration is ONLY for the two activity-specific issues above.
+
+==================================================
+VALIDATION
+==================================================
+
+After creating the migration:
+
+1. Confirm ONLY:
+   supabase/migrations/008_activity_security_hardening.sql
+   was created.
+
+2. Confirm migration 007 was not changed.
+
+3. Confirm add_activity_organizer has explicit EXECUTE revokes for:
+   - PUBLIC
+   - anon
+   - authenticated
+
+4. Confirm all six activity-related policies preserve exactly the same authorization semantics.
+
+5. Confirm auth.uid() inside those policies is changed to:
+   (select auth.uid())
+   where applicable.
+
+6. Perform static SQL syntax/security review.
+
+7. DO NOT execute the migration.
+
+Report the exact contents and confirm no other file changed.
