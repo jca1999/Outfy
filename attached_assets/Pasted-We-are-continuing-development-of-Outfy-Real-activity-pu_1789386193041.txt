@@ -1,0 +1,421 @@
+We are continuing development of Outfy.
+
+Real activity publishing and real activity detail pages are working.
+
+The next feature is:
+
+JOIN ACTIVITY / LEAVE ACTIVITY
+
+Before modifying the frontend or API, we need the DATABASE OPERATIONS that make joining safe under concurrent requests.
+
+This task creates the migration ONLY.
+
+DO NOT execute it.
+DO NOT modify application code yet.
+
+==================================================
+STRICT SCOPE
+==================================================
+
+You may CREATE ONLY:
+
+supabase/migrations/009_activity_membership_operations.sql
+
+You may READ existing migrations and current activity/API code for context.
+
+DO NOT modify any existing file.
+
+In particular DO NOT modify:
+
+- migrations 001-008
+- frontend
+- backend/API
+- authentication
+- Profile
+- Activity Detail
+- Create Plan
+- Explore
+- package.json
+- dependencies
+- .replit
+- workflows
+- deployment
+- environment variables
+
+DO NOT execute SQL.
+DO NOT publish.
+DO NOT redeploy.
+
+If migration 009 already exists, STOP and report it.
+
+==================================================
+CURRENT DATABASE MODEL
+==================================================
+
+Existing tables:
+
+public.activities
+public.activity_members
+
+Important existing behavior:
+
+- creator automatically becomes an activity member
+- creator role = 'organizer'
+- organizer counts toward max_participants
+- memberships use:
+  primary key (activity_id, user_id)
+- activity roles:
+  organizer
+  participant
+- max_participants is NULL for unlimited activities
+- status:
+  active
+  completed
+  cancelled
+
+Current API uses a privileged server-side Supabase client.
+
+Therefore the new RPCs will be called ONLY from the trusted API server.
+
+==================================================
+GOAL
+==================================================
+
+Create safe database functions for:
+
+1. joining an activity
+2. leaving an activity
+
+Joining MUST be safe when multiple users attempt to take the last available
+place concurrently.
+
+==================================================
+RPC 1 — JOIN ACTIVITY
+==================================================
+
+Create a function with a clear name such as:
+
+public.join_activity_as_user(
+  p_activity_id uuid,
+  p_user_id uuid
+)
+
+This function is intended ONLY for trusted server/service-role use.
+
+It must NOT be callable by:
+
+- PUBLIC
+- anon
+- authenticated
+
+Explicitly REVOKE EXECUTE from all three.
+
+Allow execution only through the server's privileged role as appropriate.
+
+==================================================
+JOIN — TRANSACTION / LOCKING
+==================================================
+
+The join operation must be atomic.
+
+Inside the function:
+
+1. Locate the target activity.
+
+2. Lock the activity row using an appropriate row-level lock such as:
+
+SELECT ... FOR UPDATE
+
+This lock is important because concurrent joins for the same activity must
+serialize before capacity is checked.
+
+3. If the activity does not exist:
+   return a clear result such as:
+
+not_found
+
+4. If activity.status is not 'active':
+   return:
+
+not_active
+
+5. Check whether p_user_id is already in activity_members.
+
+If already present:
+- do NOT insert another row
+- return:
+
+already_member
+
+This includes the organizer.
+
+6. If participation_mode = 'limited':
+
+Count CURRENT activity_members rows for that activity.
+
+Remember:
+
+the organizer already counts as one member.
+
+If:
+
+member_count >= max_participants
+
+return:
+
+full
+
+without inserting.
+
+7. Otherwise insert:
+
+activity_id = p_activity_id
+user_id = p_user_id
+role = 'participant'
+
+8. Return a successful result:
+
+joined
+
+==================================================
+JOIN RESULT
+==================================================
+
+Return enough structured information for the future API to update the UI
+without immediately performing another count query.
+
+Prefer returning:
+
+result
+member_count
+max_participants
+
+Conceptually:
+
+{
+  result: 'joined',
+  member_count: 2,
+  max_participants: 5
+}
+
+For unlimited activities:
+
+max_participants may be NULL.
+
+When practical, return the CURRENT member count for:
+
+- joined
+- already_member
+- full
+
+Do not expose unrelated activity/user data.
+
+==================================================
+CAPACITY SAFETY
+==================================================
+
+The implementation must ensure this scenario is safe:
+
+Activity:
+max_participants = 2
+
+Current members:
+1 organizer
+
+Two users attempt to join simultaneously.
+
+Expected result:
+
+- one request becomes joined
+- member count becomes 2
+- the other request receives full
+- final membership count remains 2
+
+Do NOT implement capacity checking only in application code.
+
+The activity row lock must protect this invariant.
+
+==================================================
+RPC 2 — LEAVE ACTIVITY
+==================================================
+
+Create a second trusted-server function such as:
+
+public.leave_activity_as_user(
+  p_activity_id uuid,
+  p_user_id uuid
+)
+
+Also revoke execution from:
+
+- PUBLIC
+- anon
+- authenticated
+
+==================================================
+LEAVE BEHAVIOR
+==================================================
+
+The function must:
+
+1. Find the user's membership.
+
+2. If no membership exists:
+   return:
+
+not_member
+
+3. If membership role = 'organizer':
+   DO NOT delete it.
+
+Return:
+
+organizer_cannot_leave
+
+The organizer must not be able to accidentally remove the organizer
+membership through this normal Leave action.
+
+4. If role = 'participant':
+
+Delete exactly that membership.
+
+Return:
+
+left
+
+5. Return the updated member count where practical.
+
+Do NOT cancel the activity.
+
+Do NOT transfer organizer ownership.
+
+Those are future organizer-management features.
+
+==================================================
+SECURITY
+==================================================
+
+Both functions should be safe for trusted server use.
+
+If SECURITY DEFINER is used:
+
+- set an explicit safe search_path
+- schema-qualify tables
+- revoke public execution
+- revoke anon execution
+- revoke authenticated execution
+
+The frontend must never call these RPCs directly.
+
+Do NOT expose service-role credentials.
+
+Do NOT use auth.uid() inside these RPCs because the existing API architecture
+will explicitly supply the authenticated server-session user ID.
+
+The future API route will derive p_user_id from the authenticated session.
+
+==================================================
+FOREIGN KEYS / VALID USERS
+==================================================
+
+Existing foreign keys already ensure user_id references auth.users(id).
+
+Do NOT duplicate identity tables.
+
+Do NOT modify activity_members structure.
+
+==================================================
+DO NOT ADD YET
+==================================================
+
+Do NOT implement:
+
+- waiting lists
+- join approval
+- invitations
+- kicking participants
+- organizer transfer
+- cancellation
+- editing
+- participant notifications
+- chat
+- private activities
+- friend-only activities
+
+==================================================
+MIGRATION SAFETY
+==================================================
+
+Do not DROP tables.
+
+Do not change existing policies.
+
+Do not modify existing triggers.
+
+Do not change existing constraints.
+
+Do not alter capacity meaning.
+
+max_participants continues to mean:
+
+TOTAL members including organizer.
+
+==================================================
+VALIDATION
+==================================================
+
+After creating the migration:
+
+1. Review git diff.
+
+2. Confirm ONLY:
+
+supabase/migrations/009_activity_membership_operations.sql
+
+was created.
+
+3. Confirm migrations 001-008 remain unchanged.
+
+4. Perform static PostgreSQL/Supabase syntax review.
+
+5. Verify JOIN logic:
+   - locks activity
+   - verifies active status
+   - detects existing membership
+   - checks capacity after locking
+   - inserts only participant
+   - cannot exceed limited capacity under concurrency
+
+6. Verify LEAVE logic:
+   - deletes participant only
+   - organizer cannot leave
+   - missing membership is handled
+
+7. Confirm both functions explicitly revoke EXECUTE from:
+   - PUBLIC
+   - anon
+   - authenticated
+
+8. Confirm no SQL was executed.
+
+==================================================
+REPORT BACK
+==================================================
+
+Report:
+
+1. Exact migration file created.
+2. Exact function names/signatures.
+3. Join result values.
+4. Leave result values.
+5. How concurrent capacity is protected.
+6. How duplicate membership is prevented.
+7. How organizer leave is blocked.
+8. Function privileges/security.
+9. Static validation result.
+10. Confirmation that migration was NOT executed.
+11. Confirmation that no other file changed.
+
+DO NOT publish.
+DO NOT redeploy.
+DO NOT execute SQL.
