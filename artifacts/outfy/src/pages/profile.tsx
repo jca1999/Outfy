@@ -17,9 +17,11 @@ import { useTranslation } from 'react-i18next';
 import { useLocation } from 'wouter';
 
 import {
+  getMyActivityHistory,
   getMyCreatedActivities,
   getMyJoinedActivities,
   type MyCreatedActivity,
+  type MyHistoryActivity,
   type MyJoinedActivity,
 } from '@/activities/activity-api';
 import {
@@ -99,7 +101,7 @@ export function Profile() {
   const { t, i18n } = useTranslation(['profile', 'activities']);
   const { user } = useAuth();
   const [, navigate] = useLocation();
-  const [tab, setTab] = useState<'created' | 'upcoming'>('created');
+  const [tab, setTab] = useState<'created' | 'upcoming' | 'history'>('created');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarVersionRef = useRef(0);
   const localAvatarUrlRef = useRef<string | null>(null);
@@ -124,6 +126,13 @@ export function Profile() {
     'idle' | 'loading' | 'ready' | 'error'
   >('idle');
 
+  const [historyActivities, setHistoryActivities] = useState<
+    MyHistoryActivity[]
+  >([]);
+  const [historyState, setHistoryState] = useState<
+    'idle' | 'loading' | 'ready' | 'error'
+  >('idle');
+
   function loadCreatedActivities() {
     setCreatedState('loading');
     getMyCreatedActivities()
@@ -145,6 +154,18 @@ export function Profile() {
       })
       .catch(() => {
         setJoinedState('error');
+      });
+  }
+
+  function loadHistoryActivities() {
+    setHistoryState('loading');
+    getMyActivityHistory()
+      .then((result) => {
+        setHistoryActivities(result.activities);
+        setHistoryState('ready');
+      })
+      .catch(() => {
+        setHistoryState('error');
       });
   }
 
@@ -183,6 +204,28 @@ export function Profile() {
       .catch(() => {
         if (!active) return;
         setJoinedState('error');
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [tab]);
+
+  useEffect(() => {
+    if (tab !== 'history') return;
+
+    let active = true;
+    setHistoryState('loading');
+
+    getMyActivityHistory()
+      .then((result) => {
+        if (!active) return;
+        setHistoryActivities(result.activities);
+        setHistoryState('ready');
+      })
+      .catch(() => {
+        if (!active) return;
+        setHistoryState('error');
       });
 
     return () => {
@@ -366,7 +409,10 @@ export function Profile() {
     .join('')
     .toUpperCase();
 
-  const renderActivityCard = (activity: MyCreatedActivity | MyJoinedActivity) => {
+  const renderActivityCard = (
+    activity: MyCreatedActivity | MyJoinedActivity | MyHistoryActivity,
+    historical = false,
+  ) => {
     const locale = i18n.language === 'en' ? 'en-GB' : 'es-ES';
     let dateLabel: string;
     try {
@@ -401,7 +447,9 @@ export function Profile() {
         key={activity.id}
         type="button"
         onClick={() => navigate(`/activities/${activity.id}`)}
-        className="group flex min-h-44 w-full flex-col rounded-[22px] border border-border bg-card p-5 text-left soft-shadow transition hover:-translate-y-0.5 hover:border-primary/40"
+        className={`group flex min-h-44 w-full flex-col rounded-[22px] border border-border p-5 text-left soft-shadow transition hover:-translate-y-0.5 hover:border-primary/40 ${
+          historical ? 'bg-muted/30' : 'bg-card'
+        }`}
       >
         <div className="flex items-start justify-between gap-3">
           <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-primary">
@@ -589,7 +637,7 @@ export function Profile() {
           </h2>
 
           <div
-            className="flex rounded-full bg-muted p-1 sm:w-auto"
+            className="flex w-full rounded-full bg-muted p-1 sm:w-auto"
             role="tablist"
             aria-label={t('activities:myPlans.title')}
           >
@@ -599,7 +647,7 @@ export function Profile() {
               aria-selected={tab === 'created'}
               aria-controls="created-plans-panel"
               onClick={() => setTab('created')}
-              className={`flex-1 rounded-full px-4 py-2 text-xs font-bold transition sm:flex-none ${
+              className={`flex-1 rounded-full px-2 py-2 text-xs font-bold transition sm:flex-none sm:px-4 ${
                 tab === 'created'
                   ? 'bg-card text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
@@ -613,13 +661,27 @@ export function Profile() {
               aria-selected={tab === 'upcoming'}
               aria-controls="upcoming-plans-panel"
               onClick={() => setTab('upcoming')}
-              className={`flex-1 rounded-full px-4 py-2 text-xs font-bold transition sm:flex-none ${
+              className={`flex-1 rounded-full px-2 py-2 text-xs font-bold transition sm:flex-none sm:px-4 ${
                 tab === 'upcoming'
                   ? 'bg-card text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
               {t('activities:myPlans.upcoming')}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'history'}
+              aria-controls="history-plans-panel"
+              onClick={() => setTab('history')}
+              className={`flex-1 rounded-full px-2 py-2 text-xs font-bold transition sm:flex-none sm:px-4 ${
+                tab === 'history'
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('activities:myPlans.history')}
             </button>
           </div>
         </div>
@@ -681,7 +743,9 @@ export function Profile() {
 
             {createdState === 'ready' && createdActivities.length > 0 && (
               <div className="grid gap-3 sm:grid-cols-2">
-                {createdActivities.map(renderActivityCard)}
+                {createdActivities.map((activity) =>
+                  renderActivityCard(activity),
+                )}
               </div>
             )}
           </div>
@@ -744,7 +808,67 @@ export function Profile() {
 
             {joinedState === 'ready' && joinedActivities.length > 0 && (
               <div className="grid gap-3 sm:grid-cols-2">
-                {joinedActivities.map(renderActivityCard)}
+                {joinedActivities.map((activity) =>
+                  renderActivityCard(activity),
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {tab === 'history' && (
+          <div
+            id="history-plans-panel"
+            className="space-y-4"
+            role="tabpanel"
+          >
+            {(historyState === 'loading' || historyState === 'idle') && (
+              <div
+                className="grid gap-3 sm:grid-cols-2"
+                aria-label={t('activities:myPlans.historyLoading')}
+              >
+                {[0, 1].map((item) => (
+                  <div
+                    key={item}
+                    className="h-44 animate-pulse rounded-[22px] border border-border bg-card"
+                  />
+                ))}
+              </div>
+            )}
+
+            {historyState === 'error' && (
+              <div className="rounded-[22px] border border-border bg-card p-5">
+                <p className="text-sm text-muted-foreground">
+                  {t('activities:myPlans.historyLoadError')}
+                </p>
+                <button
+                  type="button"
+                  onClick={loadHistoryActivities}
+                  className="mt-4 inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs font-bold transition hover:bg-muted"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  {t('activities:myPlans.retry')}
+                </button>
+              </div>
+            )}
+
+            {historyState === 'ready' && historyActivities.length === 0 && (
+              <div className="rounded-[22px] border border-dashed border-border bg-card p-7 text-center">
+                <CalendarDays className="mx-auto h-8 w-8 text-primary" />
+                <h3 className="mt-4 text-base font-bold">
+                  {t('activities:myPlans.historyEmptyTitle')}
+                </h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t('activities:myPlans.historyEmptyDescription')}
+                </p>
+              </div>
+            )}
+
+            {historyState === 'ready' && historyActivities.length > 0 && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {historyActivities.map((activity) =>
+                  renderActivityCard(activity, true),
+                )}
               </div>
             )}
           </div>

@@ -635,6 +635,104 @@ router.get("/activities/joined", async (request, response) => {
   }
 });
 
+router.get("/activities/history", async (request, response) => {
+  let session;
+  try {
+    session = await currentSession(request, response);
+  } catch (error) {
+    request.log.error(
+      { err: error },
+      "Unable to authenticate activity history owner",
+    );
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  if (!session) {
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  try {
+    const { data: memberships, error: membershipsError } =
+      await getSupabaseAdmin()
+        .from("activity_members")
+        .select("activity_id")
+        .eq("user_id", session.user.id);
+
+    if (membershipsError) {
+      request.log.error(
+        { err: membershipsError, userId: session.user.id },
+        "Unable to load historical activity memberships",
+      );
+      response.status(500).json({ error: "The activities could not be loaded." });
+      return;
+    }
+
+    const membershipActivityIds = [
+      ...new Set((memberships ?? []).map((membership) => membership.activity_id)),
+    ];
+    let activitiesQuery = getSupabaseAdmin()
+      .from("activities")
+      .select(
+        "id,creator_id,title,category,subcategory,starts_at,ends_at,timezone_name,location_type,city,online_platform,participation_mode,max_participants,status,activity_members(count)",
+      )
+      .lte("starts_at", new Date().toISOString())
+      .order("starts_at", { ascending: false });
+
+    activitiesQuery =
+      membershipActivityIds.length > 0
+        ? activitiesQuery.or(
+            `creator_id.eq.${session.user.id},id.in.(${membershipActivityIds.join(",")})`,
+          )
+        : activitiesQuery.eq("creator_id", session.user.id);
+
+    const { data: activities, error: activitiesError } = await activitiesQuery;
+
+    if (activitiesError) {
+      request.log.error(
+        { err: activitiesError, userId: session.user.id },
+        "Unable to load activity history",
+      );
+      response.status(500).json({ error: "The activities could not be loaded." });
+      return;
+    }
+
+    const activitiesById = new Map(
+      (activities ?? []).map((activity) => [activity.id, activity]),
+    );
+
+    response.json({
+      activities: [...activitiesById.values()].map((activity) => ({
+        id: activity.id,
+        title: activity.title,
+        category: activity.category,
+        subcategory: activity.subcategory,
+        startsAt: activity.starts_at,
+        endsAt: activity.ends_at,
+        timezoneName: activity.timezone_name,
+        locationType: activity.location_type,
+        city: activity.city,
+        onlinePlatform: activity.online_platform,
+        participationMode: activity.participation_mode,
+        maxParticipants: activity.max_participants,
+        memberCount: activity.activity_members?.[0]?.count ?? 0,
+        status: activity.status,
+        relationship:
+          activity.creator_id === session.user.id
+            ? "organizer"
+            : "participant",
+      })),
+    });
+  } catch (error) {
+    request.log.error(
+      { err: error, userId: session.user.id },
+      "Unable to load activity history",
+    );
+    response.status(500).json({ error: "The activities could not be loaded." });
+  }
+});
+
 router.get("/activities/:id", async (request, response) => {
   let session;
   try {
@@ -674,11 +772,7 @@ router.get("/activities/:id", async (request, response) => {
       return;
     }
 
-    if (
-      !activity ||
-      (activity.status !== "active" &&
-        activity.creator_id !== session.user.id)
-    ) {
+    if (!activity) {
       response.status(404).json({ error: "Activity not found." });
       return;
     }
@@ -716,6 +810,15 @@ router.get("/activities/:id", async (request, response) => {
         "Unable to load activity details",
       );
       response.status(500).json({ error: "The activity could not be loaded." });
+      return;
+    }
+
+    if (
+      activity.status !== "active" &&
+      activity.creator_id !== session.user.id &&
+      !membershipResult.data
+    ) {
+      response.status(404).json({ error: "Activity not found." });
       return;
     }
 

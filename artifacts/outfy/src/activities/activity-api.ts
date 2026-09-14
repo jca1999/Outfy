@@ -90,6 +90,14 @@ export type MyJoinedActivitiesResponse = {
   activities: MyJoinedActivity[];
 };
 
+export type MyHistoryActivity = MyCreatedActivity & {
+  relationship: 'organizer' | 'participant';
+};
+
+export type MyHistoryActivitiesResponse = {
+  activities: MyHistoryActivity[];
+};
+
 export type ExploreActivity = MyCreatedActivity;
 
 export type ExploreActivitiesResponse = {
@@ -240,6 +248,27 @@ export async function getMyJoinedActivities() {
   }
 
   return payload as MyJoinedActivitiesResponse;
+}
+
+export async function getMyActivityHistory() {
+  const response = await fetch('/api/activities/history', {
+    credentials: 'include',
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | ActivityErrorPayload
+    | MyHistoryActivitiesResponse
+    | null;
+
+  if (!response.ok) {
+    throw activityApiError(
+      payload && 'activities' in payload ? null : payload,
+      response.status,
+      'The activity history could not be loaded.',
+    );
+  }
+
+  return payload as MyHistoryActivitiesResponse;
 }
 
 export async function getActivities(filters: ExploreActivityFilters = {}) {

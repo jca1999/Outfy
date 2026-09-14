@@ -1,0 +1,824 @@
+We are continuing development of Outfy.
+
+CURRENT WORKING STATE:
+
+- Users can create real activities.
+- Profile -> My Plans already contains:
+  - Created / Propuestos
+  - Upcoming / Próximos
+- Created shows activities created by the current user.
+- Upcoming shows future active activities where the current user has
+  activity_members.role = 'participant'.
+- Activity Detail works.
+- Join / Leave works.
+- Explore works with real activities.
+- Profile avatars are working.
+- The global header avatar/logo integration is already working.
+
+NEXT GOAL:
+
+Add a REAL HISTORY section to Profile.
+
+==================================================
+MODE / STRICT SCOPE
+==================================================
+
+You may modify ONLY:
+
+1. artifacts/api-server/src/routes/activities.ts
+
+2. artifacts/outfy/src/activities/activity-api.ts
+
+3. The EXISTING Profile page/component that currently renders:
+   Created / Propuestos
+   Upcoming / Próximos
+
+4. The EXISTING ES translation file(s) already used by that Profile/My Plans
+   section.
+
+5. The corresponding EN translation file(s).
+
+Do NOT create a second Profile page.
+
+Do NOT modify routing.
+
+Do NOT modify any other file.
+
+==================================================
+DO NOT TOUCH
+==================================================
+
+Do NOT modify:
+
+- Create Plan
+- Explore
+- Activity Detail
+- Join / Leave
+- avatar upload/editing
+- header/avatar
+- Outfy logo
+- Home
+- Settings
+- App.tsx
+- authentication architecture
+- Supabase schema
+- migrations
+- RLS
+- RPCs
+- package.json
+- dependencies
+- .replit
+- workflows
+- deployment
+- environment variables
+
+DO NOT execute SQL.
+
+DO NOT publish.
+DO NOT redeploy.
+
+==================================================
+GOAL
+==================================================
+
+Profile -> My Plans should now contain:
+
+Spanish:
+
+[ Propuestos ] [ Próximos ] [ Historial ]
+
+English:
+
+[ Created ] [ Upcoming ] [ History ]
+
+HISTORY must contain real past activities related to the current user.
+
+==================================================
+WHAT BELONGS IN HISTORY
+==================================================
+
+Include an activity when:
+
+starts_at <= current server time
+
+AND the current user is related to it as either:
+
+A) organizer / creator
+
+OR
+
+B) participant through public.activity_members
+
+This means History should show:
+
+- activities created by the user that have already started/passed
+- activities created by somebody else where the current user participated
+  and the activity has already started/passed
+
+==================================================
+IMPORTANT — NO DUPLICATES
+==================================================
+
+The organizer also exists in activity_members.
+
+Therefore:
+
+an activity created by the current user MUST appear only ONCE in History.
+
+Do not show the same activity twice because the user is both:
+
+creator
+and
+activity_member organizer
+
+Deduplicate by activity ID.
+
+==================================================
+HISTORY DOES NOT REQUIRE status = completed
+==================================================
+
+IMPORTANT:
+
+Do NOT depend only on:
+
+status = completed
+
+The current system may still have an old activity with:
+
+status = active
+
+even though its starts_at is already in the past.
+
+For this first History version, the main rule is:
+
+starts_at <= NOW
+
+Do NOT automatically modify its database status.
+
+Do NOT implement automatic completed transitions in this task.
+
+We can handle lifecycle/status automation later.
+
+==================================================
+CANCELLED ACTIVITIES
+==================================================
+
+Include cancelled activities in History if:
+
+- the user created them
+OR
+- the user participated in them
+
+AND they are already past.
+
+Display their real:
+
+status = cancelled
+
+Do NOT silently remove them.
+
+Do NOT convert status values.
+
+==================================================
+BACKEND ENDPOINT
+==================================================
+
+Add a new authenticated endpoint such as:
+
+GET /api/activities/history
+
+Use the project's current activities router conventions.
+
+IMPORTANT ROUTE ORDER:
+
+There are already likely routes such as:
+
+GET /api/activities
+GET /api/activities/mine
+GET /api/activities/joined
+GET /api/activities/:id
+
+Make sure:
+
+/api/activities/history
+
+cannot be interpreted as:
+
+:id = "history"
+
+Register static routes appropriately.
+
+==================================================
+AUTHENTICATION
+==================================================
+
+Authentication is required.
+
+Get current user ID ONLY from the existing server session.
+
+The frontend must NEVER send:
+
+userId
+creatorId
+participantId
+
+for this feature.
+
+==================================================
+DATABASE QUERY
+==================================================
+
+Use existing tables:
+
+public.activities
+public.activity_members
+
+History relation must come from:
+
+creator_id = current session user
+
+OR
+
+activity_members.user_id = current session user
+
+Do not create new tables/functions.
+
+Do not execute raw SQL migrations.
+
+Use the existing server-side privileged Supabase client.
+
+==================================================
+QUERY STRATEGY
+==================================================
+
+Prefer a simple, safe implementation.
+
+A clean two-query approach is acceptable:
+
+1. Fetch activity memberships for current user.
+2. Fetch activities where:
+   - creator_id = current user
+   OR
+   - id is in user's membership activity IDs
+   AND starts_at <= now
+3. Deduplicate by ID if necessary.
+
+Alternatively reuse an existing helper if the current code already has one.
+
+Do NOT introduce unnecessary complexity.
+
+==================================================
+SORTING
+==================================================
+
+Sort History by:
+
+starts_at DESC
+
+Most recently finished/past activity first.
+
+Example:
+
+Yesterday
+-> first
+
+Last week
+-> after
+
+Last month
+-> later
+
+==================================================
+RETURNED DATA
+==================================================
+
+Return enough data to reuse the existing Profile activity-card design.
+
+At minimum:
+
+- id
+- title
+- category
+- subcategory if currently used
+- startsAt
+- endsAt if currently used
+- locationType
+- city
+- onlinePlatform if useful
+- participationMode
+- maxParticipants
+- memberCount
+- status
+- creator relationship if already easily available
+
+Do NOT expose:
+
+- emails
+- participant IDs
+- private profile information
+- exact GPS coordinates
+- auth data
+
+==================================================
+MEMBER COUNT
+==================================================
+
+memberCount must remain REAL.
+
+Use:
+
+public.activity_members
+
+Do NOT invent participant_count.
+
+Reuse the existing member-count implementation from:
+
+Created
+Upcoming
+or Explore
+
+if appropriate.
+
+Avoid N+1 database queries if possible.
+
+==================================================
+FRONTEND API
+==================================================
+
+In:
+
+artifacts/outfy/src/activities/activity-api.ts
+
+add a typed function such as:
+
+getMyActivityHistory()
+
+or equivalent following existing naming conventions.
+
+Use existing authenticated API request helpers.
+
+Do NOT query Supabase from the frontend.
+
+==================================================
+PROFILE — THIRD TAB
+==================================================
+
+Extend the existing My Plans navigation.
+
+Current:
+
+Created / Propuestos
+Upcoming / Próximos
+
+New:
+
+Created / Propuestos
+Upcoming / Próximos
+History / Historial
+
+Preserve the existing visual style.
+
+Do not redesign the whole Profile.
+
+==================================================
+MOBILE UX
+==================================================
+
+Three tabs must still fit/use space cleanly on mobile.
+
+Avoid:
+
+- horizontal page overflow
+- tiny unreadable text
+- broken tab layout
+
+If the current tab implementation needs a small responsive adjustment to fit
+three options, make the smallest necessary change.
+
+Do not redesign unrelated Profile sections.
+
+==================================================
+HISTORY CARDS
+==================================================
+
+Reuse the same visual language as existing Created/Upcoming cards.
+
+Each History card should show at minimum:
+
+- title
+- translated category
+- date/time
+- location
+- real participant count
+- status
+
+The card should make it visually understandable that the activity is in the
+past, without making it look disabled/unusable.
+
+==================================================
+CARD NAVIGATION
+==================================================
+
+Click/tap the History card.
+
+Navigate to:
+
+/activities/{activity.id}
+
+Use the existing navigation mechanism.
+
+Do NOT create a separate History detail page.
+
+==================================================
+STATUS BADGES
+==================================================
+
+Use the REAL database status:
+
+active
+completed
+cancelled
+
+Translate them.
+
+Spanish:
+
+active -> "Activo"
+completed -> "Finalizado"
+cancelled -> "Cancelado"
+
+English:
+
+active -> "Active"
+completed -> "Completed"
+cancelled -> "Cancelled"
+
+IMPORTANT:
+
+An activity can be in History because its starts_at is past while status is
+still "active".
+
+If so:
+
+do NOT change the database value.
+
+You may still show its actual status as "Activo" for now.
+
+Do NOT invent a fake completed status in frontend state.
+
+Lifecycle automation will be a separate task.
+
+==================================================
+ORGANIZER VS PARTICIPANT
+==================================================
+
+If cleanly possible from existing server data, History cards may subtly indicate:
+
+Spanish:
+"Organizado por ti"
+"Participaste"
+
+English:
+"Organized by you"
+"You participated"
+
+This is OPTIONAL.
+
+Do not add complexity if it requires significant extra querying.
+
+The important thing is correct inclusion and no duplicates.
+
+==================================================
+EMPTY STATE
+==================================================
+
+If History has no activities:
+
+Spanish title:
+
+"Aún no tienes historial"
+
+Spanish supporting text:
+
+"Los planes que terminen aparecerán aquí."
+
+English title:
+
+"You don't have any history yet"
+
+English supporting text:
+
+"Finished plans will appear here."
+
+Do not show fake/demo activities.
+
+==================================================
+LOADING STATE
+==================================================
+
+Use a lightweight loading/skeleton state inside the My Plans section.
+
+Do not block the entire Profile.
+
+Do not use a giant spinner.
+
+==================================================
+ERROR STATE
+==================================================
+
+If History fails to load:
+
+Spanish:
+
+"No hemos podido cargar tu historial."
+
+English:
+
+"We couldn't load your history."
+
+Provide:
+
+"Reintentar"
+"Retry"
+
+if consistent with existing Created/Upcoming behavior.
+
+Do not expose technical API/Supabase errors.
+
+==================================================
+REFETCH BEHAVIOR
+==================================================
+
+History should fetch:
+
+- when Profile mounts, if consistent with current implementation
+OR
+- when History tab is selected
+
+Use the pattern already used by Upcoming.
+
+Do NOT implement:
+
+- polling
+- realtime
+- continuous refresh
+
+==================================================
+IMPORTANT RELATION TO UPCOMING
+==================================================
+
+Keep the current Upcoming rule:
+
+starts_at > current server time
+
+Therefore an activity should naturally move conceptually from:
+
+Upcoming
+-> History
+
+once its start time passes.
+
+Do NOT delete membership records.
+
+Do NOT remove historical membership data.
+
+This historical participation will be required for ratings later.
+
+==================================================
+IMPORTANT RELATION TO CREATED
+==================================================
+
+Do NOT break Created.
+
+Created may currently show all activities created by the user, depending on its
+existing implementation.
+
+For THIS task:
+
+Do not redesign Created filtering unless absolutely necessary.
+
+The new History tab must independently and correctly show past related
+activities.
+
+We can later refine whether Created should mean only proposed/future activities.
+
+==================================================
+FUTURE RATINGS PREPARATION
+==================================================
+
+Do NOT implement ratings yet.
+
+But preserve enough information so the next feature can determine:
+
+- activity ID
+- whether current user participated
+- whether current user was organizer
+- whether activity is already in the past
+
+Do NOT add rating fields/tables/UI in this task.
+
+==================================================
+DO NOT IMPLEMENT YET
+==================================================
+
+Do NOT implement:
+
+- ratings
+- reviews
+- stars
+- automatic completed status
+- edit past activity
+- delete history
+- archive button
+- participant list
+- chat
+- connections
+- notifications
+- organizer management
+- realtime
+
+This task is HISTORY ONLY.
+
+==================================================
+I18N
+==================================================
+
+Reuse existing translation keys whenever possible.
+
+Add only minimum new ES/EN keys for:
+
+- History
+- empty-state title
+- empty-state supporting text
+- History load error
+- Retry if not already reusable
+- status labels if not already available
+- optional relationship labels only if implemented
+
+Keep ES/EN structures equivalent.
+
+Do not hardcode visible strings in React.
+
+==================================================
+MANDATORY TESTS
+==================================================
+
+TEST 1 — CREATED PAST ACTIVITY
+
+Use an account with an activity whose starts_at is already in the past.
+
+Profile -> My Plans -> History
+
+Expected:
+
+activity appears exactly once.
+
+==================================================
+TEST 2 — PARTICIPATED PAST ACTIVITY
+
+Account B previously joined an activity created by Account A.
+
+The activity start time is now in the past.
+
+Account B:
+
+Profile -> My Plans -> History
+
+Expected:
+
+activity appears.
+
+==================================================
+TEST 3 — ORGANIZER DUPLICATION
+
+Account A created a past activity.
+
+Because organizer also exists in activity_members:
+
+History must still show ONE card only.
+
+==================================================
+TEST 4 — FUTURE ACTIVITY
+
+Activity starts tomorrow.
+
+Expected:
+
+does NOT appear in History.
+
+If joined as participant:
+it remains in Upcoming.
+
+==================================================
+TEST 5 — PAST ACTIVE STATUS
+
+Past activity still has:
+
+status = active
+
+Expected:
+
+it DOES appear in History because starts_at is past.
+
+Database status is NOT modified.
+
+==================================================
+TEST 6 — CANCELLED PAST ACTIVITY
+
+Past cancelled activity related to current user.
+
+Expected:
+
+appears in History with Cancelled/Cancelado status.
+
+==================================================
+TEST 7 — CARD NAVIGATION
+
+Click a History card.
+
+Expected:
+
+existing Activity Detail opens.
+
+==================================================
+TEST 8 — EMPTY ACCOUNT
+
+Account with no historical activity.
+
+Expected:
+
+clean empty state.
+
+Profile still works normally.
+
+==================================================
+REGRESSION TESTS
+==================================================
+
+Confirm:
+
+- Created still works
+- Upcoming still works
+- My Plans tabs still work
+- Profile avatar still works
+- header avatar still works
+- Explore still works
+- Activity Detail still works
+- Join / Leave still works
+
+==================================================
+SECURITY VALIDATION
+==================================================
+
+Confirm:
+
+- frontend sends no user ID
+- backend derives current user from session
+- no direct frontend Supabase access
+- no SQL added
+- no migrations changed
+- no RLS changed
+- no sensitive participant data returned
+- historical relation comes only from creator/membership data
+
+==================================================
+FINAL VALIDATION
+==================================================
+
+1. Review git diff.
+2. Confirm only allowed files changed.
+3. Run API TypeScript/typecheck/build.
+4. Run frontend TypeScript/typecheck/build.
+5. Validate modified ES/EN JSON.
+6. Confirm static /history route does not conflict with /:id.
+7. Confirm past creator activity appears.
+8. Confirm past participant activity appears.
+9. Confirm organizer duplicates are removed.
+10. Confirm future activities are excluded.
+11. Confirm sorting is newest past activity first.
+12. Confirm no database state was mutated.
+
+==================================================
+REPORT BACK
+==================================================
+
+Report:
+
+1. Exact Profile file modified.
+2. Exact files changed.
+3. New History endpoint.
+4. Creator/participant query strategy.
+5. Deduplication strategy.
+6. Past-time filtering.
+7. Sorting.
+8. History tab implementation.
+9. Card contents.
+10. Empty/loading/error states.
+11. Organizer duplicate test.
+12. Participant history test.
+13. API build/typecheck result.
+14. Frontend build/typecheck result.
+15. Any limitation discovered.
+
+DO NOT publish.
+DO NOT redeploy.
