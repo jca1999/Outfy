@@ -84,6 +84,12 @@ export type MyCreatedActivitiesResponse = {
   activities: MyCreatedActivity[];
 };
 
+export type MyJoinedActivity = MyCreatedActivity;
+
+export type MyJoinedActivitiesResponse = {
+  activities: MyJoinedActivity[];
+};
+
 export type ExploreActivity = MyCreatedActivity;
 
 export type ExploreActivitiesResponse = {
@@ -213,6 +219,27 @@ export async function getMyCreatedActivities() {
   }
 
   return payload as MyCreatedActivitiesResponse;
+}
+
+export async function getMyJoinedActivities() {
+  const response = await fetch('/api/activities/joined', {
+    credentials: 'include',
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | ActivityErrorPayload
+    | MyJoinedActivitiesResponse
+    | null;
+
+  if (!response.ok) {
+    throw activityApiError(
+      payload && 'activities' in payload ? null : payload,
+      response.status,
+      'The activities could not be loaded.',
+    );
+  }
+
+  return payload as MyJoinedActivitiesResponse;
 }
 
 export async function getActivities(filters: ExploreActivityFilters = {}) {

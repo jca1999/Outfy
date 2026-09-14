@@ -94,11 +94,17 @@
   "myPlans": {
     "title": "Mis planes",
     "created": "Propuestos",
+    "upcoming": "Próximos",
     "loading": "Cargando tus planes",
+    "upcomingLoading": "Cargando tus próximos planes",
     "emptyTitle": "Todavía no has creado ningún plan",
     "emptyDescription": "Cuando publiques uno, aparecerá aquí.",
+    "upcomingEmptyTitle": "No tienes ningún plan próximo",
+    "upcomingEmptyDescription": "Cuando te unas a un plan, aparecerá aquí.",
     "createPlan": "Crear un plan",
+    "explorePlans": "Explorar planes",
     "loadError": "No hemos podido cargar tus planes.",
+    "upcomingLoadError": "No hemos podido cargar tus próximos planes.",
     "retry": "Reintentar",
     "status": {
       "active": "Activo",

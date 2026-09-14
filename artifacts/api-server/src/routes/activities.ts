@@ -543,6 +543,98 @@ router.get("/activities/mine", async (request, response) => {
   }
 });
 
+router.get("/activities/joined", async (request, response) => {
+  let session;
+  try {
+    session = await currentSession(request, response);
+  } catch (error) {
+    request.log.error(
+      { err: error },
+      "Unable to authenticate joined activity owner",
+    );
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  if (!session) {
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  try {
+    const { data: memberships, error: membershipsError } =
+      await getSupabaseAdmin()
+        .from("activity_members")
+        .select("activity_id")
+        .eq("user_id", session.user.id)
+        .eq("role", "participant");
+
+    if (membershipsError) {
+      request.log.error(
+        { err: membershipsError, userId: session.user.id },
+        "Unable to load joined activity memberships",
+      );
+      response.status(500).json({ error: "The activities could not be loaded." });
+      return;
+    }
+
+    const activityIds = [
+      ...new Set((memberships ?? []).map((membership) => membership.activity_id)),
+    ];
+
+    if (activityIds.length === 0) {
+      response.json({ activities: [] });
+      return;
+    }
+
+    const { data: activities, error: activitiesError } =
+      await getSupabaseAdmin()
+        .from("activities")
+        .select(
+          "id,title,category,subcategory,starts_at,ends_at,timezone_name,location_type,city,online_platform,participation_mode,max_participants,status,activity_members(count)",
+        )
+        .in("id", activityIds)
+        .neq("creator_id", session.user.id)
+        .eq("status", "active")
+        .gt("starts_at", new Date().toISOString())
+        .order("starts_at", { ascending: true });
+
+    if (activitiesError) {
+      request.log.error(
+        { err: activitiesError, userId: session.user.id },
+        "Unable to load joined upcoming activities",
+      );
+      response.status(500).json({ error: "The activities could not be loaded." });
+      return;
+    }
+
+    response.json({
+      activities: (activities ?? []).map((activity) => ({
+        id: activity.id,
+        title: activity.title,
+        category: activity.category,
+        subcategory: activity.subcategory,
+        startsAt: activity.starts_at,
+        endsAt: activity.ends_at,
+        timezoneName: activity.timezone_name,
+        locationType: activity.location_type,
+        city: activity.city,
+        onlinePlatform: activity.online_platform,
+        participationMode: activity.participation_mode,
+        maxParticipants: activity.max_participants,
+        memberCount: activity.activity_members?.[0]?.count ?? 0,
+        status: activity.status,
+      })),
+    });
+  } catch (error) {
+    request.log.error(
+      { err: error, userId: session.user.id },
+      "Unable to load joined upcoming activities",
+    );
+    response.status(500).json({ error: "The activities could not be loaded." });
+  }
+});
+
 router.get("/activities/:id", async (request, response) => {
   let session;
   try {

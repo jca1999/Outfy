@@ -94,11 +94,17 @@
   "myPlans": {
     "title": "My plans",
     "created": "Created",
+    "upcoming": "Upcoming",
     "loading": "Loading your plans",
+    "upcomingLoading": "Loading your upcoming plans",
     "emptyTitle": "You haven't created any plans yet",
     "emptyDescription": "When you publish one, it will appear here.",
+    "upcomingEmptyTitle": "You don't have any upcoming plans",
+    "upcomingEmptyDescription": "When you join a plan, it will appear here.",
     "createPlan": "Create a plan",
+    "explorePlans": "Explore plans",
     "loadError": "We couldn't load your plans.",
+    "upcomingLoadError": "We couldn't load your upcoming plans.",
     "retry": "Retry",
     "status": {
       "active": "Active",
