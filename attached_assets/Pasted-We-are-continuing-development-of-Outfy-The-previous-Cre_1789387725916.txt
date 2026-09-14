@@ -1,0 +1,215 @@
+We are continuing development of Outfy.
+
+The previous Create Plan date/time UX refinement introduced a regression.
+
+CURRENT PROBLEMS:
+
+1. Clicking the date/time field does NOT reliably open the native picker.
+2. The user should NOT need to click the small native calendar/clock icon.
+3. The custom visual placeholder currently overlaps awkwardly with the native input.
+4. Calendar/clock indicators are still visually present and look poor in the dark UI.
+
+This task is ONLY to fix these date/time inputs.
+
+==================================================
+STRICT SCOPE
+==================================================
+
+You may modify ONLY:
+
+artifacts/outfy/src/pages/create-activity.tsx
+
+DO NOT modify any other file.
+
+Do NOT modify:
+
+- translations
+- API
+- Supabase
+- database
+- migrations
+- authentication
+- Activity Detail
+- App.tsx
+- Profile
+- Home
+- Settings
+- Explore
+- package.json
+- dependencies
+- workflows
+- .replit
+- deployment
+
+DO NOT publish or redeploy.
+
+==================================================
+GOAL
+==================================================
+
+For:
+
+- Date
+- Start time
+- Optional end time
+
+clicking/tapping ANYWHERE inside the visible field must open the native
+browser date/time picker.
+
+The user must NOT need to click the small browser-native picker icon.
+
+==================================================
+IMPLEMENTATION
+==================================================
+
+Keep the real native inputs:
+
+input type="date"
+input type="time"
+
+Do NOT replace them with text inputs.
+
+Use refs for the three inputs if necessary.
+
+On a direct user click/tap on the field:
+
+1. focus the actual input
+2. call input.showPicker() synchronously when supported
+
+Example conceptually:
+
+if (typeof input.showPicker === "function") {
+  input.showPicker()
+}
+
+Use normal native input behavior as fallback when showPicker() is not
+available.
+
+IMPORTANT:
+
+Do not delay showPicker() with setTimeout or async code because browsers may
+reject it if it is no longer inside the user gesture.
+
+==================================================
+PLACEHOLDER / EMPTY STATE
+==================================================
+
+The empty fields should still visually show:
+
+Date:
+dd/mm/aaaa
+
+Time:
+hh:mm
+
+But the placeholder implementation must NOT intercept clicks.
+
+If a visual overlay is used:
+
+- it must use pointer-events: none
+- it must disappear as soon as the input has a value
+- it must not overlap awkwardly with native rendered text
+- it must remain visually muted
+
+Prefer the simplest implementation.
+
+Do not rely on native placeholder support for date/time inputs.
+
+==================================================
+NATIVE ICONS
+==================================================
+
+Remove/hide the visible native calendar/clock indicators if they are currently
+visible in the Outfy UI.
+
+However:
+
+- hiding the indicator must NOT disable the native picker
+- clicking anywhere in the field must still open it
+- do not add replacement Calendar/Clock icons
+- do not install a custom picker library
+
+The field itself is now the interaction target.
+
+==================================================
+ACCESSIBILITY
+==================================================
+
+Preserve:
+
+- keyboard focus
+- tab navigation
+- native date/time semantics
+- mobile native picker behavior
+
+Do not turn the input into a non-semantic div.
+
+==================================================
+PRESERVE EXISTING LOGIC
+==================================================
+
+Do NOT change:
+
+- form state
+- validation
+- selected values
+- Review Plan
+- publishing
+- timezone conversion
+- optional end time behavior
+- API payload
+- responsive layout
+
+==================================================
+EXPECTED UX
+==================================================
+
+Empty state:
+
+Fecha
+[ dd/mm/aaaa ]
+
+Hora de inicio
+[ hh:mm ]
+
+Hora de fin (opcional)
+[ hh:mm ]
+
+When the user clicks ANYWHERE inside one of those fields:
+
+- the native date/time picker opens immediately where supported
+
+After selection:
+
+- the format hint disappears
+- the real selected value is shown
+
+No visible custom calendar/clock icon is needed.
+
+==================================================
+VALIDATION
+==================================================
+
+After implementation:
+
+1. Review git diff.
+2. Confirm ONLY create-activity.tsx changed.
+3. Run frontend TypeScript/typecheck/build.
+4. Confirm clicking the LEFT side of the Date field opens the picker.
+5. Confirm clicking the CENTER of the Date field opens the picker.
+6. Confirm clicking the RIGHT side of the Date field opens the picker.
+7. Repeat the same checks for Start time and End time.
+8. Confirm the user does not need to click a small icon.
+9. Confirm no calendar/clock icon is visibly shown.
+10. Confirm dd/mm/aaaa and hh:mm render cleanly when empty.
+11. Confirm selected values render correctly.
+12. Confirm publishing still sends the same date/time data.
+
+Report:
+- root cause of the regression
+- exact fix
+- browser fallback behavior
+- validation/build result
+
+DO NOT publish.
+DO NOT redeploy.

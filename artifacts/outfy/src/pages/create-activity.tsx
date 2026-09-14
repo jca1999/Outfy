@@ -9,7 +9,7 @@ import {
 import {
   useState,
   type FormEvent,
-  type MouseEvent,
+  type PointerEvent,
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'wouter';
@@ -72,6 +72,9 @@ const initialForm: ActivityForm = {
 
 const inputClassName =
   'w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition placeholder:text-muted-foreground/65 focus:border-primary focus:ring-2 focus:ring-primary/15';
+
+const dateTimeInputClassName =
+  `${inputClassName} appearance-none [&::-webkit-calendar-picker-indicator]:opacity-0`;
 
 const choiceLabelClassName =
   'flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm font-semibold transition';
@@ -148,7 +151,7 @@ export function CreateActivity() {
   }
 
   function openNativePicker(
-    event: MouseEvent<HTMLInputElement>,
+    event: PointerEvent<HTMLInputElement>,
   ) {
     const input = event.currentTarget;
 
@@ -813,7 +816,7 @@ export function CreateActivity() {
                     id="activity-date"
                     type="date"
                     value={form.date}
-                    onClick={openNativePicker}
+                    onPointerDown={openNativePicker}
                     onChange={(event) =>
                       updateForm('date', event.target.value)
                     }
@@ -823,7 +826,9 @@ export function CreateActivity() {
                         ? undefined
                         : 'activity-date-format'
                     }
-                    className={inputClassName}
+                    className={`${dateTimeInputClassName} ${
+                      form.date ? '' : 'text-transparent'
+                    }`}
                   />
                   {!form.date && (
                     <span
@@ -849,7 +854,7 @@ export function CreateActivity() {
                     id="activity-start-time"
                     type="time"
                     value={form.startTime}
-                    onClick={openNativePicker}
+                    onPointerDown={openNativePicker}
                     onChange={(event) =>
                       updateForm(
                         'startTime',
@@ -862,7 +867,9 @@ export function CreateActivity() {
                         ? undefined
                         : 'activity-start-time-format'
                     }
-                    className={inputClassName}
+                    className={`${dateTimeInputClassName} ${
+                      form.startTime ? '' : 'text-transparent'
+                    }`}
                   />
                   {!form.startTime && (
                     <span
@@ -888,7 +895,7 @@ export function CreateActivity() {
                     id="activity-end-time"
                     type="time"
                     value={form.endTime}
-                    onClick={openNativePicker}
+                    onPointerDown={openNativePicker}
                     onChange={(event) =>
                       updateForm(
                         'endTime',
@@ -901,7 +908,9 @@ export function CreateActivity() {
                         ? undefined
                         : 'activity-end-time-format'
                     }
-                    className={inputClassName}
+                    className={`${dateTimeInputClassName} ${
+                      form.endTime ? '' : 'text-transparent'
+                    }`}
                   />
                   {!form.endTime && (
                     <span
