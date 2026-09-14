@@ -269,6 +269,35 @@ function findState(
   );
 }
 
+function spanishProvinces(states: IState[], cities: ICity[]) {
+  const cityStateCodes = new Set(
+    cities
+      .map((city) => city.state_code)
+      .filter((code): code is string => Boolean(code)),
+  );
+  const seenProvinceCodes = new Set<string>();
+
+  return states
+    .filter((state) => {
+      const provinceCode = normalizeRegionCode(state.iso2);
+      const referencedByCity = [...cityStateCodes].some((cityStateCode) =>
+        stateMatchesCode(state, cityStateCode, 'ES'),
+      );
+
+      if (!referencedByCity || seenProvinceCodes.has(provinceCode)) {
+        return false;
+      }
+
+      seenProvinceCodes.add(provinceCode);
+      return true;
+    })
+    .sort((provinceA, provinceB) =>
+      provinceA.name.localeCompare(provinceB.name, 'es', {
+        sensitivity: 'base',
+      }),
+    );
+}
+
 function findExactOption<T extends { name: string }>(
   options: T[],
   names: string[],
@@ -418,11 +447,39 @@ export function LocationPicker({
     setStatesLoading(true);
     setDataError('');
 
-    void getStatesOfCountry(countryCode)
-      .then((loadedStates) => {
+    const statesRequest =
+      countryCode === 'ES'
+        ? Promise.all([
+            getStatesOfCountry(countryCode),
+            getAllCitiesOfCountry(countryCode),
+          ]).then(([loadedStates, loadedCities]) => {
+            const provinces = spanishProvinces(
+              loadedStates,
+              loadedCities,
+            );
+
+            return {
+              loadedStates:
+                provinces.length > 0 ? provinces : loadedStates,
+              usedSpanishFallback:
+                loadedStates.length > 0 && provinces.length === 0,
+            };
+          })
+        : getStatesOfCountry(countryCode).then((loadedStates) => ({
+            loadedStates,
+            usedSpanishFallback: false,
+          }));
+
+    void statesRequest
+      .then(({ loadedStates, usedSpanishFallback }) => {
         if (!cancelled) {
           setStates(loadedStates);
           setStatesReady(true);
+          if (usedSpanishFallback) {
+            setDataError(
+              t('identity.location.provinceDataFallback'),
+            );
+          }
         }
       })
       .catch(() => {
@@ -762,14 +819,26 @@ export function LocationPicker({
         />
 
         <LocationCombobox
-          label={t('identity.location.region')}
+          label={t(
+            countryCode === 'ES'
+              ? 'identity.location.province'
+              : 'identity.location.region',
+          )}
           value={stateCode}
           placeholder={
             statesReady && states.length === 0
               ? t('identity.location.regionNotRequired')
-              : t('identity.location.chooseRegion')
+              : t(
+                  countryCode === 'ES'
+                    ? 'identity.location.chooseProvince'
+                    : 'identity.location.chooseRegion',
+                )
           }
-          searchPlaceholder={t('identity.location.searchRegion')}
+          searchPlaceholder={t(
+            countryCode === 'ES'
+              ? 'identity.location.searchProvince'
+              : 'identity.location.searchRegion',
+          )}
           emptyLabel={t('identity.location.noMatches')}
           options={stateOptions}
           loading={statesLoading}

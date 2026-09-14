@@ -1,0 +1,328 @@
+We are continuing development of Outfy.
+
+The current LocationPicker and GPS location flow are working correctly.
+
+There is now one UX/data-quality issue we want to fix:
+
+For Spain, the current region selector mixes Autonomous Communities and Provinces in the same list.
+
+Examples of the problem:
+- Catalonia / Cataluña
+- Aragón
+- Zaragoza
+- Barcelona
+
+These are not all the same administrative level.
+
+For Outfy, when the selected country is Spain, we want the manual hierarchy to be:
+
+Spain
+→ Province
+→ City
+
+We DO NOT want to add an Autonomous Community selector.
+
+==================================================
+MODE / SAFETY
+==================================================
+
+This is a targeted LocationPicker correction.
+
+STRICT SAFETY SCOPE.
+
+You may modify ONLY:
+
+1. artifacts/outfy/src/components/location-picker.tsx
+2. artifacts/outfy/src/i18n/locales/es/profile.json
+3. artifacts/outfy/src/i18n/locales/en/profile.json
+
+DO NOT modify any other file.
+
+In particular DO NOT modify:
+
+- auth-api.ts
+- auth-context.tsx
+- API server
+- Supabase
+- database schema
+- migrations
+- Profile page
+- Edit Profile page
+- Create Plan page
+- Home
+- App.tsx
+- activity-taxonomy.ts
+- package.json
+- dependencies
+- .replit
+- workflows
+- ports
+- deployment
+- environment variables
+
+DO NOT publish or redeploy.
+
+==================================================
+VERY IMPORTANT
+==================================================
+
+The CURRENT GPS implementation works correctly.
+
+DO NOT replace or redesign the GPS algorithm.
+
+DO NOT reintroduce the previous bug where GPS first resolved the Autonomous Community and then searched cities only inside that administrative area.
+
+Preserve the current working logic:
+
+1. Detect country.
+2. Search/find the nearest city across all cities in that country.
+3. Derive the final region/state from the matched city's state code.
+4. Store dataset city coordinates, NOT exact device GPS coordinates.
+
+Exact device GPS coordinates must remain temporary and must NOT be persisted.
+
+==================================================
+GOAL — SPAIN SHOULD SHOW PROVINCES ONLY
+==================================================
+
+When:
+
+countryCode === 'ES'
+
+the region selector must represent PROVINCES only.
+
+The user should NOT see a mixture of:
+
+- Autonomous Communities
+- Provinces
+
+Do not show entries such as Cataluña / Catalonia or Aragón in the same selector as Zaragoza, Barcelona, Huesca, etc. if they represent a different administrative level.
+
+==================================================
+USE THE EXISTING DATASET
+==================================================
+
+Continue using the existing:
+
+@countrystatecity/countries-browser
+
+data.
+
+Do NOT install another geographic dependency.
+
+Do NOT hardcode a complete independent Spanish city database.
+
+For Spain, derive the valid province list from the actual city data.
+
+Recommended strategy:
+
+1. Get all Spanish cities using the existing dataset.
+
+2. Collect the unique `state_code` values actually referenced by those cities.
+
+3. Get the available Spanish state/region entries from the existing dataset.
+
+4. Keep only entries whose code is actually referenced by Spanish cities.
+
+5. Deduplicate the resulting list.
+
+6. Sort provinces alphabetically for display.
+
+The important principle is:
+
+The province selector should be based on the administrative codes actually used by the CITY records.
+
+This avoids showing higher-level Autonomous Community entries that are not the region associated with individual city records.
+
+If the actual library field names differ slightly from these names, inspect the current LocationPicker implementation and use its existing types/API.
+
+Do NOT guess.
+
+==================================================
+CITY FILTERING
+==================================================
+
+After the user selects a Spanish province:
+
+Show only cities whose city state/province code matches the selected province code.
+
+Prefer using the relationship from the existing city dataset.
+
+Do not mix cities from other provinces.
+
+Example expected behavior:
+
+Province:
+Zaragoza
+
+Cities:
+- Zaragoza
+- Calatayud
+- other available cities belonging to that province
+
+Province:
+Barcelona
+
+Cities:
+- Barcelona
+- Badalona
+- other available cities belonging to that province
+
+Exact available cities depend on the existing dataset.
+
+==================================================
+LABELS
+==================================================
+
+When Spain is selected, the field label should clearly say:
+
+Spanish:
+"Provincia"
+
+English:
+"Province"
+
+Do not label it "Región" for Spain.
+
+For OTHER COUNTRIES:
+
+Preserve the current generic region/state/province behavior.
+
+Do NOT redesign the location hierarchy globally.
+
+Only Spain receives this specific province-level behavior.
+
+==================================================
+GPS + SPAIN
+==================================================
+
+GPS must continue working.
+
+For a GPS result in Spain:
+
+- find the nearest city using the CURRENT working all-country city search
+- read that matched city's province/state code
+- select that province
+- select the matched city
+
+Example conceptually:
+
+GPS near Zaragoza
+→ Spain
+→ Zaragoza province
+→ Zaragoza city
+
+NOT:
+
+GPS near Zaragoza
+→ Aragón
+→ search only Aragón
+→ fail because city records use province codes
+
+This old behavior must NOT return.
+
+==================================================
+PERSISTED HOMELOCATION
+==================================================
+
+Do NOT change the HomeLocation contract.
+
+Continue returning:
+
+{
+  countryCode,
+  country,
+  regionCode,
+  region,
+  city,
+  latitude,
+  longitude
+}
+
+For Spain:
+
+- `regionCode` should represent the selected province code
+- `region` should represent the selected province name
+- `city` remains the city
+
+Do NOT add an Autonomous Community field.
+
+Do NOT change the database.
+
+This keeps the existing HomeLocation contract compatible.
+
+==================================================
+FALLBACK / SAFETY
+==================================================
+
+Do not allow the Spanish province selector to become empty because of an unexpected dataset inconsistency.
+
+If the province derivation cannot safely produce a usable list:
+
+- preserve a safe fallback
+- do not break LocationPicker
+- report the dataset inconsistency clearly
+
+However, do not silently fall back to a mixed Autonomous Community + Province list if a correct province-only list can be derived.
+
+==================================================
+PRESERVE EVERYTHING ELSE
+==================================================
+
+Preserve:
+
+- country selector
+- city selector
+- manual location selection
+- GPS button
+- current GPS permission handling
+- current nearest-city calculation
+- validation
+- saved HomeLocation format
+- ES/EN
+- responsive behavior
+- current design
+
+Do NOT alter unrelated countries.
+
+==================================================
+VALIDATION
+==================================================
+
+After implementation:
+
+1. Review git diff.
+
+2. Confirm ONLY:
+   - location-picker.tsx
+   - es/profile.json
+   - en/profile.json
+   changed.
+
+3. Run existing frontend TypeScript/typecheck/build validation.
+
+4. Test Spain manually and verify:
+   - field says Provincia / Province
+   - Autonomous Communities are not mixed into the province list
+   - Zaragoza appears as a province if supported by the dataset
+   - Barcelona appears as a province if supported by the dataset
+   - selecting Zaragoza only shows cities belonging to Zaragoza province
+   - selecting Barcelona only shows cities belonging to Barcelona province
+
+5. Test GPS conceptually/where possible and verify the current nearest-city-first algorithm is preserved.
+
+6. Confirm GPS coordinates are NOT persisted.
+
+7. Confirm HomeLocation contract did not change.
+
+8. Confirm other countries preserve their current behavior.
+
+9. Report:
+   - how Spanish provinces are derived
+   - examples of entries removed from the mixed list
+   - whether any dataset inconsistencies were found
+   - exact files changed
+   - TypeScript/build result
+
+DO NOT publish.
+DO NOT redeploy.
