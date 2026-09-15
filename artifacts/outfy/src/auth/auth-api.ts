@@ -50,6 +50,21 @@ export interface ProfileAvatarResponse {
   avatarUrl: string | null;
 }
 
+export interface PublicProfile {
+  id: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  city: string | null;
+  country: string | null;
+  isPrivate: boolean;
+  isOwnProfile: boolean;
+}
+
+export interface PublicProfileResponse {
+  profile: PublicProfile;
+}
+
 export const PROFILE_AVATAR_CHANGED_EVENT = 'outfy:profile-avatar-changed';
 
 export interface ProfileAvatarChangedDetail extends ProfileAvatarResponse {
@@ -136,6 +151,12 @@ async function avatarRequest(
 
 export function getSession() {
   return request<AuthSessionResponse>('/session');
+}
+
+export function getPublicProfile(username: string) {
+  return request<PublicProfileResponse>(
+    `/users/${encodeURIComponent(username)}`,
+  );
 }
 
 export function signIn(input: { username: string; password: string }) {

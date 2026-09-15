@@ -12,6 +12,7 @@ import { Matches } from '@/pages/matches';
 import { Chats } from '@/pages/chats';
 import { Profile } from '@/pages/profile';
 import { ProfileEdit } from '@/pages/profile-edit';
+import { PublicProfile } from '@/pages/public-profile';
 import { Settings } from '@/pages/settings';
 import { SignIn } from '@/pages/auth/sign-in';
 import { SignUp } from '@/pages/auth/sign-up';
@@ -121,6 +122,7 @@ function Router() {
           <Route path="/activities/:id" component={ActivityDetail} />
           <Route path="/profile/edit" component={ProfileEdit} />
           <Route path="/profile" component={Profile} />
+          <Route path="/users/:username" component={PublicProfile} />
           <Route path="/settings" component={Settings} />
           <Route component={NotFound} />
         </Switch>

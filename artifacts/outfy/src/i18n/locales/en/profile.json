@@ -14,6 +14,17 @@
     "backToProfile": "Back to profile"
   },
 
+  "publicProfile": {
+    "back": "Back",
+    "avatarAlt": "Profile photo of @{{username}}",
+    "notFoundTitle": "We couldn't find this profile",
+    "notFoundDescription": "The user may not exist or their username may have changed.",
+    "errorTitle": "We couldn't load the profile",
+    "errorDescription": "Please try again in a few moments.",
+    "privateTitle": "Private profile",
+    "privateDescription": "This user has limited the information visible on their profile."
+  },
+
   "avatar": {
     "alt": "Your profile photo",
     "addPhoto": "Add photo",

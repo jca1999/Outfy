@@ -14,6 +14,17 @@
     "backToProfile": "Volver al perfil"
   },
 
+  "publicProfile": {
+    "back": "Volver",
+    "avatarAlt": "Foto de perfil de @{{username}}",
+    "notFoundTitle": "No encontramos este perfil",
+    "notFoundDescription": "Puede que el usuario no exista o que el nombre haya cambiado.",
+    "errorTitle": "No hemos podido cargar el perfil",
+    "errorDescription": "Inténtalo de nuevo dentro de unos instantes.",
+    "privateTitle": "Perfil privado",
+    "privateDescription": "Este usuario ha limitado la información visible de su perfil."
+  },
+
   "avatar": {
     "alt": "Tu foto de perfil",
     "addPhoto": "Añadir foto",

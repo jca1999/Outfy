@@ -24,6 +24,7 @@ const RECOVERY_COOKIE = "outfy_recovery_token";
 const AVATAR_BUCKET = "avatars";
 const AVATAR_MAX_BYTES = 1048576;
 const AVATAR_SIGNED_URL_SECONDS = 60 * 60;
+const USERNAME_PATTERN = /^[a-zA-Z0-9_.-]{1,32}$/;
 const SESSION_COOKIE_OPTIONS = {
   httpOnly: true,
   sameSite: "lax" as const,
@@ -581,6 +582,148 @@ router.get("/auth/session", async (request, response) => {
     request.log.error({ err: error }, "Unable to read Supabase session");
     clearSession(response);
     response.json({ authenticated: false, user: null });
+  }
+});
+
+router.get("/auth/users/:username", async (request, response) => {
+  let session;
+
+  try {
+    session = await currentSession(request, response);
+  } catch (error) {
+    request.log.error(
+      { err: error },
+      "Unable to authenticate public profile viewer",
+    );
+
+    sendError(response, 401, "Authentication required.");
+    return;
+  }
+
+  if (!session) {
+    sendError(response, 401, "Authentication required.");
+    return;
+  }
+
+  const username =
+    typeof request.params.username === "string"
+      ? request.params.username.trim()
+      : "";
+
+  if (!USERNAME_PATTERN.test(username)) {
+    response.status(404).json({
+      error: "User not found.",
+      code: "user_not_found",
+    });
+    return;
+  }
+
+  try {
+    const { data: profiles, error: profileError } =
+      await getSupabaseAdmin()
+        .from("profiles")
+      .select(
+        "id,username,display_name,display_name_visibility,home_city,home_country,is_profile_private",
+      )
+        .eq("username_normalized", normalizeUsername(username))
+        .limit(1);
+
+    if (profileError) {
+      request.log.error(
+        {
+          err: profileError,
+          username,
+          viewerId: session.user.id,
+        },
+        "Unable to load public profile",
+      );
+
+      sendError(response, 500, "The profile could not be loaded.");
+      return;
+    }
+
+    const profile = profiles?.[0];
+
+    if (!profile) {
+      response.status(404).json({
+        error: "User not found.",
+        code: "user_not_found",
+      });
+      return;
+    }
+
+    const isOwnProfile = profile.id === session.user.id;
+
+    const displayNameVisibility =
+      isDisplayNameVisibility(profile.display_name_visibility)
+        ? profile.display_name_visibility
+        : "shared_activity";
+
+    const displayNameVisible =
+      isOwnProfile ||
+      displayNameVisibility === "everyone";
+
+    const isPrivate =
+      profile.is_profile_private === true &&
+      !isOwnProfile;
+
+    let avatarUrl: string | null = null;
+
+    try {
+      const { data: signedAvatar } =
+        await createAvatarSignedUrl(
+          avatarPathFor(profile.id),
+        );
+
+      avatarUrl = signedAvatar?.signedUrl ?? null;
+    } catch (error) {
+      request.log.warn(
+        {
+          err: error,
+          profileId: profile.id,
+        },
+        "Unable to create public profile avatar URL",
+      );
+    }
+
+    response.json({
+      profile: {
+        id: profile.id,
+        username: profile.username,
+        displayName:
+          displayNameVisible &&
+          typeof profile.display_name === "string" &&
+          profile.display_name.trim()
+            ? profile.display_name.trim()
+            : null,
+        avatarUrl,
+        city:
+          !isPrivate &&
+          typeof profile.home_city === "string" &&
+          profile.home_city.trim()
+            ? profile.home_city.trim()
+            : null,
+        country:
+          !isPrivate &&
+          typeof profile.home_country === "string" &&
+          profile.home_country.trim()
+            ? profile.home_country.trim()
+            : null,
+        isPrivate,
+        isOwnProfile,
+      },
+    });
+  } catch (error) {
+    request.log.error(
+      {
+        err: error,
+        username,
+        viewerId: session.user.id,
+      },
+      "Unable to load public profile",
+    );
+
+    sendError(response, 500, "The profile could not be loaded.");
   }
 });
 
