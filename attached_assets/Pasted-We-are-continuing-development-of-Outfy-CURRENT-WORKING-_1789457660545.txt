@@ -1,0 +1,682 @@
+We are continuing development of Outfy.
+
+CURRENT WORKING STATE:
+
+- Real activities exist in public.activities.
+- Memberships exist in public.activity_members.
+- Organizer membership uses role = 'organizer'.
+- Normal joined users use role = 'participant'.
+- History is already implemented in Profile.
+- Past activities are determined using their timestamps.
+- Outfy frontend does NOT access Supabase directly.
+- Trusted writes go through the Outfy API / privileged server client.
+- Previous migrations include:
+  007_activities
+  008_activity_security_hardening
+  009_activity_membership_operations
+  010_profile_avatar_storage
+
+NEXT FEATURE:
+
+ACTIVITY RATINGS / REVIEWS
+
+This is STEP 1 ONLY:
+
+Create the secure database foundation.
+
+DO NOT implement frontend/API UI yet.
+
+==================================================
+STRICT SCOPE
+==================================================
+
+Create ONLY ONE new migration file.
+
+Inspect the existing migrations directory first.
+
+The next migration should normally be something equivalent to:
+
+011_activity_reviews.sql
+
+but use the project's actual next migration number/convention.
+
+DO NOT modify any existing migration.
+
+DO NOT modify application code.
+
+DO NOT execute SQL.
+
+DO NOT apply the migration to Supabase.
+
+We will review it before applying it.
+
+==================================================
+PRODUCT RULES
+==================================================
+
+An activity review has:
+
+- rating: 1 to 5 stars
+- optional text comment
+- one review per user per activity
+- user may later edit their own review
+
+A user may review an activity ONLY when:
+
+1. The activity exists.
+2. The activity is NOT cancelled.
+3. The activity has finished.
+4. The user really participated with:
+
+   activity_members.role = 'participant'
+
+5. The user is NOT the activity creator/organizer.
+
+The organizer must NEVER be able to rate their own activity.
+
+==================================================
+WHEN IS AN ACTIVITY FINISHED?
+==================================================
+
+Use:
+
+ends_at
+
+when ends_at is present.
+
+Otherwise use:
+
+starts_at
+
+Therefore an activity is reviewable when:
+
+coalesce(ends_at, starts_at) <= current time
+
+This is important.
+
+Example:
+
+starts_at = 18:00
+ends_at = 20:00
+
+At 19:00:
+NOT reviewable yet.
+
+At 20:01:
+reviewable.
+
+If no ends_at exists:
+
+starts_at <= now
+
+is sufficient.
+
+Do NOT require status = 'completed', because Outfy currently may still have
+past activities whose database status remains 'active'.
+
+However:
+
+status = 'cancelled'
+
+must NOT be reviewable.
+
+==================================================
+TABLE
+==================================================
+
+Create:
+
+public.activity_reviews
+
+Recommended columns:
+
+id uuid primary key default gen_random_uuid()
+
+activity_id uuid not null
+  references public.activities(id)
+  on delete cascade
+
+reviewer_id uuid not null
+  references auth.users(id)
+  on delete cascade
+
+rating smallint not null
+
+comment text null
+
+created_at timestamptz not null default now()
+
+updated_at timestamptz not null default now()
+
+==================================================
+CONSTRAINTS
+==================================================
+
+Enforce:
+
+rating BETWEEN 1 AND 5
+
+comment maximum length:
+
+1000 characters
+
+A NULL comment is allowed.
+
+An empty comment may be normalized to NULL by the RPC.
+
+Enforce ONE review per user per activity:
+
+unique(activity_id, reviewer_id)
+
+==================================================
+UPDATED_AT
+==================================================
+
+Ensure updated_at changes automatically when a review is edited.
+
+Use a safe trigger/function following the project's existing conventions.
+
+If an existing generic updated_at trigger function can safely be reused,
+reuse it.
+
+Otherwise create a narrowly scoped review updated_at function.
+
+Use a safe fixed search_path if creating a new function.
+
+==================================================
+RLS
+==================================================
+
+Enable Row Level Security on:
+
+public.activity_reviews
+
+IMPORTANT:
+
+Outfy uses server-mediated access.
+
+Do NOT create direct browser write policies.
+
+Do NOT allow authenticated users to INSERT/UPDATE reviews directly.
+
+Do NOT allow anon writes.
+
+The service-role backend will later use the trusted RPC.
+
+Do not weaken RLS just to simplify future frontend work.
+
+==================================================
+DIRECT TABLE PRIVILEGES
+==================================================
+
+Revoke direct write privileges on public.activity_reviews from:
+
+PUBLIC
+anon
+authenticated
+
+At minimum revoke:
+
+INSERT
+UPDATE
+DELETE
+
+Prefer that review creation/editing goes only through the trusted operation
+defined below.
+
+==================================================
+SECURE RPC
+==================================================
+
+Create a SECURITY DEFINER function similar in spirit to the existing safe
+membership RPC architecture.
+
+Recommended name:
+
+public.upsert_activity_review_as_user
+
+Inputs:
+
+p_activity_id uuid
+p_user_id uuid
+p_rating integer
+p_comment text
+
+IMPORTANT:
+
+The future backend will derive p_user_id from the authenticated Outfy session.
+
+The frontend will NEVER send a trusted user ID directly to Supabase.
+
+==================================================
+RPC SECURITY
+==================================================
+
+Use:
+
+SECURITY DEFINER
+
+with a safe fixed:
+
+search_path = pg_catalog
+
+Schema-qualify table references such as:
+
+public.activities
+public.activity_members
+public.activity_reviews
+
+REVOKE EXECUTE from:
+
+PUBLIC
+anon
+authenticated
+
+GRANT EXECUTE only to:
+
+service_role
+
+Do not expose this RPC directly to ordinary authenticated browser clients.
+
+==================================================
+RPC VALIDATION
+==================================================
+
+The RPC must independently enforce ALL business rules.
+
+Do NOT rely only on future frontend/API validation.
+
+==================================================
+RPC — RATING VALIDATION
+==================================================
+
+If:
+
+p_rating < 1
+or
+p_rating > 5
+
+return a stable result such as:
+
+invalid_rating
+
+Do not insert/update anything.
+
+==================================================
+RPC — COMMENT VALIDATION
+==================================================
+
+Trim the supplied comment.
+
+If trimmed comment is empty:
+
+store NULL.
+
+If comment is longer than 1000 characters:
+
+return:
+
+comment_too_long
+
+Do not silently truncate user text.
+
+==================================================
+RPC — ACTIVITY LOOKUP
+==================================================
+
+Load the activity.
+
+If it does not exist:
+
+return:
+
+not_found
+
+==================================================
+RPC — CANCELLED ACTIVITY
+==================================================
+
+If activity.status = 'cancelled':
+
+return:
+
+cancelled
+
+Do not allow rating.
+
+==================================================
+RPC — ORGANIZER
+==================================================
+
+If:
+
+activity.creator_id = p_user_id
+
+return:
+
+organizer_cannot_review
+
+Do not create/update a review.
+
+==================================================
+RPC — FINISHED CHECK
+==================================================
+
+Calculate activity finish moment as:
+
+coalesce(ends_at, starts_at)
+
+If it is greater than current time:
+
+return:
+
+not_finished
+
+Do not create/update the review.
+
+==================================================
+RPC — REAL PARTICIPATION
+==================================================
+
+Check:
+
+public.activity_members
+
+for:
+
+activity_id = p_activity_id
+user_id = p_user_id
+role = 'participant'
+
+If no such row exists:
+
+return:
+
+not_participant
+
+The organizer membership does NOT count.
+
+Do not rely only on creator_id.
+
+==================================================
+RPC — UPSERT
+==================================================
+
+If all checks pass:
+
+Insert the review if it does not exist.
+
+If the same user already reviewed that activity:
+
+UPDATE their existing:
+
+rating
+comment
+
+Do NOT create a second review.
+
+Preserve original created_at.
+
+updated_at should update normally.
+
+Return:
+
+saved
+
+==================================================
+RPC RETURN DATA
+==================================================
+
+Return a structured table/result containing enough information for the future
+API.
+
+Recommended output:
+
+result text
+review_id uuid
+rating smallint
+comment text
+average_rating numeric
+review_count bigint
+
+==================================================
+AGGREGATE
+==================================================
+
+After successful save:
+
+calculate the activity's real aggregate from activity_reviews:
+
+average_rating
+review_count
+
+Do NOT store average rating on public.activities.
+
+Do NOT add:
+
+average_rating
+review_count
+
+columns to activities.
+
+These are derived values.
+
+Return the aggregate from the RPC.
+
+==================================================
+AVERAGE
+==================================================
+
+Use the real SQL average of rating.
+
+Do not round destructively in the database.
+
+The frontend can later display something like:
+
+4.7
+
+while preserving the underlying numeric value.
+
+==================================================
+INDEXES
+==================================================
+
+Create sensible indexes for future use.
+
+At minimum ensure efficient lookup by:
+
+activity_id
+
+The UNIQUE(activity_id, reviewer_id) already helps specific review lookup.
+
+Optionally add an index useful for:
+
+reviewer_id
+
+if appropriate for future profile/history queries.
+
+Do not add excessive speculative indexes.
+
+==================================================
+NO DELETE RPC YET
+==================================================
+
+Do NOT implement review deletion yet.
+
+The agreed MVP behavior is:
+
+- create review
+- edit own review
+
+We can decide later whether users may fully delete reviews.
+
+==================================================
+DO NOT IMPLEMENT YET
+==================================================
+
+DO NOT implement:
+
+- API routes
+- Activity Detail stars
+- review forms
+- comments UI
+- average-rating UI
+- Profile review UI
+- notifications
+- reputation
+- user ratings
+- likes
+- moderation UI
+
+This migration is only the database/security foundation.
+
+==================================================
+IMPORTANT — USER RATINGS ARE DIFFERENT
+==================================================
+
+This table is ONLY for:
+
+ACTIVITY REVIEWS
+
+Do NOT create ratings for:
+
+- organizer reputation
+- participant reputation
+- user profiles
+
+Those will be a separate future system.
+
+==================================================
+EXPECTED TABLE
+==================================================
+
+Conceptually:
+
+activity_reviews
+--------------------------------
+id
+activity_id
+reviewer_id
+rating
+comment
+created_at
+updated_at
+
+UNIQUE(activity_id, reviewer_id)
+
+==================================================
+EXPECTED ELIGIBILITY EXAMPLES
+==================================================
+
+ACCOUNT A creates activity.
+
+ACCOUNT B joins as participant.
+
+After activity finishes:
+
+Account B:
+-> CAN review.
+
+Account A:
+-> CANNOT review own activity.
+
+ACCOUNT C never joined:
+
+-> CANNOT review.
+
+Account B tries before activity finishes:
+
+-> CANNOT review.
+
+Cancelled activity:
+
+-> CANNOT review.
+
+Account B reviews twice:
+
+-> same review is UPDATED, not duplicated.
+
+==================================================
+MIGRATION SAFETY
+==================================================
+
+Use idempotent/safe patterns where sensible.
+
+Do NOT hardcode existing activity IDs or user IDs.
+
+Do NOT alter existing activity/member records.
+
+Do NOT delete data.
+
+Do NOT modify existing migrations.
+
+==================================================
+VALIDATION
+==================================================
+
+Before finishing:
+
+1. Confirm exact next migration number.
+
+2. Confirm only ONE new migration file exists.
+
+3. Confirm no existing file was modified.
+
+4. Confirm activity_reviews has one-review-per-user/activity uniqueness.
+
+5. Confirm rating database constraint = 1..5.
+
+6. Confirm comment max = 1000.
+
+7. Confirm cancelled activities cannot be rated through RPC.
+
+8. Confirm organizer cannot rate own activity.
+
+9. Confirm only role='participant' qualifies.
+
+10. Confirm activity must be finished using:
+    coalesce(ends_at, starts_at)
+
+11. Confirm upsert edits existing review.
+
+12. Confirm RPC is SECURITY DEFINER.
+
+13. Confirm safe search_path.
+
+14. Confirm RPC execution revoked from PUBLIC/anon/authenticated.
+
+15. Confirm service_role can execute it.
+
+16. Confirm direct browser writes to activity_reviews are not permitted.
+
+17. Confirm no rating aggregate columns were added to activities.
+
+18. Confirm NO SQL was executed.
+
+==================================================
+REPORT BACK
+==================================================
+
+Report:
+
+1. Exact migration filename.
+2. Full table schema.
+3. Constraints.
+4. Indexes.
+5. RLS/privilege configuration.
+6. RPC signature.
+7. RPC eligibility logic.
+8. Upsert behavior.
+9. Aggregate return behavior.
+10. Exact files changed.
+11. Explicit confirmation that no SQL was executed.
+12. Any issue/limitation discovered.
+
+IMPORTANT:
+
+DO NOT APPLY THE MIGRATION.
+
+DO NOT EXECUTE SQL.
+
+DO NOT PUBLISH.
+DO NOT REDEPLOY.
