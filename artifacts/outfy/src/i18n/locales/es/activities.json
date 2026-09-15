@@ -115,6 +115,27 @@
       "active": "Activo",
       "completed": "Finalizado",
       "cancelled": "Cancelado"
+    },
+    "review": {
+      "action": "Valorar",
+      "edit": "Editar valoración",
+      "title": "Valorar actividad",
+      "editTitle": "Editar valoración",
+      "description": "Cuéntanos qué te pareció «{{title}}».",
+      "ratingLabel": "Tu valoración",
+      "starAriaLabel": "{{rating}} estrellas",
+      "commentLabel": "Comentario",
+      "commentPlaceholder": "¿Qué te pareció el plan? (opcional)",
+      "save": "Guardar valoración",
+      "saving": "Guardando...",
+      "cancel": "Cancelar",
+      "saveError": "No hemos podido guardar tu valoración. Inténtalo de nuevo.",
+      "noReviews": "Todavía no hay valoraciones",
+      "reviewCount": "{{count}} valoración",
+      "reviewCount_other": "{{count}} valoraciones",
+      "yourRating": "Tu valoración: {{rating}}/5",
+      "organizer": "Eres el organizador",
+      "cancelled": "Los planes cancelados no se pueden valorar"
     }
   },
   "explore": {

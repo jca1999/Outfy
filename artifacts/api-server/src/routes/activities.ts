@@ -58,6 +58,15 @@ type MembershipRpcRow = {
   max_participants: number | null;
 };
 
+type ActivityReviewRpcRow = {
+  result: string;
+  review_id: string | null;
+  rating: number | null;
+  comment: string | null;
+  average_rating: number | null;
+  review_count: number | null;
+};
+
 const router: IRouter = Router();
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -110,6 +119,54 @@ function membershipRpcRow(data: unknown): MembershipRpcRow | null {
     result: row.result,
     member_count: row.member_count,
     max_participants: row.max_participants,
+  };
+}
+
+function nullableRpcNumber(value: unknown): number | null | undefined {
+  if (value === null) return null;
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (
+    typeof value === "string" &&
+    value.trim() &&
+    Number.isFinite(Number(value))
+  ) {
+    return Number(value);
+  }
+
+  return undefined;
+}
+
+function activityReviewRpcRow(data: unknown): ActivityReviewRpcRow | null {
+  if (!Array.isArray(data) || data.length !== 1) return null;
+
+  const row = data[0] as Record<string, unknown>;
+
+  const rating = nullableRpcNumber(row.rating);
+  const averageRating = nullableRpcNumber(row.average_rating);
+  const reviewCount = nullableRpcNumber(row.review_count);
+
+  if (
+    typeof row.result !== "string" ||
+    (row.review_id !== null && typeof row.review_id !== "string") ||
+    rating === undefined ||
+    (row.comment !== null && typeof row.comment !== "string") ||
+    averageRating === undefined ||
+    reviewCount === undefined
+  ) {
+    return null;
+  }
+
+  return {
+    result: row.result,
+    review_id: row.review_id as string | null,
+    rating,
+    comment: row.comment as string | null,
+    average_rating: averageRating,
+    review_count: reviewCount,
   };
 }
 
@@ -654,30 +711,35 @@ router.get("/activities/history", async (request, response) => {
   }
 
   try {
-    const { data: memberships, error: membershipsError } =
-      await getSupabaseAdmin()
-        .from("activity_members")
-        .select("activity_id")
-        .eq("user_id", session.user.id);
+    const supabase = getSupabaseAdmin();
+
+    const { data: memberships, error: membershipsError } = await supabase
+      .from("activity_members")
+      .select("activity_id")
+      .eq("user_id", session.user.id);
 
     if (membershipsError) {
       request.log.error(
         { err: membershipsError, userId: session.user.id },
         "Unable to load historical activity memberships",
       );
-      response.status(500).json({ error: "The activities could not be loaded." });
+      response
+        .status(500)
+        .json({ error: "The activities could not be loaded." });
       return;
     }
 
     const membershipActivityIds = [
-      ...new Set((memberships ?? []).map((membership) => membership.activity_id)),
+      ...new Set(
+        (memberships ?? []).map((membership) => membership.activity_id),
+      ),
     ];
-    let activitiesQuery = getSupabaseAdmin()
+
+    let activitiesQuery = supabase
       .from("activities")
       .select(
         "id,creator_id,title,category,subcategory,starts_at,ends_at,timezone_name,location_type,city,online_platform,participation_mode,max_participants,status,activity_members(count)",
       )
-      .lte("starts_at", new Date().toISOString())
       .order("starts_at", { ascending: false });
 
     activitiesQuery =
@@ -687,49 +749,345 @@ router.get("/activities/history", async (request, response) => {
           )
         : activitiesQuery.eq("creator_id", session.user.id);
 
-    const { data: activities, error: activitiesError } = await activitiesQuery;
+    const { data: activities, error: activitiesError } =
+      await activitiesQuery;
 
     if (activitiesError) {
       request.log.error(
         { err: activitiesError, userId: session.user.id },
         "Unable to load activity history",
       );
-      response.status(500).json({ error: "The activities could not be loaded." });
+      response
+        .status(500)
+        .json({ error: "The activities could not be loaded." });
       return;
     }
 
-    const activitiesById = new Map(
-      (activities ?? []).map((activity) => [activity.id, activity]),
+    const now = Date.now();
+
+    const historicalActivities = (activities ?? []).filter((activity) => {
+      if (activity.status === "cancelled") {
+        return true;
+      }
+
+      const finishedAt = Date.parse(
+        activity.ends_at ?? activity.starts_at,
+      );
+
+      return Number.isFinite(finishedAt) && finishedAt <= now;
+    });
+
+    if (historicalActivities.length === 0) {
+      response.json({ activities: [] });
+      return;
+    }
+
+    const activityIds = historicalActivities.map(
+      (activity) => activity.id,
     );
 
+    const { data: reviews, error: reviewsError } = await supabase
+      .from("activity_reviews")
+      .select("activity_id,reviewer_id,rating,comment")
+      .in("activity_id", activityIds);
+
+    if (reviewsError) {
+      request.log.error(
+        { err: reviewsError, userId: session.user.id },
+        "Unable to load activity reviews",
+      );
+      response
+        .status(500)
+        .json({ error: "The activity history could not be loaded." });
+      return;
+    }
+
+    const reviewStats = new Map<
+      string,
+      { sum: number; count: number }
+    >();
+
+    const myReviews = new Map<
+      string,
+      { rating: number; comment: string | null }
+    >();
+
+    for (const review of reviews ?? []) {
+      const current = reviewStats.get(review.activity_id) ?? {
+        sum: 0,
+        count: 0,
+      };
+
+      current.sum += review.rating;
+      current.count += 1;
+
+      reviewStats.set(review.activity_id, current);
+
+      if (review.reviewer_id === session.user.id) {
+        myReviews.set(review.activity_id, {
+          rating: review.rating,
+          comment: review.comment,
+        });
+      }
+    }
+
     response.json({
-      activities: [...activitiesById.values()].map((activity) => ({
-        id: activity.id,
-        title: activity.title,
-        category: activity.category,
-        subcategory: activity.subcategory,
-        startsAt: activity.starts_at,
-        endsAt: activity.ends_at,
-        timezoneName: activity.timezone_name,
-        locationType: activity.location_type,
-        city: activity.city,
-        onlinePlatform: activity.online_platform,
-        participationMode: activity.participation_mode,
-        maxParticipants: activity.max_participants,
-        memberCount: activity.activity_members?.[0]?.count ?? 0,
-        status: activity.status,
-        relationship:
+      activities: historicalActivities.map((activity) => {
+        const relationship =
           activity.creator_id === session.user.id
             ? "organizer"
-            : "participant",
-      })),
+            : "participant";
+
+        const stats = reviewStats.get(activity.id);
+
+        const finishedAt = Date.parse(
+          activity.ends_at ?? activity.starts_at,
+        );
+
+        const canReview =
+          relationship === "participant" &&
+          activity.status !== "cancelled" &&
+          Number.isFinite(finishedAt) &&
+          finishedAt <= now;
+
+        return {
+          id: activity.id,
+          title: activity.title,
+          category: activity.category,
+          subcategory: activity.subcategory,
+          startsAt: activity.starts_at,
+          endsAt: activity.ends_at,
+          timezoneName: activity.timezone_name,
+          locationType: activity.location_type,
+          city: activity.city,
+          onlinePlatform: activity.online_platform,
+          participationMode: activity.participation_mode,
+          maxParticipants: activity.max_participants,
+          memberCount: activity.activity_members?.[0]?.count ?? 0,
+          status: activity.status,
+          relationship,
+          canReview,
+          averageRating:
+            stats && stats.count > 0
+              ? Number((stats.sum / stats.count).toFixed(2))
+              : null,
+          reviewCount: stats?.count ?? 0,
+          myReview: myReviews.get(activity.id) ?? null,
+        };
+      }),
     });
   } catch (error) {
     request.log.error(
       { err: error, userId: session.user.id },
       "Unable to load activity history",
     );
-    response.status(500).json({ error: "The activities could not be loaded." });
+    response
+      .status(500)
+      .json({ error: "The activities could not be loaded." });
+  }
+});
+
+router.put("/activities/:id/review", async (request, response) => {
+  let session;
+
+  try {
+    session = await currentSession(request, response);
+  } catch (error) {
+    request.log.error(
+      { err: error },
+      "Unable to authenticate activity reviewer",
+    );
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  if (!session) {
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  const activityId = request.params.id;
+
+  if (!UUID_PATTERN.test(activityId)) {
+    response.status(404).json({
+      error: "Activity not found.",
+      code: "activity_not_found",
+    });
+    return;
+  }
+
+  const body = bodyOf(request);
+  const rating = body.rating;
+
+  if (
+    typeof rating !== "number" ||
+    !Number.isInteger(rating) ||
+    rating < 1 ||
+    rating > 5
+  ) {
+    response.status(400).json({
+      error: "Rating must be between 1 and 5.",
+      code: "invalid_rating",
+    });
+    return;
+  }
+
+  let comment: string | null = null;
+
+  if (
+    body.comment !== undefined &&
+    body.comment !== null &&
+    body.comment !== ""
+  ) {
+    if (typeof body.comment !== "string") {
+      response.status(400).json({
+        error: "The review comment is invalid.",
+        code: "invalid_comment",
+      });
+      return;
+    }
+
+    const normalizedComment = body.comment.trim();
+
+    if (normalizedComment.length > 1000) {
+      response.status(400).json({
+        error: "The review comment is too long.",
+        code: "comment_too_long",
+      });
+      return;
+    }
+
+    comment = normalizedComment || null;
+  }
+
+  try {
+    const { data, error } = await getSupabaseAdmin().rpc(
+      "upsert_activity_review_as_user",
+      {
+        p_activity_id: activityId,
+        p_user_id: session.user.id,
+        p_rating: rating,
+        p_comment: comment,
+      },
+    );
+
+    const result = activityReviewRpcRow(data);
+
+    if (error || !result) {
+      request.log.error(
+        {
+          err: error,
+          activityId,
+          userId: session.user.id,
+        },
+        "Unable to save activity review",
+      );
+
+      response.status(500).json({
+        error: "The review could not be saved.",
+      });
+      return;
+    }
+
+    if (
+      result.result === "saved" &&
+      result.review_id &&
+      result.rating !== null &&
+      result.review_count !== null
+    ) {
+      response.json({
+        review: {
+          id: result.review_id,
+          rating: result.rating,
+          comment: result.comment,
+        },
+        averageRating: result.average_rating,
+        reviewCount: result.review_count,
+      });
+      return;
+    }
+
+    if (result.result === "invalid_rating") {
+      response.status(400).json({
+        error: "Rating must be between 1 and 5.",
+        code: "invalid_rating",
+      });
+      return;
+    }
+
+    if (result.result === "comment_too_long") {
+      response.status(400).json({
+        error: "The review comment is too long.",
+        code: "comment_too_long",
+      });
+      return;
+    }
+
+    if (result.result === "not_found") {
+      response.status(404).json({
+        error: "Activity not found.",
+        code: "activity_not_found",
+      });
+      return;
+    }
+
+    if (result.result === "cancelled") {
+      response.status(409).json({
+        error: "Cancelled activities cannot be reviewed.",
+        code: "activity_cancelled",
+      });
+      return;
+    }
+
+    if (result.result === "organizer_cannot_review") {
+      response.status(409).json({
+        error: "The organizer cannot review their own activity.",
+        code: "organizer_cannot_review",
+      });
+      return;
+    }
+
+    if (result.result === "not_finished") {
+      response.status(409).json({
+        error: "The activity has not finished yet.",
+        code: "activity_not_finished",
+      });
+      return;
+    }
+
+    if (result.result === "not_participant") {
+      response.status(403).json({
+        error: "Only participants can review this activity.",
+        code: "not_activity_participant",
+      });
+      return;
+    }
+
+    request.log.error(
+      {
+        rpcResult: result.result,
+        activityId,
+        userId: session.user.id,
+      },
+      "Unexpected activity review result",
+    );
+
+    response.status(500).json({
+      error: "The review could not be saved.",
+    });
+  } catch (error) {
+    request.log.error(
+      {
+        err: error,
+        activityId,
+        userId: session.user.id,
+      },
+      "Unable to save activity review",
+    );
+
+    response.status(500).json({
+      error: "The review could not be saved.",
+    });
   }
 });
 
@@ -1034,6 +1392,16 @@ router.delete("/activities/:id/membership", async (request, response) => {
       response.status(409).json({
         error: "The organizer cannot leave the activity.",
         code: "organizer_cannot_leave",
+      });
+      return;
+    }
+
+    if (result.result === "activity_started") {
+      response.status(409).json({
+        error: "The activity has already started.",
+        code: "activity_started",
+        memberCount: result.member_count,
+        maxParticipants: result.max_participants,
       });
       return;
     }

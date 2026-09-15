@@ -115,6 +115,27 @@
       "active": "Active",
       "completed": "Completed",
       "cancelled": "Cancelled"
+    },
+    "review": {
+      "action": "Review",
+      "edit": "Edit review",
+      "title": "Review activity",
+      "editTitle": "Edit review",
+      "description": "Tell us what you thought about “{{title}}”.",
+      "ratingLabel": "Your rating",
+      "starAriaLabel": "{{rating}} stars",
+      "commentLabel": "Comment",
+      "commentPlaceholder": "What did you think about the plan? (optional)",
+      "save": "Save review",
+      "saving": "Saving...",
+      "cancel": "Cancel",
+      "saveError": "We couldn't save your review. Please try again.",
+      "noReviews": "No reviews yet",
+      "reviewCount": "{{count}} review",
+      "reviewCount_other": "{{count}} reviews",
+      "yourRating": "Your rating: {{rating}}/5",
+      "organizer": "You are the organizer",
+      "cancelled": "Cancelled plans cannot be reviewed"
     }
   },
   "explore": {

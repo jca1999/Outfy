@@ -90,12 +90,36 @@ export type MyJoinedActivitiesResponse = {
   activities: MyJoinedActivity[];
 };
 
+export type ActivityReview = {
+  rating: number;
+  comment: string | null;
+};
+
 export type MyHistoryActivity = MyCreatedActivity & {
   relationship: 'organizer' | 'participant';
+  canReview: boolean;
+  averageRating: number | null;
+  reviewCount: number;
+  myReview: ActivityReview | null;
 };
 
 export type MyHistoryActivitiesResponse = {
   activities: MyHistoryActivity[];
+};
+
+export type SaveActivityReviewRequest = {
+  rating: number;
+  comment?: string | null;
+};
+
+export type SaveActivityReviewResponse = {
+  review: {
+    id: string;
+    rating: number;
+    comment: string | null;
+  };
+  averageRating: number | null;
+  reviewCount: number;
 };
 
 export type ExploreActivity = MyCreatedActivity;
@@ -269,6 +293,41 @@ export async function getMyActivityHistory() {
   }
 
   return payload as MyHistoryActivitiesResponse;
+}
+
+export async function saveActivityReview(
+  activityId: string,
+  input: SaveActivityReviewRequest,
+) {
+  const response = await fetch(
+    `/api/activities/${encodeURIComponent(activityId)}/review`,
+    {
+      method: 'PUT',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        rating: input.rating,
+        comment: input.comment ?? null,
+      }),
+    },
+  );
+
+  const payload = (await response.json().catch(() => null)) as
+    | ActivityErrorPayload
+    | SaveActivityReviewResponse
+    | null;
+
+  if (!response.ok) {
+    throw activityApiError(
+      payload && 'review' in payload ? null : payload,
+      response.status,
+      'The review could not be saved.',
+    );
+  }
+
+  return payload as SaveActivityReviewResponse;
 }
 
 export async function getActivities(filters: ExploreActivityFilters = {}) {
