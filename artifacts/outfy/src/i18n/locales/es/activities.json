@@ -250,6 +250,20 @@
       "authError": "Tu sesión ha caducado. Inicia sesión de nuevo para publicar el plan.",
       "startInPast": "La hora de inicio de este plan ya ha pasado. Vuelve atrás y elige una nueva."
     },
+    "edit": {
+      "eyebrow": "EDITAR PLAN",
+      "title": "Edita tu plan",
+      "intro": "Actualiza los detalles de tu plan antes de que comience.",
+      "loading": "Cargando plan...",
+      "unavailableTitle": "Este plan no se puede editar",
+      "unavailableDescription": "Solo puedes editar tus propios planes activos antes de que comiencen.",
+      "backToPlan": "Volver al plan",
+      "save": "Guardar cambios",
+      "saving": "Guardando...",
+      "saveError": "No hemos podido guardar los cambios. Inténtalo de nuevo.",
+      "unavailableError": "Este plan ya no se puede editar.",
+      "maxParticipantsError": "No puedes reducir el límite por debajo del número de participantes que ya están apuntados."
+    },
     "success": {
       "eyebrow": "PUBLICADO",
       "title": "Plan publicado",
@@ -294,7 +308,15 @@
       "joinFullError": "Este plan acaba de llenarse.",
       "joinInactiveError": "Este plan ya no está disponible para unirse.",
       "joinError": "No hemos podido unirte al plan. Inténtalo de nuevo.",
-      "leaveError": "No hemos podido sacarte del plan. Inténtalo de nuevo."
+      "leaveError": "No hemos podido sacarte del plan. Inténtalo de nuevo.",
+      "leaveStartedError": "Ya no puedes abandonar este plan porque la actividad ha comenzado.",
+      "editPlan": "Editar plan",
+      "cancelPlan": "Cancelar plan",
+      "cancellingPlan": "Cancelando...",
+      "cancelConfirm": "¿Seguro que quieres cancelar este plan? Los participantes seguirán conservándolo en su historial.",
+      "cancelError": "No hemos podido cancelar el plan. Inténtalo de nuevo.",
+      "cancelFinishedError": "Este plan ya ha finalizado y no se puede cancelar.",
+      "cancelUnavailableError": "Este plan ya no se puede cancelar."
     },
     "validation": {
       "title": "Escribe un título para el plan.",

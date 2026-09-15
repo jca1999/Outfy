@@ -250,6 +250,20 @@
       "authError": "Your session has expired. Sign in again to publish your plan.",
       "startInPast": "The start time for this plan has already passed. Go back and choose a new one."
     },
+    "edit": {
+      "eyebrow": "EDIT PLAN",
+      "title": "Edit your plan",
+      "intro": "Update your plan details before it starts.",
+      "loading": "Loading plan...",
+      "unavailableTitle": "This plan can't be edited",
+      "unavailableDescription": "You can only edit your own active plans before they start.",
+      "backToPlan": "Back to plan",
+      "save": "Save changes",
+      "saving": "Saving...",
+      "saveError": "We couldn't save the changes. Please try again.",
+      "unavailableError": "This plan can no longer be edited.",
+      "maxParticipantsError": "You can't reduce the limit below the number of participants already joined."
+    },
     "success": {
       "eyebrow": "PUBLISHED",
       "title": "Plan published",
@@ -291,10 +305,18 @@
       "spotsAvailable": "{{count}} spot available",
       "spotsAvailable_other": "{{count}} spots available",
       "noSpots": "No spots available",
-      "joinFullError": "This plan just became full.",
+      "joinFullError": "This plan has just filled up.",
       "joinInactiveError": "This plan is no longer available to join.",
-      "joinError": "We couldn't join the plan. Please try again.",
-      "leaveError": "We couldn't leave the plan. Please try again."
+      "joinError": "We couldn't add you to the plan. Please try again.",
+      "leaveError": "We couldn't remove you from the plan. Please try again.",
+      "leaveStartedError": "You can no longer leave this plan because the activity has already started.",
+      "editPlan": "Edit plan",
+      "cancelPlan": "Cancel plan",
+      "cancellingPlan": "Cancelling...",
+      "cancelConfirm": "Are you sure you want to cancel this plan? Participants will still keep it in their history.",
+      "cancelError": "We couldn't cancel the plan. Please try again.",
+      "cancelFinishedError": "This plan has already finished and can't be cancelled.",
+      "cancelUnavailableError": "This plan can no longer be cancelled."
     },
     "validation": {
       "title": "Add a title for the plan.",

@@ -511,7 +511,10 @@ export function Profile() {
         : `${t("activities:create.detail.participantsUnlimited", {
             count: activity.memberCount,
           })} · ${t("activities:create.detail.unlimited")}`;
-
+    const displayStatus =
+      historical && activity.status === "active"
+        ? "completed"
+        : activity.status;
     return (
       <button
         key={activity.id}
@@ -522,8 +525,16 @@ export function Profile() {
         }`}
       >
         <div className="flex items-start justify-between gap-3">
-          <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-primary">
-            {t(`activities:myPlans.status.${activity.status}`)}
+          <span
+            className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide ${
+              displayStatus === "cancelled"
+                ? "bg-destructive/10 text-destructive"
+                : displayStatus === "completed"
+                  ? "bg-muted text-muted-foreground"
+                  : "bg-primary/10 text-primary"
+            }`}
+          >
+            {t(`activities:myPlans.status.${displayStatus}`)}
           </span>
           <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
         </div>

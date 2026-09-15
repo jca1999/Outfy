@@ -28,6 +28,22 @@ export type CreateActivityResponse = {
   };
 };
 
+export type UpdateActivityRequest = CreateActivityRequest;
+
+export type UpdateActivityResponse = {
+  activity: {
+    id: string;
+  };
+};
+
+export type CancelActivityResponse = {
+  result: 'cancelled' | 'already_cancelled';
+  activity: {
+    id: string;
+    status: 'cancelled';
+  };
+};
+
 export type ActivityDetail = {
   id: string;
   title: string;
@@ -206,6 +222,63 @@ export async function createActivity(input: CreateActivityRequest) {
   }
 
   return payload as CreateActivityResponse;
+}
+
+export async function updateActivity(
+  activityId: string,
+  input: UpdateActivityRequest,
+) {
+  const response = await fetch(
+    `/api/activities/${encodeURIComponent(activityId)}`,
+    {
+      method: 'PUT',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(input),
+    },
+  );
+
+  const payload = (await response.json().catch(() => null)) as
+    | ActivityErrorPayload
+    | UpdateActivityResponse
+    | null;
+
+  if (!response.ok) {
+    throw activityApiError(
+      payload && 'activity' in payload ? null : payload,
+      response.status,
+      'The activity could not be updated.',
+    );
+  }
+
+  return payload as UpdateActivityResponse;
+}
+
+export async function cancelActivity(activityId: string) {
+  const response = await fetch(
+    `/api/activities/${encodeURIComponent(activityId)}/cancel`,
+    {
+      method: 'POST',
+      credentials: 'include',
+    },
+  );
+
+  const payload = (await response.json().catch(() => null)) as
+    | ActivityErrorPayload
+    | CancelActivityResponse
+    | null;
+
+  if (!response.ok) {
+    throw activityApiError(
+      payload && 'activity' in payload ? null : payload,
+      response.status,
+      'The activity could not be cancelled.',
+    );
+  }
+
+  return payload as CancelActivityResponse;
 }
 
 export async function getActivity(id: string) {

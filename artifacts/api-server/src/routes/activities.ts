@@ -1091,6 +1091,403 @@ router.put("/activities/:id/review", async (request, response) => {
   }
 });
 
+router.put("/activities/:id", async (request, response) => {
+  let session;
+
+  try {
+    session = await currentSession(request, response);
+  } catch (error) {
+    request.log.error(
+      { err: error },
+      "Unable to authenticate activity editor",
+    );
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  if (!session) {
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  const activityId = request.params.id;
+
+  if (!UUID_PATTERN.test(activityId)) {
+    response.status(404).json({
+      error: "Activity not found.",
+      code: "activity_not_found",
+    });
+    return;
+  }
+
+  let activity: ValidatedActivity;
+
+  try {
+    activity = validateActivity(bodyOf(request));
+  } catch {
+    response.status(400).json({
+      error: "Check the activity details and try again.",
+      code: "invalid_activity",
+    });
+    return;
+  }
+
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  if (Date.parse(activity.starts_at) <= now.getTime()) {
+    response.status(400).json({
+      error: "The activity start time must be in the future.",
+      code: "activity_start_in_past",
+    });
+    return;
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+
+    const {
+      data: currentActivity,
+      error: currentActivityError,
+    } = await supabase
+      .from("activities")
+      .select(
+        "id,creator_id,status,starts_at,location_type,city,country_code,region_code,region_name,latitude,longitude",
+      )
+      .eq("id", activityId)
+      .maybeSingle();
+
+    if (currentActivityError) {
+      request.log.error(
+        {
+          err: currentActivityError,
+          activityId,
+          userId: session.user.id,
+        },
+        "Unable to load activity before editing",
+      );
+
+      response.status(500).json({
+        error: "The activity could not be updated.",
+      });
+      return;
+    }
+
+    if (!currentActivity) {
+      response.status(404).json({
+        error: "Activity not found.",
+        code: "activity_not_found",
+      });
+      return;
+    }
+
+    if (currentActivity.creator_id !== session.user.id) {
+      response.status(403).json({
+        error: "Only the organizer can edit this activity.",
+        code: "not_activity_organizer",
+      });
+      return;
+    }
+
+    if (currentActivity.status !== "active") {
+      response.status(409).json({
+        error: "This activity can no longer be edited.",
+        code: "activity_not_active",
+      });
+      return;
+    }
+
+    if (Date.parse(currentActivity.starts_at) <= now.getTime()) {
+      response.status(409).json({
+        error: "Activities cannot be edited after they start.",
+        code: "activity_started",
+      });
+      return;
+    }
+
+    const {
+      count: memberCount,
+      error: memberCountError,
+    } = await supabase
+      .from("activity_members")
+      .select("*", { count: "exact", head: true })
+      .eq("activity_id", activityId);
+
+    if (memberCountError) {
+      request.log.error(
+        {
+          err: memberCountError,
+          activityId,
+          userId: session.user.id,
+        },
+        "Unable to count activity members before editing",
+      );
+
+      response.status(500).json({
+        error: "The activity could not be updated.",
+      });
+      return;
+    }
+
+    if (
+      activity.participation_mode === "limited" &&
+      activity.max_participants !== null &&
+      activity.max_participants < (memberCount ?? 0)
+    ) {
+      response.status(409).json({
+        error:
+          "The participant limit cannot be lower than the current member count.",
+        code: "max_participants_below_members",
+        memberCount: memberCount ?? 0,
+      });
+      return;
+    }
+
+    const shouldPreserveLocationMetadata =
+      activity.location_type === "physical" &&
+      currentActivity.location_type === "physical" &&
+      activity.city === currentActivity.city;
+
+    const activityUpdate = shouldPreserveLocationMetadata
+      ? {
+          ...activity,
+          country_code:
+            activity.country_code ?? currentActivity.country_code,
+          region_code:
+            activity.region_code ?? currentActivity.region_code,
+          region_name:
+            activity.region_name ?? currentActivity.region_name,
+          latitude:
+            activity.latitude ?? currentActivity.latitude,
+          longitude:
+            activity.longitude ?? currentActivity.longitude,
+        }
+      : activity;
+    
+    const {
+      data: updatedActivity,
+      error: updateError,
+    } = await supabase
+      .from("activities")
+      .update(activityUpdate)
+      .eq("id", activityId)
+      .eq("creator_id", session.user.id)
+      .eq("status", "active")
+      .gt("starts_at", nowIso)
+      .select("id")
+      .maybeSingle();
+
+    if (updateError) {
+      request.log.error(
+        {
+          err: updateError,
+          activityId,
+          userId: session.user.id,
+        },
+        "Unable to update activity",
+      );
+
+      response.status(500).json({
+        error: "The activity could not be updated.",
+      });
+      return;
+    }
+
+    if (!updatedActivity) {
+      response.status(409).json({
+        error: "This activity can no longer be edited.",
+        code: "activity_changed",
+      });
+      return;
+    }
+
+    response.json({
+      activity: {
+        id: updatedActivity.id,
+      },
+    });
+  } catch (error) {
+    request.log.error(
+      {
+        err: error,
+        activityId,
+        userId: session.user.id,
+      },
+      "Unable to update activity",
+    );
+
+    response.status(500).json({
+      error: "The activity could not be updated.",
+    });
+  }
+});
+
+router.post("/activities/:id/cancel", async (request, response) => {
+  let session;
+
+  try {
+    session = await currentSession(request, response);
+  } catch (error) {
+    request.log.error(
+      { err: error },
+      "Unable to authenticate activity cancellation",
+    );
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  if (!session) {
+    response.status(401).json({ error: "Authentication required." });
+    return;
+  }
+
+  const activityId = request.params.id;
+
+  if (!UUID_PATTERN.test(activityId)) {
+    response.status(404).json({
+      error: "Activity not found.",
+      code: "activity_not_found",
+    });
+    return;
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+
+    const {
+      data: activity,
+      error: activityError,
+    } = await supabase
+      .from("activities")
+      .select("id,creator_id,status,starts_at,ends_at")
+      .eq("id", activityId)
+      .maybeSingle();
+
+    if (activityError) {
+      request.log.error(
+        {
+          err: activityError,
+          activityId,
+          userId: session.user.id,
+        },
+        "Unable to load activity before cancellation",
+      );
+
+      response.status(500).json({
+        error: "The activity could not be cancelled.",
+      });
+      return;
+    }
+
+    if (!activity) {
+      response.status(404).json({
+        error: "Activity not found.",
+        code: "activity_not_found",
+      });
+      return;
+    }
+
+    if (activity.creator_id !== session.user.id) {
+      response.status(403).json({
+        error: "Only the organizer can cancel this activity.",
+        code: "not_activity_organizer",
+      });
+      return;
+    }
+
+    if (activity.status === "cancelled") {
+      response.json({
+        result: "already_cancelled",
+        activity: {
+          id: activity.id,
+          status: "cancelled",
+        },
+      });
+      return;
+    }
+
+    if (activity.status !== "active") {
+      response.status(409).json({
+        error: "This activity can no longer be cancelled.",
+        code: "activity_not_active",
+      });
+      return;
+    }
+
+    const finishedAt = Date.parse(
+      activity.ends_at ?? activity.starts_at,
+    );
+
+    if (
+      Number.isFinite(finishedAt) &&
+      finishedAt <= Date.now()
+    ) {
+      response.status(409).json({
+        error: "Finished activities cannot be cancelled.",
+        code: "activity_finished",
+      });
+      return;
+    }
+
+    const {
+      data: cancelledActivity,
+      error: cancellationError,
+    } = await supabase
+      .from("activities")
+      .update({ status: "cancelled" })
+      .eq("id", activityId)
+      .eq("creator_id", session.user.id)
+      .eq("status", "active")
+      .select("id,status")
+      .maybeSingle();
+
+    if (cancellationError) {
+      request.log.error(
+        {
+          err: cancellationError,
+          activityId,
+          userId: session.user.id,
+        },
+        "Unable to cancel activity",
+      );
+
+      response.status(500).json({
+        error: "The activity could not be cancelled.",
+      });
+      return;
+    }
+
+    if (!cancelledActivity) {
+      response.status(409).json({
+        error: "This activity can no longer be cancelled.",
+        code: "activity_changed",
+      });
+      return;
+    }
+
+    response.json({
+      result: "cancelled",
+      activity: {
+        id: cancelledActivity.id,
+        status: cancelledActivity.status,
+      },
+    });
+  } catch (error) {
+    request.log.error(
+      {
+        err: error,
+        activityId,
+        userId: session.user.id,
+      },
+      "Unable to cancel activity",
+    );
+
+    response.status(500).json({
+      error: "The activity could not be cancelled.",
+    });
+  }
+});
+
 router.get("/activities/:id", async (request, response) => {
   let session;
   try {

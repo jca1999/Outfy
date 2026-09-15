@@ -117,6 +117,7 @@ function Router() {
           <Route path="/matches" component={Matches} />
           <Route path="/chats" component={Chats} />
           <Route path="/activities/new" component={CreateActivity} />
+          <Route path="/activities/:id/edit" component={CreateActivity} />
           <Route path="/activities/:id" component={ActivityDetail} />
           <Route path="/profile/edit" component={ProfileEdit} />
           <Route path="/profile" component={Profile} />

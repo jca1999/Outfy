@@ -7,19 +7,22 @@ import {
   Users,
 } from 'lucide-react';
 import {
+  useEffect,
   useRef,
   useState,
   type ChangeEvent,
   type FormEvent,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'wouter';
+import { useLocation, useRoute } from 'wouter';
 
 import { useAuth } from '@/auth/auth-context';
 import type { HomeLocation } from '@/auth/auth-api';
 import {
   ActivityApiError,
   createActivity,
+  getActivity,
+  updateActivity,
   type CreateActivityRequest,
 } from '@/activities/activity-api';
 import {
@@ -102,6 +105,25 @@ function getLocalDateInputMinimum(date = new Date()) {
   const day = String(date.getDate()).padStart(2, '0');
 
   return `${year}-${month}-${day}`;
+}
+
+function activityDateTimeToForm(value: string) {
+  const date = new Date(value);
+
+  if (!Number.isFinite(date.getTime())) {
+    return null;
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+
+  return {
+    date: `${year}-${month}-${day}`,
+    time: `${hours}:${minutes}`,
+  };
 }
 
 function parseDateInputValue(value: string) {
@@ -213,6 +235,11 @@ export function CreateActivity() {
   const { t, i18n } = useTranslation('activities');
   const { user } = useAuth();
   const [, navigate] = useLocation();
+  const [, editParams] = useRoute('/activities/:id/edit');
+
+  const editingActivityId = editParams?.id ?? null;
+  const isEditing = Boolean(editingActivityId);
+
   const [form, setForm] = useState<ActivityForm>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [cityMessage, setCityMessage] = useState('');
@@ -224,6 +251,9 @@ export function CreateActivity() {
   const [shareMessage, setShareMessage] = useState('');
   const [publishedActivityId, setPublishedActivityId] =
     useState<string | null>(null);
+  const [editLoadState, setEditLoadState] = useState<
+    'idle' | 'loading' | 'ready' | 'error'
+  >(isEditing ? 'loading' : 'idle');
   const [dateText, setDateText] = useState('');
   const [startTimeText, setStartTimeText] = useState('');
   const [endTimeText, setEndTimeText] = useState('');
@@ -231,6 +261,84 @@ export function CreateActivity() {
   const startTimePickerRef =
     useRef<HTMLInputElement>(null);
   const endTimePickerRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!editingActivityId) {
+      setEditLoadState('idle');
+      return;
+    }
+
+    let active = true;
+
+    setEditLoadState('loading');
+    setPublishError('');
+
+    getActivity(editingActivityId)
+      .then((result) => {
+        if (!active) return;
+
+        const activity = result.activity;
+
+        const startsAt = activityDateTimeToForm(
+          activity.startsAt,
+        );
+
+        const endsAt = activity.endsAt
+          ? activityDateTimeToForm(activity.endsAt)
+          : null;
+
+        const canEdit =
+          activity.membershipRole === 'organizer' &&
+          activity.status === 'active' &&
+          Date.parse(activity.startsAt) > Date.now();
+
+        if (!startsAt || !canEdit) {
+          setEditLoadState('error');
+          return;
+        }
+
+        setForm({
+          title: activity.title,
+          description: activity.description ?? '',
+          category:
+            activity.category as ActivityCategoryId,
+          subcategory:
+            activity.subcategory as ActivitySubcategoryId,
+          date: startsAt.date,
+          startTime: startsAt.time,
+          endTime: endsAt?.time ?? '',
+          locationType: activity.locationType,
+          city: activity.city ?? '',
+          meetingPoint: activity.meetingPoint ?? '',
+          onlinePlatform: activity.onlinePlatform ?? '',
+          participation: activity.participationMode,
+          maxParticipants:
+            activity.maxParticipants?.toString() ?? '',
+          cost: activity.costType,
+          estimatedCost:
+            activity.estimatedCost?.toString() ?? '',
+          currency:
+            activity.currency === 'USD' ? 'USD' : 'EUR',
+        });
+
+        setDateText(formatDateInputValue(startsAt.date));
+        setStartTimeText(startsAt.time);
+        setEndTimeText(endsAt?.time ?? '');
+
+        setErrors({});
+        setCityMessage('');
+        setSavedLocation(null);
+        setIsPreview(false);
+        setEditLoadState('ready');
+      })
+      .catch(() => {
+        if (!active) return;
+        setEditLoadState('error');
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [editingActivityId]);
 
   const categoryIds = Object.keys(
     activityTaxonomy,
@@ -581,17 +689,56 @@ export function CreateActivity() {
     };
 
     try {
+      if (isEditing && editingActivityId) {
+        const result = await updateActivity(
+          editingActivityId,
+          input,
+        );
+
+        navigate(`/activities/${result.activity.id}`, {
+          replace: true,
+        });
+        return;
+      }
+
       const result = await createActivity(input);
       setPublishedActivityId(result.activity.id);
     } catch (error) {
-      setPublishError(
+      if (
         error instanceof ActivityApiError &&
-          error.code === 'activity_start_in_past'
-          ? t('create.publish.startInPast')
-          : error instanceof ActivityApiError && error.status === 401
-            ? t('create.publish.authError')
+        error.code === 'activity_start_in_past'
+      ) {
+        setPublishError(t('create.publish.startInPast'));
+      } else if (
+        error instanceof ActivityApiError &&
+        error.code === 'max_participants_below_members'
+      ) {
+        setPublishError(
+          t('create.edit.maxParticipantsError'),
+        );
+      } else if (
+        error instanceof ActivityApiError &&
+        (
+          error.code === 'activity_started' ||
+          error.code === 'activity_not_active' ||
+          error.code === 'activity_changed'
+        )
+      ) {
+        setPublishError(
+          t('create.edit.unavailableError'),
+        );
+      } else if (
+        error instanceof ActivityApiError &&
+        error.status === 401
+      ) {
+        setPublishError(t('create.publish.authError'));
+      } else {
+        setPublishError(
+          isEditing
+            ? t('create.edit.saveError')
             : t('create.publish.error'),
-      );
+        );
+      }
     } finally {
       setIsPublishing(false);
     }
@@ -737,6 +884,46 @@ export function CreateActivity() {
     );
   }
 
+  if (isEditing && editLoadState === 'loading') {
+    return (
+      <section className="mx-auto w-full max-w-3xl rounded-[26px] border border-border bg-card p-7 text-center soft-shadow sm:p-10">
+        <CalendarDays className="mx-auto h-10 w-10 text-primary" />
+
+        <h1 className="mt-5 text-2xl font-bold">
+          {t('create.edit.loading')}
+        </h1>
+      </section>
+    );
+  }
+
+  if (isEditing && editLoadState === 'error') {
+    return (
+      <section className="mx-auto w-full max-w-3xl rounded-[26px] border border-border bg-card p-7 text-center soft-shadow sm:p-10">
+        <CalendarDays className="mx-auto h-10 w-10 text-primary" />
+
+        <h1 className="mt-5 text-2xl font-bold">
+          {t('create.edit.unavailableTitle')}
+        </h1>
+
+        <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
+          {t('create.edit.unavailableDescription')}
+        </p>
+
+        <button
+          type="button"
+          onClick={() =>
+            editingActivityId
+              ? navigate(`/activities/${editingActivityId}`)
+              : navigate('/')
+          }
+          className="mt-7 rounded-full bg-primary px-5 py-3 text-sm font-bold text-primary-foreground"
+        >
+          {t('create.edit.backToPlan')}
+        </button>
+      </section>
+    );
+  }
+
   if (publishedActivityId) {
     return (
       <section className="mx-auto w-full max-w-3xl rounded-[26px] border border-border bg-card p-6 text-center soft-shadow sm:p-10">
@@ -769,7 +956,11 @@ export function CreateActivity() {
           </button>
           <button
             type="button"
-            onClick={() => navigate('/')}
+            onClick={() =>
+              isEditing && editingActivityId
+                ? navigate(`/activities/${editingActivityId}`)
+                : navigate('/')
+            }
             className="rounded-full border border-border px-5 py-3 text-sm font-bold text-muted-foreground transition hover:bg-muted hover:text-foreground"
           >
             {t('create.actions.backHome')}
@@ -808,7 +999,9 @@ export function CreateActivity() {
           {t(
             isPreview
               ? 'create.preview.eyebrow'
-              : 'create.eyebrow',
+              : isEditing
+                ? 'create.edit.eyebrow'
+                : 'create.eyebrow',
           )}
         </p>
 
@@ -816,7 +1009,9 @@ export function CreateActivity() {
           {t(
             isPreview
               ? 'create.preview.title'
-              : 'create.title',
+              : isEditing
+                ? 'create.edit.title'
+                : 'create.title',
           )}
         </h1>
 
@@ -824,7 +1019,9 @@ export function CreateActivity() {
           {t(
             isPreview
               ? 'create.preview.intro'
-              : 'create.intro',
+              : isEditing
+                ? 'create.edit.intro'
+                : 'create.intro',
           )}
         </p>
       </div>
@@ -953,8 +1150,12 @@ export function CreateActivity() {
             >
               {t(
                 isPublishing
-                  ? 'create.actions.publishing'
-                  : 'create.actions.publish',
+                  ? isEditing
+                    ? 'create.edit.saving'
+                    : 'create.actions.publishing'
+                  : isEditing
+                    ? 'create.edit.save'
+                    : 'create.actions.publish',
               )}
             </button>
           </div>
