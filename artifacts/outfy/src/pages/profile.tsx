@@ -6,6 +6,7 @@ import {
   Loader2,
   MapPin,
   RefreshCw,
+  Search,
   Settings as SettingsIcon,
   Star,
   Trash2,
@@ -104,6 +105,10 @@ export function Profile() {
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const [tab, setTab] = useState<"created" | "upcoming" | "history">("created");
+  const [plansSearch, setPlansSearch] = useState("");
+  const [plansSort, setPlansSort] = useState<
+    "smart" | "dateAsc" | "dateDesc" | "title"
+  >("smart");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const avatarVersionRef = useRef(0);
   const localAvatarUrlRef = useRef<string | null>(null);
@@ -479,6 +484,111 @@ export function Profile() {
     .join("")
     .toUpperCase();
 
+  function organizeActivities<
+    T extends MyCreatedActivity | MyJoinedActivity | MyHistoryActivity,
+  >(activities: T[], currentTab: "created" | "upcoming" | "history") {
+    const normalizedSearch = plansSearch.trim().toLocaleLowerCase();
+
+    const filtered = normalizedSearch
+      ? activities.filter((activity) => {
+          const title = activity.title.toLocaleLowerCase();
+          const city = activity.city?.toLocaleLowerCase() ?? "";
+
+          const category = t(
+            `activities:categories.${activity.category}`,
+          ).toLocaleLowerCase();
+
+          return (
+            title.includes(normalizedSearch) ||
+            city.includes(normalizedSearch) ||
+            category.includes(normalizedSearch)
+          );
+        })
+      : activities;
+
+    return [...filtered].sort((left, right) => {
+      const leftDate = Date.parse(left.startsAt);
+      const rightDate = Date.parse(right.startsAt);
+
+      if (plansSort === "title") {
+        return left.title.localeCompare(right.title, i18n.language);
+      }
+
+      if (plansSort === "dateAsc") {
+        return leftDate - rightDate;
+      }
+
+      if (plansSort === "dateDesc") {
+        return rightDate - leftDate;
+      }
+
+      if (currentTab === "history") {
+        return rightDate - leftDate;
+      }
+
+      if (currentTab === "upcoming") {
+        return leftDate - rightDate;
+      }
+
+      const now = Date.now();
+
+      const leftUpcoming =
+        left.status === "active" && leftDate >= now;
+
+      const rightUpcoming =
+        right.status === "active" && rightDate >= now;
+
+      if (leftUpcoming !== rightUpcoming) {
+        return leftUpcoming ? -1 : 1;
+      }
+
+      if (leftUpcoming) {
+        return leftDate - rightDate;
+      }
+
+      return rightDate - leftDate;
+    });
+  }
+
+  const visibleCreatedActivities = organizeActivities(
+    createdActivities,
+    "created",
+  );
+
+  const visibleJoinedActivities = organizeActivities(
+    joinedActivities,
+    "upcoming",
+  );
+
+  const visibleHistoryActivities = organizeActivities(
+    historyActivities,
+    "history",
+  );
+
+  function renderNoPlanResults() {
+    return (
+      <div className="rounded-[22px] border border-dashed border-border bg-card p-7 text-center">
+        <Search className="mx-auto h-8 w-8 text-primary" />
+
+        <h3 className="mt-4 text-base font-bold">
+          {t("activities:myPlans.noSearchResultsTitle")}
+        </h3>
+
+        <p className="mt-1 text-sm text-muted-foreground">
+          {t("activities:myPlans.noSearchResultsDescription")}
+        </p>
+
+        <button
+          type="button"
+          onClick={() => setPlansSearch("")}
+          className="mt-5 rounded-full border border-border px-5 py-2.5 text-xs font-bold transition hover:bg-muted"
+        >
+          {t("activities:myPlans.clearSearch")}
+        </button>
+      </div>
+    );
+  }
+  
   const renderActivityCard = (
     activity: MyCreatedActivity | MyJoinedActivity | MyHistoryActivity,
     historical = false,
@@ -764,6 +874,51 @@ export function Profile() {
           </div>
         </div>
 
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <label className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
+            <input
+              type="search"
+              value={plansSearch}
+              onChange={(event) => setPlansSearch(event.target.value)}
+              placeholder={t("activities:myPlans.searchPlaceholder")}
+              className="w-full rounded-2xl border border-border bg-card py-2.5 pl-10 pr-4 text-sm outline-none transition placeholder:text-muted-foreground focus:border-primary focus:ring-2 focus:ring-primary/15"
+            />
+          </label>
+
+          <select
+            value={plansSort}
+            onChange={(event) =>
+              setPlansSort(
+                event.target.value as
+                  | "smart"
+                  | "dateAsc"
+                  | "dateDesc"
+                  | "title",
+              )
+            }
+            aria-label={t("activities:myPlans.sortLabel")}
+            className="rounded-2xl border border-border bg-card px-4 py-2.5 text-sm font-semibold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+          >
+            <option value="smart">
+              {t("activities:myPlans.sort.smart")}
+            </option>
+
+            <option value="dateAsc">
+              {t("activities:myPlans.sort.dateAsc")}
+            </option>
+
+            <option value="dateDesc">
+              {t("activities:myPlans.sort.dateDesc")}
+            </option>
+
+            <option value="title">
+              {t("activities:myPlans.sort.title")}
+            </option>
+          </select>
+        </div>
+
         {tab === "created" && (
           <div id="created-plans-panel" className="space-y-4" role="tabpanel">
             {createdState === "loading" && (
@@ -815,9 +970,15 @@ export function Profile() {
               </div>
             )}
 
-            {createdState === "ready" && createdActivities.length > 0 && (
+            {createdState === "ready" &&
+              createdActivities.length > 0 &&
+              visibleCreatedActivities.length === 0 &&
+              renderNoPlanResults()}
+
+            {createdState === "ready" &&
+              visibleCreatedActivities.length > 0 && (
               <div className="grid gap-3 sm:grid-cols-2">
-                {createdActivities.map((activity) =>
+                {visibleCreatedActivities.map((activity) =>
                   renderActivityCard(activity),
                 )}
               </div>
@@ -876,9 +1037,10 @@ export function Profile() {
               </div>
             )}
 
-            {joinedState === "ready" && joinedActivities.length > 0 && (
+            {joinedState === "ready" &&
+              visibleJoinedActivities.length > 0 && (
               <div className="grid gap-3 sm:grid-cols-2">
-                {joinedActivities.map((activity) =>
+                {visibleJoinedActivities.map((activity) =>
                   renderActivityCard(activity),
                 )}
               </div>
@@ -930,9 +1092,15 @@ export function Profile() {
               </div>
             )}
 
-            {historyState === "ready" && historyActivities.length > 0 && (
+            {historyState === "ready" &&
+              historyActivities.length > 0 &&
+              visibleHistoryActivities.length === 0 &&
+              renderNoPlanResults()}
+
+            {historyState === "ready" &&
+              visibleHistoryActivities.length > 0 && (
               <div className="grid gap-3 sm:grid-cols-2">
-                {historyActivities.map((activity) => (
+                {visibleHistoryActivities.map((activity) => (
                   <div key={activity.id} className="space-y-2">
                     {renderActivityCard(activity, true)}
 

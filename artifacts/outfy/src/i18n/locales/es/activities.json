@@ -111,6 +111,17 @@
     "upcomingLoadError": "No hemos podido cargar tus próximos planes.",
     "historyLoadError": "No hemos podido cargar tu historial.",
     "retry": "Reintentar",
+    "searchPlaceholder": "Buscar por título, ciudad o categoría",
+    "sortLabel": "Ordenar planes",
+    "sort": {
+      "smart": "Recomendado",
+      "dateAsc": "Fecha: antes primero",
+      "dateDesc": "Fecha: después primero",
+      "title": "Título: A-Z"
+    },
+    "noSearchResultsTitle": "No encontramos planes",
+    "noSearchResultsDescription": "No hay planes que coincidan con tu búsqueda.",
+    "clearSearch": "Limpiar búsqueda",
     "status": {
       "active": "Activo",
       "completed": "Finalizado",

@@ -111,6 +111,17 @@
     "upcomingLoadError": "We couldn't load your upcoming plans.",
     "historyLoadError": "We couldn't load your history.",
     "retry": "Retry",
+    "searchPlaceholder": "Search by title, city or category",
+    "sortLabel": "Sort plans",
+    "sort": {
+      "smart": "Recommended",
+      "dateAsc": "Date: earliest first",
+      "dateDesc": "Date: latest first",
+      "title": "Title: A-Z"
+    },
+    "noSearchResultsTitle": "No plans found",
+    "noSearchResultsDescription": "No plans match your search.",
+    "clearSearch": "Clear search",
     "status": {
       "active": "Active",
       "completed": "Completed",
