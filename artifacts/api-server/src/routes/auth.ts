@@ -1263,7 +1263,51 @@ router.post("/auth/resend-code", async (request, response) => {
     });
 
     if (!resendResult.response.ok) {
-      sendError(response, 400, "No se ha podido reenviar el código.");
+      const providerError = getSupabaseError(
+        resendResult.data,
+        "No se ha podido reenviar el código.",
+      );
+
+      const providerCode = getSupabaseErrorCode(
+        resendResult.data,
+      );
+
+      request.log.warn(
+        {
+          status: resendResult.response.status,
+          code: providerCode,
+          message: providerError,
+        },
+        "Supabase verification resend rejected",
+      );
+
+      if (resendResult.response.status === 429) {
+        const retryMatch = providerError.match(
+          /after\s+(\d+)\s+seconds?/i,
+        );
+
+        const retryAfterSeconds = retryMatch
+          ? Math.max(
+              1,
+              Number.parseInt(retryMatch[1], 10),
+            )
+          : 60;
+
+        response.status(429).json({
+          error: `Espera ${retryAfterSeconds} segundos antes de solicitar otro código.`,
+          code: "resend_too_soon",
+          retryAfterSeconds,
+        });
+
+        return;
+      }
+
+      sendError(
+        response,
+        400,
+        "No se ha podido reenviar el código.",
+      );
+
       return;
     }
 
