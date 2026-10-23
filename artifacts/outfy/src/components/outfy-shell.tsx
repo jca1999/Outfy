@@ -1,4 +1,5 @@
 import { Bell, ChevronDown, Plus, Search } from 'lucide-react';
+import { ThemeSwitcher } from '@/components/theme-switcher';
 import type { ReactNode } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'wouter';
@@ -120,6 +121,7 @@ export function OutfyShell({ children }: OutfyShellProps) {
             </Link>
             <div className="ml-auto flex items-center gap-2">
               <button type="button" onClick={() => navigate('/activities/new')} className="outfy-primary-action hidden items-center gap-1.5 rounded-full bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground transition sm:flex" data-testid="button-create-activity"><Plus className="h-3.5 w-3.5" />Crear plan</button>
+              <ThemeSwitcher />
               <button type="button" onClick={() => setNotificationsRead((current) => !current)} className="relative rounded-full p-2.5 text-muted-foreground hover:bg-muted" aria-label="Notificaciones" data-testid="button-notifications"><Bell className="h-[18px] w-[18px]" />{!notificationsRead && <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />}</button>
               <Link href="/profile" className="flex items-center gap-2 rounded-full pl-1.5 pr-1 sm:gap-2.5" data-testid="link-header-profile">
                 <span className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-teal text-[10px] font-bold text-teal-foreground">

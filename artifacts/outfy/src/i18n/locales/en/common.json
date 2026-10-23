@@ -9,5 +9,10 @@
   },
   "brand": {
     "backToOutfy": "Back to Outfy"
+  },
+  "theme": {
+    "selector": "Select theme",
+    "light": "Light theme",
+    "dark": "Dark theme"
   }
 }

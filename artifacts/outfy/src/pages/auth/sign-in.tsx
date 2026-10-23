@@ -48,6 +48,7 @@ export function SignIn() {
     <AuthShell
       singleColumn
       showLanguageSwitcher
+      showThemeSwitcher
       brandLogoSrc="/outfy-logo-signin.png"
       eyebrow={t('signIn.eyebrow')}
       title={t('signIn.title')}
