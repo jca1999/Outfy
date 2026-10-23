@@ -101,14 +101,11 @@ export function ActivityCard({
       <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Users className="h-3.5 w-3.5" />
-          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Users className="h-3.5 w-3.5" />
 
-            {activity.participants}/{activity.capacity}{' '}
-            {t('activityCard.people', {
-              count: activity.participants,
-            })}
-          </span>
+          {activity.participants}/{activity.capacity}{' '}
+          {t('activityCard.people', {
+            count: activity.participants,
+          })}
         </span>
         <button
           type="button"
