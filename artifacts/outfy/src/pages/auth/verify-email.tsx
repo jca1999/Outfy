@@ -1,39 +1,41 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
-import { CheckCircle2, Loader2, Mail } from 'lucide-react';
-import { Link, useLocation } from 'wouter';
-import { AuthApiError } from '@/auth/auth-api';
-import { useAuth } from '@/auth/auth-context';
-import { AuthShell } from '@/components/auth-shell';
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { CheckCircle2, Loader2, Mail } from "lucide-react";
+import { Link, useLocation } from "wouter";
+import { AuthApiError } from "@/auth/auth-api";
+import { useAuth } from "@/auth/auth-context";
+import { AuthShell } from "@/components/auth-shell";
 import {
   InputOTP,
   InputOTPGroup,
   InputOTPSlot,
-} from '@/components/ui/input-otp';
+} from "@/components/ui/input-otp";
+import { useTranslation } from "react-i18next";
 
 function maskEmail(email: string) {
-  const [name, domain] = email.split('@');
+  const [name, domain] = email.split("@");
   if (!name || !domain) return email;
   const visibleName = name.length <= 2 ? name[0] : name.slice(0, 2);
-  return `${visibleName}${'•'.repeat(Math.max(1, name.length - visibleName.length))}@${domain}`;
+  return `${visibleName}${"•".repeat(Math.max(1, name.length - visibleName.length))}@${domain}`;
 }
 
 function initialEmailFromLocation(location: string) {
-  const query = location.split('?')[1] ?? '';
-  const email = new URLSearchParams(query).get('email');
+  const query = location.split("?")[1] ?? "";
+  const email = new URLSearchParams(query).get("email");
   if (email) return email;
-  return window.localStorage.getItem('outfy_pending_email') ?? '';
+  return window.localStorage.getItem("outfy_pending_email") ?? "";
 }
 
 export function VerifyEmail() {
   const [location, navigate] = useLocation();
   const { verifyEmail, resendVerificationCode } = useAuth();
   const [email, setEmail] = useState(() => initialEmailFromLocation(location));
-  const [code, setCode] = useState('');
-  const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
+  const [code, setCode] = useState("");
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [cooldown, setCooldown] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
+  const { t } = useTranslation("auth");
 
   useEffect(() => {
     const nextEmail = initialEmailFromLocation(location);
@@ -52,29 +54,29 @@ export function VerifyEmail() {
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setError('');
-    setNotice('');
+    setError("");
+    setNotice("");
     const normalizedEmail = email.trim().toLowerCase();
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      setError('Introduce el correo utilizado al crear la cuenta.');
+      setError(t("verifyEmail.errors.invalidEmail"));
       return;
     }
     if (!/^\d{6}$/.test(code)) {
-      setError('Introduce el código de seis cifras.');
+      setError(t("verifyEmail.errors.invalidCode"));
       return;
     }
 
     setSubmitting(true);
     try {
       await verifyEmail({ email: normalizedEmail, token: code });
-      window.localStorage.removeItem('outfy_pending_email');
-      navigate('/');
+      window.localStorage.removeItem("outfy_pending_email");
+      navigate("/");
     } catch (cause) {
       setError(
         cause instanceof AuthApiError
           ? cause.message
-          : 'No se ha podido verificar el correo. Inténtalo de nuevo.',
+          : t("verifyEmail.errors.verifyGeneric"),
       );
     } finally {
       setSubmitting(false);
@@ -82,11 +84,11 @@ export function VerifyEmail() {
   }
 
   async function handleResend() {
-    setError('');
-    setNotice('');
+    setError("");
+    setNotice("");
     const normalizedEmail = email.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-      setError('Introduce el correo utilizado al crear la cuenta.');
+      setError(t("verifyEmail.errors.invalidEmail"));
       return;
     }
 
@@ -94,12 +96,12 @@ export function VerifyEmail() {
     try {
       await resendVerificationCode({ email: normalizedEmail });
       setCooldown(60);
-      setNotice('Te hemos enviado un nuevo código.');
+      setNotice(t("verifyEmail.newCodeSent"));
     } catch (cause) {
       setError(
         cause instanceof AuthApiError
           ? cause.message
-          : 'No se ha podido reenviar el código.',
+          : t("verifyEmail.errors.resendGeneric"),
       );
     } finally {
       setResending(false);
@@ -108,15 +110,18 @@ export function VerifyEmail() {
 
   return (
     <AuthShell
-      eyebrow="Un último paso"
-      title="Mira tu correo."
-      description="Hemos enviado un código de verificación para confirmar que este correo es tuyo."
+      eyebrow={t("verifyEmail.eyebrow")}
+      title={t("verifyEmail.title")}
+      description={t("verifyEmail.description")}
       backHref="/sign-up"
       footer={
         <p>
-          ¿Te has equivocado de correo?{' '}
-          <Link href="/sign-up" className="font-bold text-foreground hover:text-primary">
-            Crear cuenta de nuevo
+          {t("verifyEmail.wrongEmail")}{" "}
+          <Link
+            href="/sign-up"
+            className="font-bold text-foreground hover:text-primary"
+          >
+            {t("verifyEmail.createAgain")}
           </Link>
         </p>
       }
@@ -127,17 +132,19 @@ export function VerifyEmail() {
             <Mail className="h-4 w-4" />
           </span>
           <div className="min-w-0">
-            <p className="text-xs font-bold">Código enviado a</p>
+            <p className="text-xs font-bold">{t("verifyEmail.sentTo")}</p>
             {email ? (
-              <p className="mt-1 truncate text-sm text-muted-foreground">{maskedEmail}</p>
+              <p className="mt-1 truncate text-sm text-muted-foreground">
+                {maskedEmail}
+              </p>
             ) : (
               <input
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                placeholder="hola@ejemplo.com"
+                placeholder={t("verifyEmail.emailPlaceholder")}
                 className="mt-2 w-full border-0 bg-transparent p-0 text-sm outline-none placeholder:text-muted-foreground/60"
-                aria-label="Correo electrónico para verificar"
+                aria-label={t("verifyEmail.emailAria")}
                 data-testid="input-verify-email"
               />
             )}
@@ -146,13 +153,13 @@ export function VerifyEmail() {
 
         <div>
           <label className="mb-3 block text-xs font-bold" htmlFor="verify-code">
-            Código de verificación
+            {t("verifyEmail.codeLabel")}
           </label>
           <InputOTP
             id="verify-code"
             maxLength={6}
             value={code}
-            onChange={(value) => setCode(value.replace(/\D/g, ''))}
+            onChange={(value) => setCode(value.replace(/\D/g, ""))}
             inputMode="numeric"
             pattern="[0-9]*"
             containerClassName="w-full justify-between"
@@ -171,12 +178,19 @@ export function VerifyEmail() {
         </div>
 
         {error && (
-          <p className="auth-error" role="alert" data-testid="text-verify-error">
+          <p
+            className="auth-error"
+            role="alert"
+            data-testid="text-verify-error"
+          >
             {error}
           </p>
         )}
         {notice && (
-          <p className="flex items-center gap-2 text-xs font-semibold text-teal-foreground" role="status">
+          <p
+            className="flex items-center gap-2 text-xs font-semibold text-teal-foreground"
+            role="status"
+          >
             <CheckCircle2 className="h-4 w-4 text-teal" />
             {notice}
           </p>
@@ -189,7 +203,7 @@ export function VerifyEmail() {
           data-testid="button-verify-email"
         >
           {submitting && <Loader2 className="h-4 w-4 animate-spin" />}
-          {submitting ? 'Verificando…' : 'Verificar'}
+          {submitting ? t("verifyEmail.submitting") : t("verifyEmail.submit")}
         </button>
 
         <button
@@ -200,10 +214,12 @@ export function VerifyEmail() {
           data-testid="button-resend-code"
         >
           {resending
-            ? 'Enviando…'
+            ? t('verifyEmail.resending')
             : cooldown > 0
-              ? `Reenviar código en ${cooldown}s`
-              : 'Reenviar código'}
+              ? t('verifyEmail.resendIn', {
+                  seconds: cooldown,
+                })
+              : t('verifyEmail.resend')}
         </button>
       </form>
     </AuthShell>
