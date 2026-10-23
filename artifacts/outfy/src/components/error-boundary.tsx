@@ -5,6 +5,8 @@ import {
   type ReactNode,
 } from 'react';
 
+import { useTranslation } from 'react-i18next';
+
 export interface ErrorFallbackProps {
   error: Error;
   resetError: () => void;
@@ -35,16 +37,20 @@ function toError(value: unknown): Error {
   }
 }
 
-function DefaultFallback({ error, resetError }: ErrorFallbackProps) {
+function DefaultFallback({
+  error,
+  resetError,
+}: ErrorFallbackProps) {
+  const { t } = useTranslation('common');
+
   return (
-    <div className="min-h-screen w-full flex items-center justify-center bg-gray-50 p-6">
+    <div className="flex min-h-screen w-full items-center justify-center bg-background p-6">
       <div className="max-w-lg w-full text-center">
-        <h1 className="text-xl font-semibold text-gray-900">
-          Something went wrong
+        <h1 className="text-xl font-semibold text-foreground">
+          {t('errorBoundary.title')}
         </h1>
-        <p className="mt-2 text-sm text-gray-600">
-          This part of the app hit an error. The rest of the app is still
-          running.
+        <p className="mt-2 text-sm text-muted-foreground">
+          {t('errorBoundary.description')}
         </p>
         {/* Dev only: messages can carry API responses and other internals. */}
         {import.meta.env.DEV ? (
@@ -55,9 +61,9 @@ function DefaultFallback({ error, resetError }: ErrorFallbackProps) {
         <button
           type="button"
           onClick={resetError}
-          className="mt-4 rounded bg-gray-900 px-4 py-2 text-sm text-white hover:bg-gray-700"
+          className="outfy-primary-action mt-4 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
         >
-          Try again
+          {t('errorBoundary.retry')}
         </button>
       </div>
     </div>

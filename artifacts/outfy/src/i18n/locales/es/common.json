@@ -33,5 +33,70 @@
     "searchPrompt": "¿Qué te apetece hacer?",
     "createPlan": "Crear plan",
     "notifications": "Notificaciones"
+  },
+  "chats": {
+    "eyebrow": "La conversación sigue fuera",
+    "title": "Mensajes",
+    "yourConversations": "Tus conversaciones",
+    "activeConversations": "{{count}} activa",
+    "activeConversations_other": "{{count}} activas",
+    "back": "Volver a conversaciones",
+    "recentlyOnline": "En línea hace poco",
+    "conversationInfo": "Información de conversación",
+    "privateInfo": "Conversación privada y segura para organizar el próximo plan.",
+    "planLabel": "Plan · {{activity}}",
+    "recentConnection": "Conexión reciente",
+    "sampleIncoming": "¡Hola! Qué ganas de que llegue el plan. ¿Te apuntas?",
+    "sampleOutgoing": "Sí, me viene genial. Nos vemos allí.",
+    "now": "Ahora",
+    "addImage": "Añadir imagen",
+    "messagePlaceholder": "Escribe algo...",
+    "sendMessage": "Enviar mensaje"
+  },
+  "connections": {
+    "eyebrow": "Gente con tu ritmo",
+    "title": "Conexiones",
+    "basedOnInterests": "Basado en tus intereses",
+    "notDating": "No es una cita",
+    "heroTitle": "Encuentra tu próxima cuadrilla.",
+    "heroDescription": "Personas de {{city}} que comparten planes contigo. Conecta primero por lo que os apetece hacer.",
+    "emptyTitle": "Has visto todas las conexiones",
+    "emptyDescription": "Vuelve más tarde para descubrir gente nueva.",
+    "dismiss": "Descartar a {{name}}",
+    "compatibility": "afinidad en intereses",
+    "connected": "Conectados",
+    "connect": "Conectar",
+    "message": "Conectar con {{name}} para escribir"
+  },
+  "notFound": {
+    "eyebrow": "404 · fuera de ruta",
+    "title": "Este plan no existe.",
+    "backHome": "Volver al inicio"
+  },
+  "activityCard": {
+    "featured": "Para ti",
+    "save": "Guardar actividad",
+    "removeSaved": "Quitar de guardados",
+    "people": "persona",
+    "people_other": "personas"
+    "joined": "Me apunto",
+    "interested": "Me interesa"
+  },
+  "quickCreate": {
+    "eyebrow": "Abrir un plan",
+    "title": "¿Qué montamos?",
+    "close": "Cerrar",
+    "nameLabel": "Nombre del plan",
+    "namePlaceholder": "Ej. Vermú y paseo por el centro",
+    "help": "Podrás añadir fecha, lugar y detalles después. Por ahora, dale un nombre.",
+    "create": "Crear plan"
+  },
+  "errorBoundary": {
+    "title": "Algo ha salido mal",
+    "description": "Esta parte de Outfy ha encontrado un error. El resto de la aplicación sigue funcionando.",
+    "retry": "Intentar de nuevo"
+  },
+  "app": {
+    "preparingSpace": "Preparando tu espacio"
   }
 }

@@ -1,33 +1,29 @@
-import { useEffect, useState, type ReactNode } from 'react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider, useAuth } from '@/auth/auth-context';
-import { ErrorBoundary } from '@/components/error-boundary';
-import { OutfyShell } from '@/components/outfy-shell';
-import { activities as initialActivities } from '@/mock-data';
-import { CreateActivity } from '@/pages/create-activity';
-import { ActivityDetail } from '@/pages/activity-detail';
-import { Explore } from '@/pages/explore';
-import { Home } from '@/pages/home';
-import { Matches } from '@/pages/matches';
-import { Chats } from '@/pages/chats';
-import { Profile } from '@/pages/profile';
-import { ProfileEdit } from '@/pages/profile-edit';
-import { PublicProfile } from '@/pages/public-profile';
-import { Settings } from '@/pages/settings';
-import { SignIn } from '@/pages/auth/sign-in';
-import { SignUp } from '@/pages/auth/sign-up';
-import { VerifyEmail } from '@/pages/auth/verify-email';
-import { Toaster } from '@/components/ui/toaster';
-import { TooltipProvider } from '@/components/ui/tooltip';
-import NotFound from '@/pages/not-found';
-import { ForgotPassword } from '@/pages/auth/forgot-password';
-import { ResetPassword } from '@/pages/auth/reset-password';
-import {
-  Route,
-  Switch,
-  useLocation,
-  Router as WouterRouter,
-} from 'wouter';
+import { useEffect, useState, type ReactNode } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AuthProvider, useAuth } from "@/auth/auth-context";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { OutfyShell } from "@/components/outfy-shell";
+import { activities as initialActivities } from "@/mock-data";
+import { CreateActivity } from "@/pages/create-activity";
+import { ActivityDetail } from "@/pages/activity-detail";
+import { Explore } from "@/pages/explore";
+import { Home } from "@/pages/home";
+import { Matches } from "@/pages/matches";
+import { Chats } from "@/pages/chats";
+import { Profile } from "@/pages/profile";
+import { ProfileEdit } from "@/pages/profile-edit";
+import { PublicProfile } from "@/pages/public-profile";
+import { Settings } from "@/pages/settings";
+import { SignIn } from "@/pages/auth/sign-in";
+import { SignUp } from "@/pages/auth/sign-up";
+import { VerifyEmail } from "@/pages/auth/verify-email";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import NotFound from "@/pages/not-found";
+import { ForgotPassword } from "@/pages/auth/forgot-password";
+import { ResetPassword } from "@/pages/auth/reset-password";
+import { useTranslation } from "react-i18next";
+import { Route, Switch, useLocation, Router as WouterRouter } from "wouter";
 
 const queryClient = new QueryClient();
 
@@ -35,15 +31,21 @@ function Router() {
   const { user, loading } = useAuth();
   const [location, navigate] = useLocation();
   const [activities] = useState(initialActivities);
-  const [saved, setSaved] = useState<Set<string>>(new Set(['cine-verdi']));
-  const [interested, setInterested] = useState<Set<string>>(new Set(['futbol-parque']));
-  const toggleSet = (setter: React.Dispatch<React.SetStateAction<Set<string>>>, id: string) => {
+  const [saved, setSaved] = useState<Set<string>>(new Set(["cine-verdi"]));
+  const [interested, setInterested] = useState<Set<string>>(
+    new Set(["futbol-parque"]),
+  );
+  const toggleSet = (
+    setter: React.Dispatch<React.SetStateAction<Set<string>>>,
+    id: string,
+  ) => {
     setter((current) => {
       const next = new Set(current);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
+    const { t } = useTranslation("common");
   };
   const shared = {
     activities,
@@ -54,21 +56,21 @@ function Router() {
   };
 
   const guestAuthRoute =
-    location === '/sign-in' ||
-    location === '/sign-up' ||
-    location === '/verify-email' ||
-    location === '/forgot-password';
+    location === "/sign-in" ||
+    location === "/sign-up" ||
+    location === "/verify-email" ||
+    location === "/forgot-password";
 
-  const resetPasswordRoute = location === '/reset-password';
+  const resetPasswordRoute = location === "/reset-password";
 
   const authRoute = guestAuthRoute || resetPasswordRoute;
 
   useEffect(() => {
     if (loading) return;
     if (!user && !authRoute) {
-      navigate('/sign-in');
+      navigate("/sign-in");
     } else if (user && guestAuthRoute) {
-      navigate('/');
+      navigate("/");
     }
   }, [authRoute, loading, navigate, user]);
 
@@ -79,7 +81,7 @@ function Router() {
           <span>o</span>
         </span>
         <p className="font-mono-ui text-[10px] uppercase tracking-[.18em] text-muted-foreground">
-          preparando tu espacio
+          {t('app.preparingSpace')}
         </p>
       </div>
     );
@@ -92,7 +94,7 @@ function Router() {
       </RoutedErrorBoundary>
     );
   }
-  
+
   if (!user) {
     return (
       <RoutedErrorBoundary>
@@ -113,7 +115,12 @@ function Router() {
     <RoutedErrorBoundary>
       <OutfyShell>
         <Switch>
-          <Route path="/" component={() => <Home {...shared} onCreate={() => navigate('/activities/new')} />} />
+          <Route
+            path="/"
+            component={() => (
+              <Home {...shared} onCreate={() => navigate("/activities/new")} />
+            )}
+          />
           <Route path="/explore" component={() => <Explore {...shared} />} />
           <Route path="/matches" component={Matches} />
           <Route path="/chats" component={Chats} />
@@ -140,7 +147,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, '')}>
+        <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <AuthProvider>
             <Router />
           </AuthProvider>

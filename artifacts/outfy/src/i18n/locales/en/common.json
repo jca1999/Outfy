@@ -33,5 +33,70 @@
     "searchPrompt": "What do you feel like doing?",
     "createPlan": "Create plan",
     "notifications": "Notifications"
+  },
+  "chats": {
+    "eyebrow": "The conversation continues beyond the plan",
+    "title": "Messages",
+    "yourConversations": "Your conversations",
+    "activeConversations": "{{count}} active",
+    "activeConversations_other": "{{count}} active",
+    "back": "Back to conversations",
+    "recentlyOnline": "Online recently",
+    "conversationInfo": "Conversation information",
+    "privateInfo": "A private and secure conversation to organize your next plan.",
+    "planLabel": "Plan · {{activity}}",
+    "recentConnection": "Recent connection",
+    "sampleIncoming": "Hi! I can't wait for the plan. Are you joining?",
+    "sampleOutgoing": "Yes, that works great for me. See you there.",
+    "now": "Now",
+    "addImage": "Add image",
+    "messagePlaceholder": "Write something...",
+    "sendMessage": "Send message"
+  },
+  "connections": {
+    "eyebrow": "People on your wavelength",
+    "title": "Connections",
+    "basedOnInterests": "Based on your interests",
+    "notDating": "It's not dating",
+    "heroTitle": "Find your next crew.",
+    "heroDescription": "People in {{city}} who enjoy the same kinds of plans. Connect through what you like doing.",
+    "emptyTitle": "You've seen all connections",
+    "emptyDescription": "Come back later to discover new people.",
+    "dismiss": "Dismiss {{name}}",
+    "compatibility": "interest match",
+    "connected": "Connected",
+    "connect": "Connect",
+    "message": "Connect with {{name}} to message them"
+  },
+  "notFound": {
+    "eyebrow": "404 · off route",
+    "title": "This plan doesn't exist.",
+    "backHome": "Back to home"
+  },
+  "activityCard": {
+    "featured": "For you",
+    "save": "Save activity",
+    "removeSaved": "Remove from saved",
+    "people": "person",
+    "people_other": "people"
+    "joined": "I'm in",
+    "interested": "I'm interested"
+  },
+  "quickCreate": {
+    "eyebrow": "Start a plan",
+    "title": "What shall we do?",
+    "close": "Close",
+    "nameLabel": "Plan name",
+    "namePlaceholder": "e.g. Drinks and a walk downtown",
+    "help": "You can add the date, place and details afterwards. For now, give it a name.",
+    "create": "Create plan"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "description": "This part of Outfy hit an error. The rest of the app is still running.",
+    "retry": "Try again"
+  },
+  "app": {
+    "preparingSpace": "Preparing your space"
   }
 }
