@@ -14,5 +14,24 @@
     "selector": "Seleccionar tema",
     "light": "Tema claro",
     "dark": "Tema oscuro"
+  },
+  "navigation": {
+    "main": "Navegación principal",
+    "mobile": "Navegación móvil",
+    "home": "Inicio",
+    "explore": "Explorar",
+    "connections": "Conexiones",
+    "messages": "Mensajes",
+    "profile": "Mi perfil"
+  },
+  "shell": {
+    "yourSpace": "Tu espacio",
+    "nextStory": "Tu próxima historia",
+    "nearbyPlans": "Hay {{count}} plan nuevo cerca de ti.",
+    "nearbyPlans_other": "Hay {{count}} planes nuevos cerca de ti.",
+    "viewPlans": "Ver planes",
+    "searchPrompt": "¿Qué te apetece hacer?",
+    "createPlan": "Crear plan",
+    "notifications": "Notificaciones"
   }
 }

@@ -14,5 +14,24 @@
     "selector": "Select theme",
     "light": "Light theme",
     "dark": "Dark theme"
+  },
+  "navigation": {
+    "main": "Main navigation",
+    "mobile": "Mobile navigation",
+    "home": "Home",
+    "explore": "Explore",
+    "connections": "Connections",
+    "messages": "Messages",
+    "profile": "My profile"
+  },
+  "shell": {
+    "yourSpace": "Your space",
+    "nextStory": "Your next story",
+    "nearbyPlans": "There is {{count}} new plan near you.",
+    "nearbyPlans_other": "There are {{count}} new plans near you.",
+    "viewPlans": "View plans",
+    "searchPrompt": "What do you feel like doing?",
+    "createPlan": "Create plan",
+    "notifications": "Notifications"
   }
 }
