@@ -29,6 +29,7 @@ const queryClient = new QueryClient();
 
 function Router() {
   const { user, loading } = useAuth();
+  const { t } = useTranslation("common");
   const [location, navigate] = useLocation();
   const [activities] = useState(initialActivities);
   const [saved, setSaved] = useState<Set<string>>(new Set(["cine-verdi"]));
@@ -45,7 +46,6 @@ function Router() {
       else next.add(id);
       return next;
     });
-    const { t } = useTranslation("common");
   };
   const shared = {
     activities,
