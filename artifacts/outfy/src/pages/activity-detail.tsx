@@ -46,8 +46,8 @@ export function ActivityDetail() {
   const [organizerActionPending, setOrganizerActionPending] = useState(false);
   const [organizerActionError, setOrganizerActionError] = useState("");
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [participantsOpen, setParticipantsOpen] = useState(false);
   const membershipRequestRef = useRef<symbol | null>(null);
-  const participantsSectionRef = useRef<HTMLElement | null>(null);
   const currentActivityIdRef = useRef<string | null>(params?.id ?? null);
   currentActivityIdRef.current = params?.id ?? null;
 
@@ -62,6 +62,7 @@ export function ActivityDetail() {
     setOrganizerActionError("");
     setCancelDialogOpen(false);
     membershipRequestRef.current = null;
+    setParticipantsOpen(false);
 
     if (!params?.id) {
       setLoadState("not-found");
@@ -98,13 +99,6 @@ export function ActivityDetail() {
     } else {
       navigate("/");
     }
-  }
-
-  function scrollToParticipants() {
-    participantsSectionRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    });
   }
 
   function refreshActivitySnapshot(activityId: string) {
@@ -657,7 +651,8 @@ export function ActivityDetail() {
           </DetailItem>
           <button
             type="button"
-            onClick={scrollToParticipants}
+            onClick={() => setParticipantsOpen((current) => !current)}
+            aria-expanded={participantsOpen}
             className="group rounded-2xl border border-border bg-background/45 p-4 text-left transition hover:border-primary/40 hover:bg-primary/[.03]"
           >
             <div className="flex items-center justify-between gap-3">
@@ -669,7 +664,11 @@ export function ActivityDetail() {
                 </h2>
               </div>
 
-              <ChevronDown className="h-4 w-4 text-muted-foreground transition group-hover:translate-y-0.5 group-hover:text-primary" />
+              <ChevronDown
+                className={`h-4 w-4 text-muted-foreground transition-transform duration-300 group-hover:text-primary ${
+                  participantsOpen ? "rotate-180" : ""
+                }`}
+              />
             </div>
 
             <div className="mt-3 text-sm font-semibold leading-6">
@@ -686,97 +685,111 @@ export function ActivityDetail() {
             {cost}
           </DetailItem>
 
-          <section
-            ref={participantsSectionRef}
-            className="mt-3 scroll-mt-24 border-t border-border pt-6 sm:col-span-2"
+          <div
+            className={`grid transition-[grid-template-rows] duration-300 ease-out sm:col-span-2 ${
+              participantsOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
+            }`}
           >
-            <h2 className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">
-              {t("create.detail.participantsList")}
-            </h2>
-            {activity.members.length > 0 ? (
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {activity.members.map((member) => {
-                  const visibleName =
-                    member.displayName?.trim() ||
-                    (member.username
-                      ? `@${member.username}`
-                      : t("create.detail.unknownOrganizer"));
+            <div className="min-h-0 overflow-hidden">
+              <section
+                aria-hidden={!participantsOpen}
+                className={`border-t border-border pt-6 transition-all duration-300 ease-out ${
+                  participantsOpen
+                    ? "mt-3 translate-y-0 opacity-100"
+                    : "mt-0 -translate-y-2 opacity-0"
+                }`}
+              >
+                <h2 className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">
+                  {t("create.detail.participantsList")}
+                </h2>
 
-                  const initialsSource =
-                    member.displayName?.trim() || member.username || "?";
+                {activity.members.length > 0 ? (
+                  <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                    {activity.members.map((member) => {
+                      const visibleName =
+                        member.displayName?.trim() ||
+                        (member.username
+                          ? `@${member.username}`
+                          : t("create.detail.unknownOrganizer"));
 
-                  const initials = initialsSource
-                    .split(/\s+/)
-                    .filter(Boolean)
-                    .slice(0, 2)
-                    .map((part) => part[0])
-                    .join("")
-                    .toUpperCase();
+                      const initialsSource =
+                        member.displayName?.trim() || member.username || "?";
 
-                  const canOpenProfile = Boolean(member.username);
+                      const initials = initialsSource
+                        .split(/\s+/)
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .map((part) => part[0])
+                        .join("")
+                        .toUpperCase();
 
-                  return (
-                    <button
-                      key={member.id}
-                      type="button"
-                      disabled={!canOpenProfile}
-                      onClick={() => {
-                        if (!member.username) {
-                          return;
-                        }
+                      const canOpenProfile = Boolean(member.username);
 
-                        navigate(
-                          `/users/${encodeURIComponent(member.username)}`,
-                        );
-                      }}
-                      aria-label={
-                        member.username
-                          ? t("create.detail.viewProfile", {
-                              name: visibleName,
-                            })
-                          : undefined
-                      }
-                      className="flex items-center gap-3 rounded-2xl border border-border bg-background/45 p-3 text-left transition enabled:hover:border-primary/40 enabled:hover:bg-primary/[.03] disabled:cursor-default"
-                    >
-                      <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                        {member.avatarUrl ? (
-                          <img
-                            src={member.avatarUrl}
-                            alt=""
-                            className="absolute inset-0 h-full w-full object-cover"
-                          />
-                        ) : (
-                          initials
-                        )}
-                      </div>
+                      return (
+                        <button
+                          key={member.id}
+                          type="button"
+                          disabled={!canOpenProfile}
+                          tabIndex={participantsOpen ? 0 : -1}
+                          onClick={() => {
+                            if (!member.username) {
+                              return;
+                            }
 
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-bold text-foreground">
-                          {visibleName}
-                        </p>
+                            navigate(
+                              `/users/${encodeURIComponent(member.username)}`,
+                            );
+                          }}
+                          aria-label={
+                            member.username
+                              ? t("create.detail.viewProfile", {
+                                  name: visibleName,
+                                })
+                              : undefined
+                          }
+                          className="flex items-center gap-3 rounded-2xl border border-border bg-background/45 p-3 text-left transition enabled:hover:border-primary/40 enabled:hover:bg-primary/[.03] disabled:cursor-default"
+                        >
+                          <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                            {member.avatarUrl ? (
+                              <img
+                                src={member.avatarUrl}
+                                alt=""
+                                className="absolute inset-0 h-full w-full object-cover"
+                              />
+                            ) : (
+                              initials
+                            )}
+                          </div>
 
-                        {member.displayName && member.username && (
-                          <p className="truncate text-xs text-muted-foreground">
-                            @{member.username}
-                          </p>
-                        )}
-                      </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-bold text-foreground">
+                              {visibleName}
+                            </p>
 
-                      {member.role === "organizer" && (
-                        <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
-                          {t("create.detail.organizerBadge")}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="mt-4 text-sm text-muted-foreground">
-                {t("create.detail.participantsEmpty")}
-              </p>
-            )}
-          </section>
+                            {member.displayName && member.username && (
+                              <p className="truncate text-xs text-muted-foreground">
+                                @{member.username}
+                              </p>
+                            )}
+                          </div>
+
+                          {member.role === "organizer" && (
+                            <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
+                              {t("create.detail.organizerBadge")}
+                            </span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-muted-foreground">
+                    {t("create.detail.participantsEmpty")}
+                  </p>
+                )}
+              </section>
+            </div>
+          </div>
 
           {activity.description && (
             <section className="mt-3 border-t border-border pt-6 sm:col-span-2">
