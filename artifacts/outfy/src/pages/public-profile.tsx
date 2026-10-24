@@ -4,7 +4,7 @@ import {
   MapPin,
   UserRound,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useRoute } from "wouter";
 
@@ -13,6 +13,8 @@ import {
   getPublicProfile,
   type PublicProfile,
 } from "@/auth/auth-api";
+import { ConnectionAvatar } from "@/connections/connection-ui";
+import { ProfileRelationship } from "@/connections/profile-relationship";
 
 type LoadState = "loading" | "ready" | "notFound" | "error";
 
@@ -25,6 +27,31 @@ export function PublicProfile() {
 
   const [profile, setProfile] = useState<PublicProfile | null>(null);
   const [loadState, setLoadState] = useState<LoadState>("loading");
+  const refreshSeq = useRef(0);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  // Silent refresh after relationship changes: privacy representation may change.
+  const refreshProfile = useCallback(() => {
+    if (!username) return;
+    // A removed connection must immediately stop rendering friends-only data
+    // while the server computes the new safe representation.
+    setProfile((current) => current ? {
+      ...current, displayName: null, city: null, country: null,
+    } : current);
+    const seq = ++refreshSeq.current;
+    getPublicProfile(username)
+      .then((result) => {
+        if (seq !== refreshSeq.current) return;
+        if (result.profile.username.toLowerCase() !== username.toLowerCase()) return;
+        setProfile(result.profile);
+      })
+      .catch(() => {
+        if (seq !== refreshSeq.current) return;
+        // Never keep a possibly outdated (e.g. friends-only) representation.
+        setProfile(null);
+        setLoadState("error");
+      });
+  }, [username]);
 
   useEffect(() => {
     let active = true;
@@ -34,6 +61,8 @@ export function PublicProfile() {
       return;
     }
 
+    refreshSeq.current++;
+    setProfile(null);
     setLoadState("loading");
 
     getPublicProfile(username)
@@ -61,8 +90,9 @@ export function PublicProfile() {
 
     return () => {
       active = false;
+      refreshSeq.current++;
     };
-  }, [navigate, username]);
+  }, [navigate, username, reloadKey]);
 
   function goBack() {
     if (window.history.length > 1) {
@@ -139,6 +169,15 @@ export function PublicProfile() {
           <p className="mt-2 text-sm text-muted-foreground">
             {t("publicProfile.errorDescription")}
           </p>
+
+          <button
+            type="button"
+            onClick={() => setReloadKey((k) => k + 1)}
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-primary-foreground outfy-primary-action"
+            data-testid="button-retry-profile"
+          >
+            {t("common:connections.retry")}
+          </button>
         </div>
       </div>
     );
@@ -146,17 +185,6 @@ export function PublicProfile() {
 
   const visibleName =
     profile.displayName?.trim() || `@${profile.username}`;
-
-  const initials = (
-    profile.displayName?.trim() ||
-    profile.username
-  )
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
 
   const location =
     profile.city && profile.country
@@ -176,19 +204,7 @@ export function PublicProfile() {
 
       <section className="rounded-[26px] border border-border bg-card p-6 soft-shadow sm:p-8">
         <div className="flex flex-col items-center text-center">
-          <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-primary text-2xl font-bold text-primary-foreground">
-            {profile.avatarUrl ? (
-              <img
-                src={profile.avatarUrl}
-                alt={t("publicProfile.avatarAlt", {
-                  username: profile.username,
-                })}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              initials || <UserRound className="h-8 w-8" />
-            )}
-          </div>
+          <ConnectionAvatar profile={profile} className="h-24 w-24 text-2xl" />
 
           <h1 className="mt-5 text-3xl font-bold tracking-[-.05em]">
             {visibleName}
@@ -220,6 +236,13 @@ export function PublicProfile() {
               </p>
             </div>
           )}
+
+          <ProfileRelationship
+            key={profile.id}
+            userId={profile.id}
+            name={visibleName}
+            onChanged={refreshProfile}
+          />
         </div>
       </section>
     </div>

@@ -1,5 +1,9 @@
 import { createHash } from "node:crypto";
 import {
+  findConnection,
+  isConnectionsMigrationMissing,
+} from "../lib/connections";
+import {
   Router,
   raw,
   type IRouter,
@@ -653,6 +657,20 @@ router.get("/auth/users/:username", async (request, response) => {
     }
 
     const isOwnProfile = profile.id === session.user.id;
+    let isConnection = false;
+    if (!isOwnProfile) {
+      try {
+        const relationship = await findConnection(session.user.id, profile.id);
+        isConnection = relationship?.status === "accepted";
+      } catch (error) {
+        // Before the reviewed migration is applied, retain existing privacy.
+        // Other DB failures must not accidentally broaden access.
+        if (
+          !error || typeof error !== "object" ||
+          !isConnectionsMigrationMissing(error)
+        ) throw error;
+      }
+    }
 
     const displayNameVisibility =
       isDisplayNameVisibility(profile.display_name_visibility)
@@ -661,11 +679,12 @@ router.get("/auth/users/:username", async (request, response) => {
 
     const displayNameVisible =
       isOwnProfile ||
-      displayNameVisibility === "everyone";
+      displayNameVisibility === "everyone" ||
+      (displayNameVisibility === "friends" && isConnection);
 
     const isPrivate =
       profile.is_profile_private === true &&
-      !isOwnProfile;
+      !isOwnProfile && !isConnection;
 
     let avatarUrl: string | null = null;
 

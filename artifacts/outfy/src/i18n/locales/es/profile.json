@@ -22,7 +22,11 @@
     "errorTitle": "No hemos podido cargar el perfil",
     "errorDescription": "Inténtalo de nuevo dentro de unos instantes.",
     "privateTitle": "Perfil privado",
-    "privateDescription": "Este usuario ha limitado la información visible de su perfil."
+    "privateDescription": "Este usuario ha limitado la información visible de su perfil.",
+    "connectionError": "No hemos podido comprobar vuestra conexión.",
+    "connected": "Conectados",
+    "requestSent": "Solicitud enviada",
+    "incomingRequest": "Esta persona quiere conectar contigo"
   },
 
   "avatar": {

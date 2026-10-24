@@ -22,7 +22,11 @@
     "errorTitle": "We couldn't load the profile",
     "errorDescription": "Please try again in a few moments.",
     "privateTitle": "Private profile",
-    "privateDescription": "This user has limited the information visible on their profile."
+    "privateDescription": "This user has limited the information visible on their profile.",
+    "connectionError": "We couldn't check your connection status.",
+    "connected": "Connected",
+    "requestSent": "Request sent",
+    "incomingRequest": "This person wants to connect with you"
   },
 
   "avatar": {
