@@ -1,12 +1,13 @@
 import {
   ArrowLeft,
   CalendarDays,
+  ChevronDown,
   CircleDollarSign,
   Edit3,
   MapPin,
   Share2,
   Users,
-} from 'lucide-react';
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useLocation, useRoute } from "wouter";
@@ -26,7 +27,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
 
 type LoadState = "loading" | "ready" | "not-found" | "unauthorized" | "error";
 
@@ -43,9 +44,10 @@ export function ActivityDetail() {
   const [membershipError, setMembershipError] = useState("");
   const [membershipUnavailable, setMembershipUnavailable] = useState(false);
   const [organizerActionPending, setOrganizerActionPending] = useState(false);
-  const [organizerActionError, setOrganizerActionError] = useState('');
+  const [organizerActionError, setOrganizerActionError] = useState("");
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const membershipRequestRef = useRef<symbol | null>(null);
+  const participantsSectionRef = useRef<HTMLElement | null>(null);
   const currentActivityIdRef = useRef<string | null>(params?.id ?? null);
   currentActivityIdRef.current = params?.id ?? null;
 
@@ -57,7 +59,7 @@ export function ActivityDetail() {
     setMembershipError("");
     setMembershipUnavailable(false);
     setOrganizerActionPending(false);
-    setOrganizerActionError('');
+    setOrganizerActionError("");
     setCancelDialogOpen(false);
     membershipRequestRef.current = null;
 
@@ -96,6 +98,27 @@ export function ActivityDetail() {
     } else {
       navigate("/");
     }
+  }
+
+  function scrollToParticipants() {
+    participantsSectionRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }
+
+  function refreshActivitySnapshot(activityId: string) {
+    void getActivity(activityId)
+      .then((result) => {
+        if (currentActivityIdRef.current === activityId) {
+          setActivity(result.activity);
+        }
+      })
+      .catch(() => {
+        // La operación principal ya ha terminado.
+        // Si falla este refresco silencioso,
+        // mantenemos el estado local.
+      });
   }
 
   async function handleShare() {
@@ -154,6 +177,7 @@ export function ActivityDetail() {
             }
           : current,
       );
+      refreshActivitySnapshot(activityId);
     } catch (error) {
       if (
         membershipRequestRef.current !== requestToken ||
@@ -224,6 +248,7 @@ export function ActivityDetail() {
             }
           : current,
       );
+      refreshActivitySnapshot(activityId);
     } catch (error) {
       if (
         membershipRequestRef.current !== requestToken ||
@@ -411,19 +436,17 @@ export function ActivityDetail() {
           });
   const activityStartsAt = Date.parse(activity.startsAt);
 
-  const activityFinishedAt = Date.parse(
-    activity.endsAt ?? activity.startsAt,
-  );
+  const activityFinishedAt = Date.parse(activity.endsAt ?? activity.startsAt);
 
   const canOrganizerEdit =
-    activity.membershipRole === 'organizer' &&
-    activity.status === 'active' &&
+    activity.membershipRole === "organizer" &&
+    activity.status === "active" &&
     Number.isFinite(activityStartsAt) &&
     activityStartsAt > Date.now();
 
   const canOrganizerCancel =
-    activity.membershipRole === 'organizer' &&
-    activity.status === 'active' &&
+    activity.membershipRole === "organizer" &&
+    activity.status === "active" &&
     Number.isFinite(activityFinishedAt) &&
     activityFinishedAt > Date.now();
 
@@ -474,12 +497,10 @@ export function ActivityDetail() {
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>
-              {t('create.detail.cancelPlan')}
-            </DialogTitle>
+            <DialogTitle>{t("create.detail.cancelPlan")}</DialogTitle>
 
             <DialogDescription>
-              {t('create.detail.cancelConfirm')}
+              {t("create.detail.cancelConfirm")}
             </DialogDescription>
           </DialogHeader>
 
@@ -490,7 +511,7 @@ export function ActivityDetail() {
               disabled={organizerActionPending}
               className="rounded-full border border-border px-5 py-2.5 text-sm font-bold transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {t('create.back')}
+              {t("create.back")}
             </button>
 
             <button
@@ -500,8 +521,8 @@ export function ActivityDetail() {
               className="rounded-full bg-destructive px-5 py-2.5 text-sm font-bold text-destructive-foreground transition hover:bg-destructive/90 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {organizerActionPending
-                ? t('create.detail.cancellingPlan')
-                : t('create.detail.cancelPlan')}
+                ? t("create.detail.cancellingPlan")
+                : t("create.detail.cancelPlan")}
             </button>
           </div>
         </DialogContent>
@@ -565,7 +586,7 @@ export function ActivityDetail() {
             )}
           </div>
 
-          {activity.membershipRole === 'organizer' && canOrganizerCancel ? (
+          {activity.membershipRole === "organizer" && canOrganizerCancel ? (
             <div className="flex flex-col gap-2 sm:flex-row">
               {canOrganizerEdit && (
                 <button
@@ -579,7 +600,7 @@ export function ActivityDetail() {
                   className="inline-flex items-center justify-center gap-2 rounded-full border border-primary/40 px-5 py-3 text-sm font-bold text-primary transition hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   <Edit3 className="h-4 w-4" />
-                  {t('create.detail.editPlan')}
+                  {t("create.detail.editPlan")}
                 </button>
               )}
 
@@ -590,11 +611,11 @@ export function ActivityDetail() {
                 className="rounded-full border border-destructive/45 px-5 py-3 text-sm font-bold text-destructive transition hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {organizerActionPending
-                  ? t('create.detail.cancellingPlan')
-                  : t('create.detail.cancelPlan')}
+                  ? t("create.detail.cancellingPlan")
+                  : t("create.detail.cancelPlan")}
               </button>
             </div>
-          ) : activity.membershipRole === 'participant' ? (
+          ) : activity.membershipRole === "participant" ? (
             <button
               type="button"
               onClick={handleLeave}
@@ -634,17 +655,128 @@ export function ActivityDetail() {
           <DetailItem icon={MapPin} label={t("create.detail.location")}>
             {locationType} · {location}
           </DetailItem>
-          <DetailItem icon={Users} label={t("create.detail.participants")}>
-            {participants}
-            {availability && (
-              <span className="block text-xs font-normal text-muted-foreground">
-                {availability}
-              </span>
-            )}
-          </DetailItem>
+          <button
+            type="button"
+            onClick={scrollToParticipants}
+            className="group rounded-2xl border border-border bg-background/45 p-4 text-left transition hover:border-primary/40 hover:bg-primary/[.03]"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 text-primary">
+                <Users className="h-4 w-4" />
+
+                <h2 className="text-[10px] font-bold uppercase tracking-[.14em]">
+                  {t("create.detail.participants")}
+                </h2>
+              </div>
+
+              <ChevronDown className="h-4 w-4 text-muted-foreground transition group-hover:translate-y-0.5 group-hover:text-primary" />
+            </div>
+
+            <div className="mt-3 text-sm font-semibold leading-6">
+              {participants}
+
+              {availability && (
+                <span className="block text-xs font-normal text-muted-foreground">
+                  {availability}
+                </span>
+              )}
+            </div>
+          </button>
           <DetailItem icon={CircleDollarSign} label={t("create.detail.cost")}>
             {cost}
           </DetailItem>
+
+          <section
+            ref={participantsSectionRef}
+            className="mt-3 scroll-mt-24 border-t border-border pt-6 sm:col-span-2"
+          >
+            <h2 className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">
+              {t("create.detail.participantsList")}
+            </h2>
+            {activity.members.length > 0 ? (
+              <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                {activity.members.map((member) => {
+                  const visibleName =
+                    member.displayName?.trim() ||
+                    (member.username
+                      ? `@${member.username}`
+                      : t("create.detail.unknownOrganizer"));
+
+                  const initialsSource =
+                    member.displayName?.trim() || member.username || "?";
+
+                  const initials = initialsSource
+                    .split(/\s+/)
+                    .filter(Boolean)
+                    .slice(0, 2)
+                    .map((part) => part[0])
+                    .join("")
+                    .toUpperCase();
+
+                  const canOpenProfile = Boolean(member.username);
+
+                  return (
+                    <button
+                      key={member.id}
+                      type="button"
+                      disabled={!canOpenProfile}
+                      onClick={() => {
+                        if (!member.username) {
+                          return;
+                        }
+
+                        navigate(
+                          `/users/${encodeURIComponent(member.username)}`,
+                        );
+                      }}
+                      aria-label={
+                        member.username
+                          ? t("create.detail.viewProfile", {
+                              name: visibleName,
+                            })
+                          : undefined
+                      }
+                      className="flex items-center gap-3 rounded-2xl border border-border bg-background/45 p-3 text-left transition enabled:hover:border-primary/40 enabled:hover:bg-primary/[.03] disabled:cursor-default"
+                    >
+                      <div className="relative flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                        {member.avatarUrl ? (
+                          <img
+                            src={member.avatarUrl}
+                            alt=""
+                            className="absolute inset-0 h-full w-full object-cover"
+                          />
+                        ) : (
+                          initials
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold text-foreground">
+                          {visibleName}
+                        </p>
+
+                        {member.displayName && member.username && (
+                          <p className="truncate text-xs text-muted-foreground">
+                            @{member.username}
+                          </p>
+                        )}
+                      </div>
+
+                      {member.role === "organizer" && (
+                        <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
+                          {t("create.detail.organizerBadge")}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="mt-4 text-sm text-muted-foreground">
+                {t("create.detail.participantsEmpty")}
+              </p>
+            )}
+          </section>
 
           {activity.description && (
             <section className="mt-3 border-t border-border pt-6 sm:col-span-2">

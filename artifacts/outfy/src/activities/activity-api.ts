@@ -44,6 +44,16 @@ export type CancelActivityResponse = {
   };
 };
 
+export type ActivityMember = {
+  id: string;
+  username: string | null;
+  displayName: string | null;
+  avatarUrl: string | null;
+  role:
+    | 'organizer'
+    | 'participant';
+};
+
 export type ActivityDetail = {
   id: string;
   title: string;
@@ -71,7 +81,13 @@ export type ActivityDetail = {
     displayName: string | null;
   };
   memberCount: number;
-  membershipRole: 'organizer' | 'participant' | null;
+
+  members: ActivityMember[];
+
+  membershipRole:
+    | 'organizer'
+    | 'participant'
+    | null;
 };
 
 export type ActivityDetailResponse = {

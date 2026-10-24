@@ -66,7 +66,8 @@ type ActivityReviewRpcRow = {
   average_rating: number | null;
   review_count: number | null;
 };
-
+const AVATAR_BUCKET = "avatars";
+const AVATAR_SIGNED_URL_SECONDS = 60 * 60;
 const router: IRouter = Router();
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -109,8 +110,7 @@ function membershipRpcRow(data: unknown): MembershipRpcRow | null {
   if (
     typeof row.result !== "string" ||
     (row.member_count !== null && typeof row.member_count !== "number") ||
-    (row.max_participants !== null &&
-      typeof row.max_participants !== "number")
+    (row.max_participants !== null && typeof row.max_participants !== "number")
   ) {
     return null;
   }
@@ -170,11 +170,7 @@ function activityReviewRpcRow(data: unknown): ActivityReviewRpcRow | null {
   };
 }
 
-function requiredString(
-  value: unknown,
-  name: string,
-  maxLength?: number,
-) {
+function requiredString(value: unknown, name: string, maxLength?: number) {
   if (typeof value !== "string" || !value.trim()) {
     throw new Error(`${name} is required`);
   }
@@ -288,7 +284,8 @@ function validateActivity(body: ActivityRequest): ValidatedActivity {
   }
   const costType = body.costType;
   let estimatedCost = optionalNumber(body.estimatedCost, "estimatedCost");
-  let currency = optionalString(body.currency, "currency")?.toUpperCase() ?? null;
+  let currency =
+    optionalString(body.currency, "currency")?.toUpperCase() ?? null;
 
   if (costType === "free") {
     estimatedCost = null;
@@ -299,8 +296,7 @@ function validateActivity(body: ActivityRequest): ValidatedActivity {
     }
     if (
       estimatedCost !== null &&
-      (estimatedCost > 99_999_999.99 ||
-        !Number.isInteger(estimatedCost * 100))
+      (estimatedCost > 99_999_999.99 || !Number.isInteger(estimatedCost * 100))
     ) {
       throw new Error("estimatedCost must fit numeric(10,2)");
     }
@@ -354,7 +350,10 @@ router.post("/activities", async (request, response) => {
   try {
     session = await currentSession(request, response);
   } catch (error) {
-    request.log.error({ err: error }, "Unable to authenticate activity creator");
+    request.log.error(
+      { err: error },
+      "Unable to authenticate activity creator",
+    );
     response.status(401).json({ error: "Authentication required." });
     return;
   }
@@ -368,7 +367,9 @@ router.post("/activities", async (request, response) => {
   try {
     activity = validateActivity(bodyOf(request));
   } catch {
-    response.status(400).json({ error: "Check the activity details and try again." });
+    response
+      .status(400)
+      .json({ error: "Check the activity details and try again." });
     return;
   }
 
@@ -392,7 +393,9 @@ router.post("/activities", async (request, response) => {
         { err: error, userId: session.user.id },
         "Unable to create activity",
       );
-      response.status(500).json({ error: "The activity could not be published." });
+      response
+        .status(500)
+        .json({ error: "The activity could not be published." });
       return;
     }
 
@@ -402,7 +405,9 @@ router.post("/activities", async (request, response) => {
       { err: error, userId: session.user.id },
       "Unable to create activity",
     );
-    response.status(500).json({ error: "The activity could not be published." });
+    response
+      .status(500)
+      .json({ error: "The activity could not be published." });
   }
 });
 
@@ -411,7 +416,10 @@ router.get("/activities", async (request, response) => {
   try {
     session = await currentSession(request, response);
   } catch (error) {
-    request.log.error({ err: error }, "Unable to authenticate activity explorer");
+    request.log.error(
+      { err: error },
+      "Unable to authenticate activity explorer",
+    );
     response.status(401).json({ error: "Authentication required." });
     return;
   }
@@ -474,7 +482,9 @@ router.get("/activities", async (request, response) => {
         { err: failedResult.error, userId: session.user.id },
         "Unable to explore activities",
       );
-      response.status(500).json({ error: "The activities could not be loaded." });
+      response
+        .status(500)
+        .json({ error: "The activities could not be loaded." });
       return;
     }
 
@@ -551,7 +561,9 @@ router.get("/activities/mine", async (request, response) => {
         { err: activitiesError, userId: session.user.id },
         "Unable to load created activities",
       );
-      response.status(500).json({ error: "The activities could not be loaded." });
+      response
+        .status(500)
+        .json({ error: "The activities could not be loaded." });
       return;
     }
 
@@ -569,7 +581,8 @@ router.get("/activities/mine", async (request, response) => {
 
       if (leftUpcoming !== rightUpcoming) return leftUpcoming ? -1 : 1;
       if (leftUpcoming) return leftTimestamp - rightTimestamp;
-      if (leftTimestamp !== rightTimestamp) return rightTimestamp - leftTimestamp;
+      if (leftTimestamp !== rightTimestamp)
+        return rightTimestamp - leftTimestamp;
       return Date.parse(right.created_at) - Date.parse(left.created_at);
     });
 
@@ -631,12 +644,16 @@ router.get("/activities/joined", async (request, response) => {
         { err: membershipsError, userId: session.user.id },
         "Unable to load joined activity memberships",
       );
-      response.status(500).json({ error: "The activities could not be loaded." });
+      response
+        .status(500)
+        .json({ error: "The activities could not be loaded." });
       return;
     }
 
     const activityIds = [
-      ...new Set((memberships ?? []).map((membership) => membership.activity_id)),
+      ...new Set(
+        (memberships ?? []).map((membership) => membership.activity_id),
+      ),
     ];
 
     if (activityIds.length === 0) {
@@ -661,7 +678,9 @@ router.get("/activities/joined", async (request, response) => {
         { err: activitiesError, userId: session.user.id },
         "Unable to load joined upcoming activities",
       );
-      response.status(500).json({ error: "The activities could not be loaded." });
+      response
+        .status(500)
+        .json({ error: "The activities could not be loaded." });
       return;
     }
 
@@ -749,8 +768,7 @@ router.get("/activities/history", async (request, response) => {
           )
         : activitiesQuery.eq("creator_id", session.user.id);
 
-    const { data: activities, error: activitiesError } =
-      await activitiesQuery;
+    const { data: activities, error: activitiesError } = await activitiesQuery;
 
     if (activitiesError) {
       request.log.error(
@@ -770,9 +788,7 @@ router.get("/activities/history", async (request, response) => {
         return true;
       }
 
-      const finishedAt = Date.parse(
-        activity.ends_at ?? activity.starts_at,
-      );
+      const finishedAt = Date.parse(activity.ends_at ?? activity.starts_at);
 
       return Number.isFinite(finishedAt) && finishedAt <= now;
     });
@@ -782,9 +798,7 @@ router.get("/activities/history", async (request, response) => {
       return;
     }
 
-    const activityIds = historicalActivities.map(
-      (activity) => activity.id,
-    );
+    const activityIds = historicalActivities.map((activity) => activity.id);
 
     const { data: reviews, error: reviewsError } = await supabase
       .from("activity_reviews")
@@ -802,10 +816,7 @@ router.get("/activities/history", async (request, response) => {
       return;
     }
 
-    const reviewStats = new Map<
-      string,
-      { sum: number; count: number }
-    >();
+    const reviewStats = new Map<string, { sum: number; count: number }>();
 
     const myReviews = new Map<
       string,
@@ -834,15 +845,11 @@ router.get("/activities/history", async (request, response) => {
     response.json({
       activities: historicalActivities.map((activity) => {
         const relationship =
-          activity.creator_id === session.user.id
-            ? "organizer"
-            : "participant";
+          activity.creator_id === session.user.id ? "organizer" : "participant";
 
         const stats = reviewStats.get(activity.id);
 
-        const finishedAt = Date.parse(
-          activity.ends_at ?? activity.starts_at,
-        );
+        const finishedAt = Date.parse(activity.ends_at ?? activity.starts_at);
 
         const canReview =
           relationship === "participant" &&
@@ -881,9 +888,7 @@ router.get("/activities/history", async (request, response) => {
       { err: error, userId: session.user.id },
       "Unable to load activity history",
     );
-    response
-      .status(500)
-      .json({ error: "The activities could not be loaded." });
+    response.status(500).json({ error: "The activities could not be loaded." });
   }
 });
 
@@ -1097,10 +1102,7 @@ router.put("/activities/:id", async (request, response) => {
   try {
     session = await currentSession(request, response);
   } catch (error) {
-    request.log.error(
-      { err: error },
-      "Unable to authenticate activity editor",
-    );
+    request.log.error({ err: error }, "Unable to authenticate activity editor");
     response.status(401).json({ error: "Authentication required." });
     return;
   }
@@ -1146,16 +1148,14 @@ router.put("/activities/:id", async (request, response) => {
   try {
     const supabase = getSupabaseAdmin();
 
-    const {
-      data: currentActivity,
-      error: currentActivityError,
-    } = await supabase
-      .from("activities")
-      .select(
-        "id,creator_id,status,starts_at,location_type,city,country_code,region_code,region_name,latitude,longitude",
-      )
-      .eq("id", activityId)
-      .maybeSingle();
+    const { data: currentActivity, error: currentActivityError } =
+      await supabase
+        .from("activities")
+        .select(
+          "id,creator_id,status,starts_at,location_type,city,country_code,region_code,region_name,latitude,longitude",
+        )
+        .eq("id", activityId)
+        .maybeSingle();
 
     if (currentActivityError) {
       request.log.error(
@@ -1205,10 +1205,7 @@ router.put("/activities/:id", async (request, response) => {
       return;
     }
 
-    const {
-      count: memberCount,
-      error: memberCountError,
-    } = await supabase
+    const { count: memberCount, error: memberCountError } = await supabase
       .from("activity_members")
       .select("*", { count: "exact", head: true })
       .eq("activity_id", activityId);
@@ -1251,23 +1248,15 @@ router.put("/activities/:id", async (request, response) => {
     const activityUpdate = shouldPreserveLocationMetadata
       ? {
           ...activity,
-          country_code:
-            activity.country_code ?? currentActivity.country_code,
-          region_code:
-            activity.region_code ?? currentActivity.region_code,
-          region_name:
-            activity.region_name ?? currentActivity.region_name,
-          latitude:
-            activity.latitude ?? currentActivity.latitude,
-          longitude:
-            activity.longitude ?? currentActivity.longitude,
+          country_code: activity.country_code ?? currentActivity.country_code,
+          region_code: activity.region_code ?? currentActivity.region_code,
+          region_name: activity.region_name ?? currentActivity.region_name,
+          latitude: activity.latitude ?? currentActivity.latitude,
+          longitude: activity.longitude ?? currentActivity.longitude,
         }
       : activity;
-    
-    const {
-      data: updatedActivity,
-      error: updateError,
-    } = await supabase
+
+    const { data: updatedActivity, error: updateError } = await supabase
       .from("activities")
       .update(activityUpdate)
       .eq("id", activityId)
@@ -1354,10 +1343,7 @@ router.post("/activities/:id/cancel", async (request, response) => {
   try {
     const supabase = getSupabaseAdmin();
 
-    const {
-      data: activity,
-      error: activityError,
-    } = await supabase
+    const { data: activity, error: activityError } = await supabase
       .from("activities")
       .select("id,creator_id,status,starts_at,ends_at")
       .eq("id", activityId)
@@ -1414,14 +1400,9 @@ router.post("/activities/:id/cancel", async (request, response) => {
       return;
     }
 
-    const finishedAt = Date.parse(
-      activity.ends_at ?? activity.starts_at,
-    );
+    const finishedAt = Date.parse(activity.ends_at ?? activity.starts_at);
 
-    if (
-      Number.isFinite(finishedAt) &&
-      finishedAt <= Date.now()
-    ) {
+    if (Number.isFinite(finishedAt) && finishedAt <= Date.now()) {
       response.status(409).json({
         error: "Finished activities cannot be cancelled.",
         code: "activity_finished",
@@ -1429,10 +1410,7 @@ router.post("/activities/:id/cancel", async (request, response) => {
       return;
     }
 
-    const {
-      data: cancelledActivity,
-      error: cancellationError,
-    } = await supabase
+    const { data: cancelledActivity, error: cancellationError } = await supabase
       .from("activities")
       .update({ status: "cancelled" })
       .eq("id", activityId)
@@ -1532,34 +1510,50 @@ router.get("/activities/:id", async (request, response) => {
       return;
     }
 
-    const [profileResult, memberResult, membershipResult] = await Promise.all([
-      getSupabaseAdmin()
-        .from("profiles")
-        .select("username,display_name")
-        .eq("id", activity.creator_id)
-        .maybeSingle(),
-      getSupabaseAdmin()
-        .from("activity_members")
-        .select("*", { count: "exact", head: true })
-        .eq("activity_id", activity.id),
-      getSupabaseAdmin()
-        .from("activity_members")
-        .select("role")
-        .eq("activity_id", activity.id)
-        .eq("user_id", session.user.id)
-        .maybeSingle(),
-    ]);
+    const [profileResult, memberResult, membershipResult, memberListResult] =
+      await Promise.all([
+        getSupabaseAdmin()
+          .from("profiles")
+          .select("username,display_name,display_name_visibility")
+          .eq("id", activity.creator_id)
+          .maybeSingle(),
+
+        getSupabaseAdmin()
+          .from("activity_members")
+          .select("*", {
+            count: "exact",
+            head: true,
+          })
+          .eq("activity_id", activity.id),
+
+        getSupabaseAdmin()
+          .from("activity_members")
+          .select("role")
+          .eq("activity_id", activity.id)
+          .eq("user_id", session.user.id)
+          .maybeSingle(),
+
+        getSupabaseAdmin()
+          .from("activity_members")
+          .select("user_id,role,joined_at")
+          .eq("activity_id", activity.id)
+          .order("joined_at", {
+            ascending: true,
+          }),
+      ]);
 
     if (
       profileResult.error ||
       memberResult.error ||
-      membershipResult.error
+      membershipResult.error ||
+      memberListResult.error
     ) {
       request.log.error(
         {
           profileError: profileResult.error,
           memberError: memberResult.error,
           membershipError: membershipResult.error,
+          memberListError: memberListResult.error,
           activityId,
         },
         "Unable to load activity details",
@@ -1576,6 +1570,119 @@ router.get("/activities/:id", async (request, response) => {
       response.status(404).json({ error: "Activity not found." });
       return;
     }
+
+    const memberRows = [...(memberListResult.data ?? [])].sort(
+      (left, right) => {
+        if (left.role !== right.role) {
+          return left.role === "organizer" ? -1 : 1;
+        }
+
+        return Date.parse(left.joined_at) - Date.parse(right.joined_at);
+      },
+    );
+
+    const memberIds = [
+      ...new Set(
+        memberRows
+          .map((member) => member.user_id)
+          .filter((userId): userId is string => typeof userId === "string"),
+      ),
+    ];
+
+    let memberProfiles: Array<{
+      id: string;
+      username: string;
+      display_name: string | null;
+      display_name_visibility: string | null;
+      avatar_path: string | null;
+    }> = [];
+
+    if (memberIds.length > 0) {
+      const { data: profiles, error: profilesError } = await getSupabaseAdmin()
+        .from("profiles")
+        .select("id,username,display_name,display_name_visibility,avatar_path")
+        .in("id", memberIds);
+
+      if (profilesError) {
+        request.log.error(
+          {
+            err: profilesError,
+            activityId,
+          },
+          "Unable to load activity member profiles",
+        );
+
+        response.status(500).json({
+          error: "The activity could not be loaded.",
+        });
+        return;
+      }
+
+      memberProfiles = (profiles ?? []) as typeof memberProfiles;
+    }
+
+    const profileById = new Map(
+      memberProfiles.map((profile) => [profile.id, profile]),
+    );
+
+    const viewerSharesActivity = Boolean(membershipResult.data);
+
+    const members = await Promise.all(
+      memberRows.map(async (member) => {
+        const profile = profileById.get(member.user_id);
+
+        const visibility =
+          profile?.display_name_visibility ?? "shared_activity";
+
+        const displayNameVisible =
+          member.user_id === session.user.id ||
+          visibility === "everyone" ||
+          (visibility === "shared_activity" && viewerSharesActivity);
+
+        let avatarUrl: string | null = null;
+
+        const canonicalAvatarPath = `${member.user_id}/avatar.webp`;
+
+        if (profile?.avatar_path === canonicalAvatarPath) {
+          const { data: signedAvatar, error: signedAvatarError } =
+            await getSupabaseAdmin()
+              .storage.from(AVATAR_BUCKET)
+              .createSignedUrl(canonicalAvatarPath, AVATAR_SIGNED_URL_SECONDS);
+
+          if (signedAvatarError) {
+            request.log.warn(
+              {
+                err: signedAvatarError,
+                userId: member.user_id,
+                activityId,
+              },
+              "Unable to sign activity member avatar",
+            );
+          } else {
+            avatarUrl = signedAvatar?.signedUrl ?? null;
+          }
+        }
+
+        return {
+          id: member.user_id,
+          username: profile?.username ?? null,
+          displayName:
+            displayNameVisible && profile?.display_name?.trim()
+              ? profile.display_name.trim()
+              : null,
+          avatarUrl,
+          role: member.role === "organizer" ? "organizer" : "participant",
+        };
+      }),
+    );
+
+    const organizerVisibility =
+      profileResult.data?.display_name_visibility ?? "shared_activity";
+
+    const organizerDisplayNameVisible =
+      activity.creator_id === session.user.id ||
+      organizerVisibility === "everyone" ||
+      (organizerVisibility === "shared_activity" && viewerSharesActivity);
 
     response.json({
       activity: {
@@ -1602,9 +1709,15 @@ router.get("/activities/:id", async (request, response) => {
         status: activity.status,
         organizer: {
           username: profileResult.data?.username ?? null,
-          displayName: profileResult.data?.display_name ?? null,
+
+          displayName:
+            organizerDisplayNameVisible &&
+            profileResult.data?.display_name?.trim()
+              ? profileResult.data.display_name.trim()
+              : null,
         },
         memberCount: memberResult.count ?? 0,
+        members,
         membershipRole:
           membershipResult.data?.role === "organizer" ||
           membershipResult.data?.role === "participant"
