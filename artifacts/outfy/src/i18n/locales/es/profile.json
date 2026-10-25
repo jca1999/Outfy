@@ -233,5 +233,33 @@
     "title": "Tu perfil cuenta una historia.",
     "description": "Cada plan que haces abre una puerta nueva.",
     "addInterest": "Añadir interés"
+  },
+  "follows": {
+    "eyebrow": "Tu círculo",
+    "followersLabel_one": "seguidor",
+    "followersLabel_other": "seguidores",
+    "followingLabel_one": "seguido",
+    "followingLabel_other": "seguidos",
+    "connectionsLabel_one": "conexión",
+    "connectionsLabel_other": "conexiones",
+    "loading": "Cargando…",
+    "unavailable": "No hemos podido cargar esta información.",
+    "retry": "Reintentar",
+    "close": "Cerrar",
+    "follow": "Seguir",
+    "following": "Siguiendo",
+    "unfollow": "Dejar de seguir",
+    "followsYou": "Te sigue",
+    "mutationError": "No se pudo completar. Inténtalo de nuevo.",
+    "dialogTitle": "Seguidores y seguidos",
+    "dialogDescription": "Mira quién sigue este perfil y a quién sigue.",
+    "tabFollowers": "Seguidores",
+    "tabFollowing": "Seguidos",
+    "listError": "No pudimos cargar esta lista.",
+    "emptyFollowers": "Todavía no tiene seguidores.",
+    "emptyFollowing": "Todavía no sigue a nadie.",
+    "emptyOwnFollowers": "Todavía no tienes seguidores.",
+    "emptyOwnFollowing": "Todavía no sigues a nadie.",
+    "distinctHint": "Seguir es unilateral. Las conexiones son amistades mutuas que aceptáis ambos."
   }
 }

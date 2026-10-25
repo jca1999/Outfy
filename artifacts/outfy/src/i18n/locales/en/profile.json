@@ -233,5 +233,33 @@
     "title": "Your profile tells a story.",
     "description": "Every plan you make opens a new door.",
     "addInterest": "Add interest"
+  },
+  "follows": {
+    "eyebrow": "Your circle",
+    "followersLabel_one": "follower",
+    "followersLabel_other": "followers",
+    "followingLabel_one": "following",
+    "followingLabel_other": "following",
+    "connectionsLabel_one": "connection",
+    "connectionsLabel_other": "connections",
+    "loading": "Loading…",
+    "unavailable": "We couldn't load this information.",
+    "retry": "Retry",
+    "close": "Close",
+    "follow": "Follow",
+    "following": "Following",
+    "unfollow": "Unfollow",
+    "followsYou": "Follows you",
+    "mutationError": "That did not go through. Try again.",
+    "dialogTitle": "Followers and following",
+    "dialogDescription": "Browse who follows this profile and who it follows.",
+    "tabFollowers": "Followers",
+    "tabFollowing": "Following",
+    "listError": "We could not load this list.",
+    "emptyFollowers": "They don't have any followers yet.",
+    "emptyFollowing": "They aren't following anyone yet.",
+    "emptyOwnFollowers": "You don't have any followers yet.",
+    "emptyOwnFollowing": "You aren't following anyone yet.",
+    "distinctHint": "Following is one-way. Connections are mutual friendships you both accept."
   }
 }

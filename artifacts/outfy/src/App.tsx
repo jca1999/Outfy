@@ -9,6 +9,7 @@ import { ActivityDetail } from "@/pages/activity-detail";
 import { Explore } from "@/pages/explore";
 import { Home } from "@/pages/home";
 import { Matches } from "@/pages/matches";
+import { FollowsSync } from "@/follows/use-follows";
 import { Chats } from "@/pages/chats";
 import { Profile } from "@/pages/profile";
 import { ProfileEdit } from "@/pages/profile-edit";
@@ -150,6 +151,7 @@ function App() {
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <AuthProvider>
+            <FollowsSync />
             <Router />
           </AuthProvider>
         </WouterRouter>
