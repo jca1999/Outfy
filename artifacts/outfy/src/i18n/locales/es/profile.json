@@ -11,13 +11,13 @@
   },
 
   "connections": {
-    "title": "Conexiones",
-    "accepted_one": "{{count}} conexión",
-    "accepted_other": "{{count}} conexiones",
-    "pending_one": "{{count}} solicitud pendiente",
-    "pending_other": "{{count}} solicitudes pendientes",
-    "loading": "Cargando conexiones…",
-    "unavailable": "No hemos podido cargar tus conexiones."
+    "title": "Amigos",
+    "accepted_one": "{{count}} amigo",
+    "accepted_other": "{{count}} amigos",
+    "pending_one": "{{count}} solicitud de amistad pendiente",
+    "pending_other": "{{count}} solicitudes de amistad pendientes",
+    "loading": "Cargando amigos…",
+    "unavailable": "No hemos podido cargar tus amigos."
   },
 
   "navigation": {
@@ -33,10 +33,10 @@
     "errorDescription": "Inténtalo de nuevo dentro de unos instantes.",
     "privateTitle": "Perfil privado",
     "privateDescription": "Este usuario ha limitado la información visible de su perfil.",
-    "connectionError": "No hemos podido comprobar vuestra conexión.",
-    "connected": "Conectados",
+    "connectionError": "No hemos podido comprobar si sois amigos.",
+    "connected": "Amigos",
     "requestSent": "Solicitud enviada",
-    "incomingRequest": "Esta persona quiere conectar contigo"
+    "incomingRequest": "Te ha enviado una solicitud de amistad"
   },
 
   "avatar": {
@@ -143,8 +143,8 @@
       "help": "Cambios, solicitudes y avisos relacionados con tus planes."
     },
     "connections": {
-      "label": "Conexiones",
-      "help": "Solicitudes y novedades relacionadas con tus conexiones."
+      "label": "Amigos",
+      "help": "Solicitudes y novedades relacionadas con tus amistades."
     },
     "messages": {
       "label": "Mensajes",
@@ -173,7 +173,7 @@
 
   "stats": {
     "plans": "planes hechos",
-    "connections": "conexiones",
+    "connections": "amigos",
     "rating": "valoración"
   },
 
@@ -182,7 +182,7 @@
     "title": "Intereses",
     "selected_one": "{{count}} elegido",
     "selected_other": "{{count}} elegidos",
-    "description": "Tus intereses ayudan a ordenar los planes y acercarte a gente con ganas parecidas.",
+    "description": "Tus intereses ayudan a ordenar los planes y conocer gente con gustos parecidos.",
 
     "categories": {
       "football": "Fútbol",

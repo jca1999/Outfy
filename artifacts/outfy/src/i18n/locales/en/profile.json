@@ -11,13 +11,13 @@
   },
 
   "connections": {
-    "title": "Connections",
-    "accepted_one": "{{count}} connection",
-    "accepted_other": "{{count}} connections",
-    "pending_one": "{{count}} pending request",
-    "pending_other": "{{count}} pending requests",
-    "loading": "Loading connections…",
-    "unavailable": "We couldn't load your connections."
+    "title": "Friends",
+    "accepted_one": "{{count}} friend",
+    "accepted_other": "{{count}} friends",
+    "pending_one": "{{count}} pending friend request",
+    "pending_other": "{{count}} pending friend requests",
+    "loading": "Loading friends…",
+    "unavailable": "We couldn't load your friends."
   },
 
   "navigation": {
@@ -33,10 +33,10 @@
     "errorDescription": "Please try again in a few moments.",
     "privateTitle": "Private profile",
     "privateDescription": "This user has limited the information visible on their profile.",
-    "connectionError": "We couldn't check your connection status.",
-    "connected": "Connected",
+    "connectionError": "We couldn't check your friendship status.",
+    "connected": "Friends",
     "requestSent": "Request sent",
-    "incomingRequest": "This person wants to connect with you"
+    "incomingRequest": "This person sent you a friend request"
   },
 
   "avatar": {
@@ -143,8 +143,8 @@
       "help": "Changes, requests and updates related to your plans."
     },
     "connections": {
-      "label": "Connections",
-      "help": "Requests and updates related to your connections."
+      "label": "Friends",
+      "help": "Friend requests and updates about your friendships."
     },
     "messages": {
       "label": "Messages",
@@ -173,7 +173,7 @@
 
   "stats": {
     "plans": "plans completed",
-    "connections": "connections",
+    "connections": "friends",
     "rating": "rating"
   },
 
@@ -182,7 +182,7 @@
     "title": "Interests",
     "selected_one": "{{count}} selected",
     "selected_other": "{{count}} selected",
-    "description": "Your interests help us organize plans and connect you with people who enjoy similar things.",
+    "description": "Your interests help us organize plans and help you meet people who enjoy similar things.",
 
     "categories": {
       "football": "Football",
