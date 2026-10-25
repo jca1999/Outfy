@@ -12,7 +12,91 @@ tags:
     description: Health operations
   - name: auth
     description: Authentication operations
+  - name: follows
+    description: Unilateral follows; never grant friend or private-profile access
 paths:
+  /follows/with/{userId}:
+    parameters:
+      - $ref: "#/components/parameters/FollowUserId"
+    get:
+      operationId: getFollowRelationship
+      tags: [follows]
+      security: [{ sessionCookie: [] }]
+      summary: Relationship to the target and exact target follower/following counts
+      responses:
+        "200":
+          description: Relationship and counts, including for the current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowRelationship"
+        default:
+          $ref: "#/components/responses/FollowError"
+  /follows/{userId}:
+    parameters:
+      - $ref: "#/components/parameters/FollowUserId"
+    post:
+      operationId: followUser
+      tags: [follows]
+      security: [{ sessionCookie: [] }]
+      summary: Idempotently follow an existing user using the session identity
+      responses:
+        "200":
+          description: Following, including an already-existing follow
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowMutationResult"
+        default:
+          $ref: "#/components/responses/FollowError"
+    delete:
+      operationId: unfollowUser
+      tags: [follows]
+      security: [{ sessionCookie: [] }]
+      summary: Idempotently remove only the current user's follow of the target
+      responses:
+        "200":
+          description: Not following, including an already-absent follow
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowMutationResult"
+        default:
+          $ref: "#/components/responses/FollowError"
+  /follows/{userId}/followers:
+    parameters:
+      - $ref: "#/components/parameters/FollowUserId"
+    get:
+      operationId: getFollowers
+      tags: [follows]
+      security: [{ sessionCookie: [] }]
+      summary: Followers of the target, using the viewer's existing privacy permissions
+      responses:
+        "200":
+          description: Safe profiles, newest follow first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowProfileList"
+        default:
+          $ref: "#/components/responses/FollowError"
+  /follows/{userId}/following:
+    parameters:
+      - $ref: "#/components/parameters/FollowUserId"
+    get:
+      operationId: getFollowing
+      tags: [follows]
+      security: [{ sessionCookie: [] }]
+      summary: Users followed by the target, using the viewer's existing privacy permissions
+      responses:
+        "200":
+          description: Safe profiles, newest follow first
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FollowProfileList"
+        default:
+          $ref: "#/components/responses/FollowError"
   /healthz:
     get:
       operationId: healthCheck
@@ -147,7 +231,79 @@ paths:
               schema:
                 $ref: "#/components/schemas/AuthMessage"
 components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: outfy_access_token
+  parameters:
+    FollowUserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
+  responses:
+    FollowError:
+      description: "400 invalid_target/self_follow; 401 authentication_required; 404 user_not_found; 500 follows_unavailable; 503 follows_migration_required"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/FollowErrorResponse"
   schemas:
+    FollowRelationship:
+      type: object
+      required: [isFollowing, followsYou, followersCount, followingCount]
+      properties:
+        isFollowing:
+          type: boolean
+        followsYou:
+          type: boolean
+        followersCount:
+          type: integer
+          minimum: 0
+        followingCount:
+          type: integer
+          minimum: 0
+    FollowMutationResult:
+      type: object
+      required: [following]
+      properties:
+        following:
+          type: boolean
+    FollowProfile:
+      type: object
+      additionalProperties: false
+      required: [id, username, displayName, avatarUrl, city]
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        displayName:
+          type: ["string", "null"]
+        avatarUrl:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+    FollowProfileList:
+      type: object
+      required: [profiles]
+      properties:
+        profiles:
+          type: array
+          items:
+            $ref: "#/components/schemas/FollowProfile"
+    FollowErrorResponse:
+      type: object
+      required: [error, code]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+          enum: [authentication_required, invalid_target, self_follow, user_not_found, follows_unavailable, follows_migration_required]
     HealthStatus:
       type: object
       properties:

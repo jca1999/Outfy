@@ -5,6 +5,51 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface FollowRelationship {
+  isFollowing: boolean;
+  followsYou: boolean;
+  /** @minimum 0 */
+  followersCount: number;
+  /** @minimum 0 */
+  followingCount: number;
+}
+
+export interface FollowMutationResult {
+  following: boolean;
+}
+
+export interface FollowProfile {
+  id: string;
+  username: string;
+  /** @nullable */
+  displayName: string | null;
+  /** @nullable */
+  avatarUrl: string | null;
+  /** @nullable */
+  city: string | null;
+}
+
+export interface FollowProfileList {
+  profiles: FollowProfile[];
+}
+
+export type FollowErrorResponseCode = typeof FollowErrorResponseCode[keyof typeof FollowErrorResponseCode];
+
+
+export const FollowErrorResponseCode = {
+  authentication_required: 'authentication_required',
+  invalid_target: 'invalid_target',
+  self_follow: 'self_follow',
+  user_not_found: 'user_not_found',
+  follows_unavailable: 'follows_unavailable',
+  follows_migration_required: 'follows_migration_required',
+} as const;
+
+export interface FollowErrorResponse {
+  error: string;
+  code: FollowErrorResponseCode;
+}
+
 export interface HealthStatus {
   status: string;
 }

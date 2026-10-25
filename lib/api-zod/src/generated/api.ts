@@ -9,6 +9,102 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Relationship to the target and exact target follower/following counts
+ */
+export const getFollowRelationshipPathUserIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
+
+
+export const GetFollowRelationshipParams = zod.object({
+  "userId": zod.coerce.string().regex(getFollowRelationshipPathUserIdRegExp)
+})
+
+export const getFollowRelationshipResponseFollowersCountMin = 0;
+
+export const getFollowRelationshipResponseFollowingCountMin = 0;
+
+
+
+export const GetFollowRelationshipResponse = zod.object({
+  "isFollowing": zod.boolean(),
+  "followsYou": zod.boolean(),
+  "followersCount": zod.number().int().min(getFollowRelationshipResponseFollowersCountMin),
+  "followingCount": zod.number().int().min(getFollowRelationshipResponseFollowingCountMin)
+})
+
+
+/**
+ * @summary Idempotently follow an existing user using the session identity
+ */
+export const followUserPathUserIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
+
+
+export const FollowUserParams = zod.object({
+  "userId": zod.coerce.string().regex(followUserPathUserIdRegExp)
+})
+
+export const FollowUserResponse = zod.object({
+  "following": zod.boolean()
+})
+
+
+/**
+ * @summary Idempotently remove only the current user's follow of the target
+ */
+export const unfollowUserPathUserIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
+
+
+export const UnfollowUserParams = zod.object({
+  "userId": zod.coerce.string().regex(unfollowUserPathUserIdRegExp)
+})
+
+export const UnfollowUserResponse = zod.object({
+  "following": zod.boolean()
+})
+
+
+/**
+ * @summary Followers of the target, using the viewer's existing privacy permissions
+ */
+export const getFollowersPathUserIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
+
+
+export const GetFollowersParams = zod.object({
+  "userId": zod.coerce.string().regex(getFollowersPathUserIdRegExp)
+})
+
+export const GetFollowersResponse = zod.object({
+  "profiles": zod.array(zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "displayName": zod.string().nullable(),
+  "avatarUrl": zod.string().nullable(),
+  "city": zod.string().nullable()
+}))
+})
+
+
+/**
+ * @summary Users followed by the target, using the viewer's existing privacy permissions
+ */
+export const getFollowingPathUserIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
+
+
+export const GetFollowingParams = zod.object({
+  "userId": zod.coerce.string().regex(getFollowingPathUserIdRegExp)
+})
+
+export const GetFollowingResponse = zod.object({
+  "profiles": zod.array(zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "displayName": zod.string().nullable(),
+  "avatarUrl": zod.string().nullable(),
+  "city": zod.string().nullable()
+}))
+})
+
+
+/**
  * Returns server health status
  * @summary Health check
  */

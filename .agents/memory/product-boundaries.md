@@ -9,6 +9,12 @@ Outfy connections are mutual friendships, not followers or dating behavior.
 
 **How to apply:** Preserve the mutual relationship model when extending social features; do not substitute a follower model or compatibility/dating system.
 
+Followers/Following es un sistema unilateral separado: seguir a alguien está permitido incluso si su perfil es privado, sin aprobación, pero no concede acceso adicional ni convierte al seguidor en amigo.
+
+**Why:** El usuario definió expresamente esta separación para Followers / Following V1.
+
+**How to apply:** Resolver permisos friends-only únicamente mediante Connections aceptadas; nunca usar follows para abrir datos privados ni modificar Connections al seguir o dejar de seguir.
+
 Development must remain compatible with the user's current 0€ goal.
 
 **Why:** The user explicitly required this cost boundary.
