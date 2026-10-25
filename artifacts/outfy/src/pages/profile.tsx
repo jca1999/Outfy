@@ -33,7 +33,7 @@ import {
   uploadProfileAvatar,
 } from "@/auth/auth-api";
 import { useAuth } from "@/auth/auth-context";
-import { OwnSocialCard } from "@/follows/follow-ui";
+import { ProfileConnectionsCard } from "@/connections/profile-connections-card";
 import {
   Dialog,
   DialogContent,
@@ -816,7 +816,7 @@ export function Profile() {
         )}
       </section>
 
-      <OwnSocialCard />
+      <ProfileConnectionsCard />
 
       <section aria-labelledby="my-plans-title" className="space-y-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

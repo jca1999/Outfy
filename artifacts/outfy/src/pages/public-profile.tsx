@@ -14,7 +14,6 @@ import {
   type PublicProfile,
 } from "@/auth/auth-api";
 import { ConnectionAvatar } from "@/connections/connection-ui";
-import { FollowControls, FollowCounters } from "@/follows/follow-ui";
 import { ProfileRelationship } from "@/connections/profile-relationship";
 
 type LoadState = "loading" | "ready" | "notFound" | "error";
@@ -217,8 +216,6 @@ export function PublicProfile() {
             </p>
           )}
 
-          <FollowCounters key={`counts-${profile.id}`} targetId={profile.id} className="mt-3" />
-
           {!profile.isPrivate && location && (
             <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
               <MapPin className="h-4 w-4 text-primary" />
@@ -239,10 +236,6 @@ export function PublicProfile() {
               </p>
             </div>
           )}
-
-          <div className="mt-6">
-            <FollowControls key={`follow-${profile.id}`} targetId={profile.id} />
-          </div>
 
           <ProfileRelationship
             key={profile.id}
