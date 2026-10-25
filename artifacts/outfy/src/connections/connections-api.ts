@@ -4,6 +4,13 @@ export type Relationship = {
   direction: "incoming" | "outgoing";
 };
 
+export const CONNECTIONS_CHANGED_EVENT = "outfy:connections-changed";
+
+function notifyConnectionsChanged<T>(result: T): T {
+  window.dispatchEvent(new Event(CONNECTIONS_CHANGED_EVENT));
+  return result;
+}
+
 export type ConnectionProfile = {
   id: string;
   username: string;
@@ -69,14 +76,14 @@ export function sendConnectionRequest(targetUserId: string) {
   return request<{ relationship: Relationship }>("/requests", {
     method: "POST",
     body: JSON.stringify({ targetUserId }),
-  });
+  }).then(notifyConnectionsChanged);
 }
 
 export function acceptConnection(id: string) {
   return request<{ relationship: Relationship }>(
     `/${encodeURIComponent(id)}/accept`,
     { method: "POST" },
-  );
+  ).then(notifyConnectionsChanged);
 }
 
 export function deleteConnection(
@@ -86,5 +93,5 @@ export function deleteConnection(
   return request<{ removed: true }>(
     `/${encodeURIComponent(id)}?action=${action}`,
     { method: "DELETE" },
-  );
+  ).then(notifyConnectionsChanged);
 }

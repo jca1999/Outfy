@@ -122,6 +122,7 @@ function Router() {
             )}
           />
           <Route path="/explore" component={() => <Explore {...shared} />} />
+          <Route path="/connections" component={Matches} />
           <Route path="/matches" component={Matches} />
           <Route path="/chats" component={Chats} />
           <Route path="/activities/new" component={CreateActivity} />

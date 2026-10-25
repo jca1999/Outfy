@@ -12,6 +12,12 @@ import {
   type ProfileAvatarChangedDetail,
 } from "@/auth/auth-api";
 import { useAuth } from "@/auth/auth-context";
+import { useQueryClient } from "@tanstack/react-query";
+import { CONNECTIONS_CHANGED_EVENT } from "@/connections/connections-api";
+import {
+  connectionOverviewKey,
+  useConnectionOverview,
+} from "@/connections/use-connection-overview";
 
 interface OutfyShellProps {
   children: ReactNode;
@@ -19,12 +25,38 @@ interface OutfyShellProps {
 
 export function OutfyShell({ children }: OutfyShellProps) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const overview = useConnectionOverview();
+  const incomingCount = overview.isError ? 0 : (overview.data?.incoming.length ?? 0);
   const { t } = useTranslation("common");
   const [location, navigate] = useLocation();
   const [notificationsRead, setNotificationsRead] = useState(false);
   const avatarUrlRef = useRef<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loadedAvatarUrl, setLoadedAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    const queryKey = connectionOverviewKey(user.id);
+    const refresh = () => {
+      void queryClient.invalidateQueries({ queryKey, exact: true });
+    };
+    const onChanged = () => {
+      // Discard any pre-mutation read, including the initial pending request.
+      void queryClient.cancelQueries({ queryKey, exact: true }).then(refresh);
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") refresh();
+    };
+    window.addEventListener(CONNECTIONS_CHANGED_EVENT, onChanged);
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener(CONNECTIONS_CHANGED_EVENT, onChanged);
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [user?.id, queryClient]);
 
   function applyAvatarUrl(nextAvatarUrl: string | null) {
     avatarUrlRef.current = nextAvatarUrl;
@@ -106,7 +138,8 @@ export function OutfyShell({ children }: OutfyShellProps) {
             const active =
               item.href === "/"
                 ? location === "/"
-                : location.startsWith(item.href);
+                : location.startsWith(item.href) ||
+                  (item.id === "connections" && location === "/matches");
             return (
               <Link
                 href={item.href}
@@ -121,6 +154,15 @@ export function OutfyShell({ children }: OutfyShellProps) {
                 <Icon className="h-[18px] w-[18px]" />
 
                 {t(item.labelKey)}
+
+                {item.id === "connections" && incomingCount > 0 && (
+                  <span
+                    className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground"
+                    data-testid="badge-connections-desktop"
+                  >
+                    {incomingCount}
+                  </span>
+                )}
 
                 {item.id === "messages" && (
                   <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 font-mono-ui text-[9px] text-primary-foreground">
@@ -260,7 +302,8 @@ export function OutfyShell({ children }: OutfyShellProps) {
           const active =
             item.href === "/"
               ? location === "/"
-              : location.startsWith(item.href);
+              : location.startsWith(item.href) ||
+                (item.id === "connections" && location === "/matches");
           return (
             <Link
               href={item.href}
@@ -271,7 +314,17 @@ export function OutfyShell({ children }: OutfyShellProps) {
               )}
               data-testid={`link-mobile-nav-${item.id}`}
             >
-              <Icon className="h-[19px] w-[19px]" />
+              <span className="relative">
+                <Icon className="h-[19px] w-[19px]" />
+                {item.id === "connections" && incomingCount > 0 && (
+                  <span
+                    className="absolute -right-3 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground"
+                    data-testid="badge-connections-mobile"
+                  >
+                    {incomingCount > 9 ? "9+" : incomingCount}
+                  </span>
+                )}
+              </span>
               <span>
                 {t(item.labelKey)}
               </span>

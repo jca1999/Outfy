@@ -10,6 +10,16 @@
     "signOut": "Cerrar sesión"
   },
 
+  "connections": {
+    "title": "Conexiones",
+    "accepted_one": "{{count}} conexión",
+    "accepted_other": "{{count}} conexiones",
+    "pending_one": "{{count}} solicitud pendiente",
+    "pending_other": "{{count}} solicitudes pendientes",
+    "loading": "Cargando conexiones…",
+    "unavailable": "No hemos podido cargar tus conexiones."
+  },
+
   "navigation": {
     "backToProfile": "Volver al perfil"
   },

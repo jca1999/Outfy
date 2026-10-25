@@ -23,7 +23,7 @@ export const navItems = [
   },
   {
     id: "connections",
-    href: "/matches",
+    href: "/connections",
     labelKey: "navigation.connections",
     icon: Heart,
   },

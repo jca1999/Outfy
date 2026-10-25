@@ -33,6 +33,7 @@ import {
   uploadProfileAvatar,
 } from "@/auth/auth-api";
 import { useAuth } from "@/auth/auth-context";
+import { ProfileConnectionsCard } from "@/connections/profile-connections-card";
 import {
   Dialog,
   DialogContent,
@@ -814,6 +815,8 @@ export function Profile() {
           </p>
         )}
       </section>
+
+      <ProfileConnectionsCard />
 
       <section aria-labelledby="my-plans-title" className="space-y-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

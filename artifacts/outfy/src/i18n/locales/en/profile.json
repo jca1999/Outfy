@@ -10,6 +10,16 @@
     "signOut": "Sign out"
   },
 
+  "connections": {
+    "title": "Connections",
+    "accepted_one": "{{count}} connection",
+    "accepted_other": "{{count}} connections",
+    "pending_one": "{{count}} pending request",
+    "pending_other": "{{count}} pending requests",
+    "loading": "Loading connections…",
+    "unavailable": "We couldn't load your connections."
+  },
+
   "navigation": {
     "backToProfile": "Back to profile"
   },
