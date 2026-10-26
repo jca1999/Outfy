@@ -179,6 +179,7 @@
       "when": "When",
       "where": "Where",
       "people": "People",
+      "visibility": "Who can see this plan?",
       "cost": "Does this plan cost anything?"
     },
     "what": {
@@ -217,6 +218,13 @@
       "maxParticipantsLabel": "Maximum participants",
       "maxParticipantsPlaceholder": "Minimum 2"
     },
+    "visibility": {
+      "description": "Choose who can discover and access this plan.",
+      "public": "Public",
+      "friends": "Friends only",
+      "publicDescription": "Any Outfy user can discover and view this plan.",
+      "friendsDescription": "Only your friends can view and join this plan."
+    },
     "cost": {
       "typeLabel": "Choose an option",
       "free": "Free",
@@ -245,6 +253,7 @@
       "title": "This is how your plan will look",
       "intro": "Review it before sharing. It has not been published yet.",
       "description": "Description",
+      "visibility": "Visibility",
       "category": "Category",
       "subcategory": "Subcategory",
       "date": "Date",

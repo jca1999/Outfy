@@ -35,10 +35,12 @@ import {
 type ParticipationMode = 'limited' | 'unlimited';
 type CostType = 'free' | 'paid' | 'each_own';
 type Currency = 'EUR' | 'USD';
+type ActivityVisibility = 'public' | 'friends';
 
 type ActivityForm = {
   title: string;
   description: string;
+  visibility: ActivityVisibility;
   category: ActivityCategoryId | '';
   subcategory: ActivitySubcategoryId | '';
   date: string;
@@ -58,6 +60,7 @@ type ActivityForm = {
 const initialForm: ActivityForm = {
   title: '',
   description: '',
+  visibility: 'public',
   category: '',
   subcategory: '',
   date: '',
@@ -299,6 +302,7 @@ export function CreateActivity() {
         setForm({
           title: activity.title,
           description: activity.description ?? '',
+          visibility: activity.visibility,
           category:
             activity.category as ActivityCategoryId,
           subcategory:
@@ -655,6 +659,7 @@ export function CreateActivity() {
     const input: CreateActivityRequest = {
       title: form.title.trim(),
       description: form.description.trim() || undefined,
+      visibility: form.visibility,
       category: form.category,
       subcategory: form.subcategory,
       startsAt,
@@ -1121,6 +1126,18 @@ export function CreateActivity() {
               </dd>
             </div>
           </dl>
+
+          <div>
+            <dt className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">
+              {t('create.preview.visibility')}
+            </dt>
+
+            <dd className="mt-1 text-sm font-semibold">
+              {form.visibility === 'public'
+                ? t('create.visibility.public')
+                : t('create.visibility.friends')}
+            </dd>
+          </div>
 
           <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button
@@ -1703,6 +1720,46 @@ export function CreateActivity() {
                 {renderError('maxParticipants')}
               </div>
             )}
+          </section>
+
+          <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-7">
+            <div className="flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Users className="h-4 w-4" />
+              </span>
+
+              <h2 className="text-xl font-bold tracking-[-.03em]">
+                {t('create.sections.visibility')}
+              </h2>
+            </div>
+
+            <p className="mt-3 text-sm text-muted-foreground">
+              {t('create.visibility.description')}
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {renderChoice(
+                'visibility',
+                'public',
+                t('create.visibility.public'),
+                form.visibility === 'public',
+                () => updateForm('visibility', 'public'),
+              )}
+
+              {renderChoice(
+                'visibility',
+                'friends',
+                t('create.visibility.friends'),
+                form.visibility === 'friends',
+                () => updateForm('visibility', 'friends'),
+              )}
+            </div>
+
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              {form.visibility === 'public'
+                ? t('create.visibility.publicDescription')
+                : t('create.visibility.friendsDescription')}
+            </p>
           </section>
 
           <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-7">

@@ -1,11 +1,13 @@
 import { Router, type IRouter, type Request } from "express";
 
+import { findConnection } from "../lib/connections";
 import { getSupabaseAdmin } from "../lib/supabase";
 import { currentSession } from "./auth";
 
 type ActivityRequest = {
   title?: unknown;
   description?: unknown;
+  visibility?: unknown;
   category?: unknown;
   subcategory?: unknown;
   startsAt?: unknown;
@@ -31,6 +33,7 @@ type ActivityRequest = {
 type ValidatedActivity = {
   title: string;
   description: string | null;
+  visibility: "public" | "friends";
   category: string;
   subcategory: string;
   starts_at: string;
@@ -308,9 +311,16 @@ function validateActivity(body: ActivityRequest): ValidatedActivity {
     }
   }
 
+  const visibility = body.visibility === undefined ? "public" : body.visibility;
+
+  if (visibility !== "public" && visibility !== "friends") {
+    throw new Error("visibility is invalid");
+  }
+
   return {
     title,
     description,
+    visibility,
     category,
     subcategory,
     starts_at: startsAt.value,
@@ -452,6 +462,7 @@ router.get("/activities", async (request, response) => {
       .from("activities")
       .select(selectedFields)
       .eq("status", "active")
+      .eq("visibility", "public")
       .gt("starts_at", startsAfter);
 
     if (category) {
@@ -1491,7 +1502,7 @@ router.get("/activities/:id", async (request, response) => {
     const { data: activity, error: activityError } = await getSupabaseAdmin()
       .from("activities")
       .select(
-        "id,creator_id,title,description,category,subcategory,starts_at,ends_at,timezone_name,location_type,country_code,region_code,region_name,city,meeting_point,online_platform,participation_mode,max_participants,cost_type,estimated_cost,currency,status",
+        "id,creator_id,title,description,category,subcategory,starts_at,ends_at,timezone_name,location_type,country_code,region_code,region_name,city,meeting_point,online_platform,participation_mode,max_participants,cost_type,estimated_cost,currency,status,visibility",
       )
       .eq("id", activityId)
       .maybeSingle();
@@ -1508,6 +1519,49 @@ router.get("/activities/:id", async (request, response) => {
     if (!activity) {
       response.status(404).json({ error: "Activity not found." });
       return;
+    }
+
+    if (
+      activity.visibility === "friends" &&
+      activity.creator_id !== session.user.id
+    ) {
+      const { data: existingMembership, error: existingMembershipError } =
+        await getSupabaseAdmin()
+          .from("activity_members")
+          .select("role")
+          .eq("activity_id", activity.id)
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+
+      if (existingMembershipError) {
+        request.log.error(
+          {
+            err: existingMembershipError,
+            activityId,
+            userId: session.user.id,
+          },
+          "Unable to check friends-only activity membership",
+        );
+
+        response.status(500).json({
+          error: "The activity could not be loaded.",
+        });
+        return;
+      }
+
+      if (!existingMembership) {
+        const connection = await findConnection(
+          session.user.id,
+          activity.creator_id,
+        );
+
+        if (connection?.status !== "accepted") {
+          response.status(404).json({
+            error: "Activity not found.",
+          });
+          return;
+        }
+      }
     }
 
     const [profileResult, memberResult, membershipResult, memberListResult] =
@@ -1707,6 +1761,7 @@ router.get("/activities/:id", async (request, response) => {
         estimatedCost: activity.estimated_cost,
         currency: activity.currency,
         status: activity.status,
+        visibility: activity.visibility,
         organizer: {
           username: profileResult.data?.username ?? null,
 
@@ -1759,6 +1814,7 @@ router.post("/activities/:id/join", async (request, response) => {
   }
 
   try {
+    
     const { data, error } = await getSupabaseAdmin().rpc(
       "join_activity_as_user",
       {

@@ -1,6 +1,7 @@
 export type CreateActivityRequest = {
   title: string;
   description?: string;
+  visibility: 'public' | 'friends';
   category: string;
   subcategory: string;
   startsAt: string;
@@ -58,6 +59,7 @@ export type ActivityDetail = {
   id: string;
   title: string;
   description: string | null;
+  visibility: 'public' | 'friends';
   category: string;
   subcategory: string;
   startsAt: string;
