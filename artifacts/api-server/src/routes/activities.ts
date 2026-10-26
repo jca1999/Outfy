@@ -1978,8 +1978,83 @@ router.post("/activities/:id/join", async (request, response) => {
   }
 
   try {
-    
-    const { data, error } = await getSupabaseAdmin().rpc(
+    const supabase = getSupabaseAdmin();
+
+    const { data: activity, error: activityError } = await supabase
+      .from("activities")
+      .select("id,creator_id,visibility")
+      .eq("id", activityId)
+      .maybeSingle();
+
+    if (activityError) {
+      request.log.error(
+        {
+          err: activityError,
+          activityId,
+          userId: session.user.id,
+        },
+        "Unable to check activity visibility before joining",
+      );
+
+      response.status(500).json({
+        error: "The activity could not be joined.",
+      });
+      return;
+    }
+
+    if (!activity) {
+      response.status(404).json({
+        error: "Activity not found.",
+        code: "activity_not_found",
+      });
+      return;
+    }
+
+    if (
+      activity.visibility === "friends" &&
+      activity.creator_id !== session.user.id
+    ) {
+      const { data: existingMembership, error: membershipError } =
+        await supabase
+          .from("activity_members")
+          .select("role")
+          .eq("activity_id", activityId)
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+
+      if (membershipError) {
+        request.log.error(
+          {
+            err: membershipError,
+            activityId,
+            userId: session.user.id,
+          },
+          "Unable to check membership before joining friends-only activity",
+        );
+
+        response.status(500).json({
+          error: "The activity could not be joined.",
+        });
+        return;
+      }
+
+      if (!existingMembership) {
+        const connection = await findConnection(
+          session.user.id,
+          activity.creator_id,
+        );
+
+        if (connection?.status !== "accepted") {
+          response.status(403).json({
+            error: "This activity is only available to the organizer's friends.",
+            code: "activity_friends_only",
+          });
+          return;
+        }
+      }
+    }
+
+    const { data, error } = await supabase.rpc(
       "join_activity_as_user",
       {
         p_activity_id: activityId,

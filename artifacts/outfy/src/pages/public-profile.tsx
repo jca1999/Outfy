@@ -1,7 +1,9 @@
 import {
   ArrowLeft,
+  CalendarDays,
   LockKeyhole,
   MapPin,
+  Users,
   UserRound,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -13,13 +15,18 @@ import {
   getPublicProfile,
   type PublicProfile,
 } from "@/auth/auth-api";
+import {
+  getUserActivities,
+  type ProfileActivity,
+} from "@/activities/activity-api";
 import { ConnectionAvatar } from "@/connections/connection-ui";
 import { ProfileRelationship } from "@/connections/profile-relationship";
 
 type LoadState = "loading" | "ready" | "notFound" | "error";
 
 export function PublicProfile() {
-  const { t } = useTranslation("profile");
+  const { t, i18n } = useTranslation("profile");
+  const { t: tActivities } = useTranslation("activities");
   const [, navigate] = useLocation();
   const [, params] = useRoute("/users/:username");
 
@@ -29,6 +36,12 @@ export function PublicProfile() {
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const refreshSeq = useRef(0);
   const [reloadKey, setReloadKey] = useState(0);
+
+  const [plans, setPlans] = useState<ProfileActivity[]>([]);
+  const [plansState, setPlansState] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
+  const [plansReloadKey, setPlansReloadKey] = useState(0);
 
   // Silent refresh after relationship changes: privacy representation may change.
   const refreshProfile = useCallback(() => {
@@ -94,6 +107,47 @@ export function PublicProfile() {
     };
   }, [navigate, username, reloadKey]);
 
+  useEffect(() => {
+    if (!profile) {
+      setPlans([]);
+      setPlansState("idle");
+      return;
+    }
+
+    if (profile.isPrivate) {
+      setPlans([]);
+      setPlansState("ready");
+      return;
+    }
+
+    let active = true;
+
+    setPlansState("loading");
+
+    getUserActivities(profile.id)
+      .then((result) => {
+        if (!active) return;
+
+        setPlans(result.activities);
+        setPlansState("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+
+        setPlans([]);
+        setPlansState("error");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [profile?.id, profile?.isPrivate, plansReloadKey]);
+
+  const handleRelationshipChanged = useCallback(() => {
+    refreshProfile();
+    setPlansReloadKey((current) => current + 1);
+  }, [refreshProfile]);
+  
   function goBack() {
     if (window.history.length > 1) {
       window.history.back();
@@ -241,10 +295,165 @@ export function PublicProfile() {
             key={profile.id}
             userId={profile.id}
             name={visibleName}
-            onChanged={refreshProfile}
+            onChanged={handleRelationshipChanged}
           />
         </div>
       </section>
+      {!profile.isPrivate && (
+        <section className="rounded-[26px] border border-border bg-card p-6 soft-shadow sm:p-8">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold tracking-[-.03em]">
+                {t("publicProfile.plans.title")}
+              </h2>
+
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t("publicProfile.plans.description")}
+              </p>
+            </div>
+          </div>
+
+          {plansState === "loading" ? (
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              {Array.from({ length: 2 }).map((_, index) => (
+                <div
+                  key={index}
+                  className="h-[170px] animate-pulse rounded-[22px] bg-muted"
+                />
+              ))}
+            </div>
+          ) : plansState === "error" ? (
+            <div className="mt-6 rounded-[20px] border border-dashed border-border p-6 text-center">
+              <p className="text-sm font-semibold">
+                {t("publicProfile.plans.error")}
+              </p>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setPlansReloadKey((current) => current + 1)
+                }
+                className="mt-4 rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background"
+              >
+                {t("publicProfile.plans.retry")}
+              </button>
+            </div>
+          ) : plans.length === 0 ? (
+            <div className="mt-6 rounded-[20px] border border-dashed border-border p-7 text-center">
+              <CalendarDays className="mx-auto h-7 w-7 text-muted-foreground" />
+
+              <h3 className="mt-3 text-sm font-bold">
+                {t("publicProfile.plans.emptyTitle")}
+              </h3>
+
+              <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+                {t("publicProfile.plans.emptyDescription")}
+              </p>
+            </div>
+          ) : (
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              {plans.map((activity) => {
+                const date = new Date(activity.startsAt);
+
+                let dateLabel: string;
+
+                try {
+                  dateLabel = new Intl.DateTimeFormat(
+                    i18n.language === "en" ? "en-GB" : "es-ES",
+                    {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      timeZone: activity.timezoneName,
+                    },
+                  ).format(date);
+                } catch {
+                  dateLabel = new Intl.DateTimeFormat(
+                    i18n.language === "en" ? "en-GB" : "es-ES",
+                    {
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    },
+                  ).format(date);
+                }
+
+                const locationLabel =
+                  activity.locationType === "online"
+                    ? tActivities("locationTypes.online")
+                    : activity.city ?? "";
+
+                return (
+                  <button
+                    key={activity.id}
+                    type="button"
+                    onClick={() =>
+                      navigate(`/activities/${activity.id}`)
+                    }
+                    className="group flex w-full flex-col rounded-[22px] border border-border bg-background p-4 text-left transition hover:border-foreground/20 hover:shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="rounded-md bg-secondary px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-secondary-foreground">
+                        {tActivities(
+                          `categories.${activity.category}`,
+                        )}
+                      </span>
+
+                      {activity.visibility === "friends" && (
+                        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
+                          {t("publicProfile.plans.friendsOnly")}
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="mt-3 line-clamp-2 text-lg font-bold leading-tight group-hover:underline">
+                      {activity.title}
+                    </h3>
+
+                    <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-2">
+                        <CalendarDays className="h-4 w-4 shrink-0 text-foreground/40" />
+                        <span>{dateLabel}</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 shrink-0 text-foreground/40" />
+                        <span className="truncate">
+                          {locationLabel}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 shrink-0 text-foreground/40" />
+
+                        <span>
+                          {activity.participationMode === "limited"
+                            ? tActivities(
+                                "create.detail.participantsLimited",
+                                {
+                                  count: activity.memberCount,
+                                  max: activity.maxParticipants,
+                                },
+                              )
+                            : tActivities(
+                                "create.detail.participantsUnlimited",
+                                {
+                                  count: activity.memberCount,
+                                },
+                              )}
+                        </span>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

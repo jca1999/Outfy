@@ -162,6 +162,28 @@ export type ExploreActivitiesResponse = {
   activities: ExploreActivity[];
 };
 
+export type ProfileActivity = {
+  id: string;
+  title: string;
+  category: string;
+  subcategory: string;
+  startsAt: string;
+  endsAt: string | null;
+  timezoneName: string;
+  locationType: 'physical' | 'online';
+  city: string | null;
+  onlinePlatform: string | null;
+  participationMode: 'limited' | 'unlimited';
+  maxParticipants: number | null;
+  memberCount: number;
+  status: 'active' | 'completed' | 'cancelled';
+  visibility: 'public' | 'friends';
+};
+
+export type ProfileActivitiesResponse = {
+  activities: ProfileActivity[];
+};
+
 export type ExploreActivityFilters = {
   search?: string;
   category?: string;
@@ -419,6 +441,30 @@ export async function saveActivityReview(
   }
 
   return payload as SaveActivityReviewResponse;
+}
+
+export async function getUserActivities(userId: string) {
+  const response = await fetch(
+    `/api/activities/user/${encodeURIComponent(userId)}`,
+    {
+      credentials: 'include',
+    },
+  );
+
+  const payload = (await response.json().catch(() => null)) as
+    | ActivityErrorPayload
+    | ProfileActivitiesResponse
+    | null;
+
+  if (!response.ok) {
+    throw activityApiError(
+      payload && 'activities' in payload ? null : payload,
+      response.status,
+      'The activities could not be loaded.',
+    );
+  }
+
+  return payload as ProfileActivitiesResponse;
 }
 
 export async function getActivities(filters: ExploreActivityFilters = {}) {

@@ -36,7 +36,16 @@
     "connectionError": "We couldn't check your friendship status.",
     "connected": "Friends",
     "requestSent": "Request sent",
-    "incomingRequest": "This person sent you a friend request"
+    "incomingRequest": "This person sent you a friend request",
+    "plans": {
+      "title": "Plans",
+      "description": "Upcoming plans organized by this person.",
+      "emptyTitle": "No visible upcoming plans",
+      "emptyDescription": "When they publish a plan you can see, it will appear here.",
+      "error": "We couldn't load their plans.",
+      "retry": "Retry",
+      "friendsOnly": "Friends only"
+    }
   },
 
   "avatar": {

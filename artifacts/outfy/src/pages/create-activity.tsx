@@ -1119,6 +1119,18 @@ export function CreateActivity() {
 
             <div>
               <dt className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">
+                {t('create.preview.visibility')}
+              </dt>
+
+              <dd className="mt-1 text-sm font-semibold">
+                {form.visibility === 'public'
+                  ? t('create.visibility.public')
+                  : t('create.visibility.friends')}
+              </dd>
+            </div>
+
+            <div>
+              <dt className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">
                 {t('create.preview.cost')}
               </dt>
               <dd className="mt-1 text-sm font-semibold">
@@ -1126,18 +1138,6 @@ export function CreateActivity() {
               </dd>
             </div>
           </dl>
-
-          <div>
-            <dt className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">
-              {t('create.preview.visibility')}
-            </dt>
-
-            <dd className="mt-1 text-sm font-semibold">
-              {form.visibility === 'public'
-                ? t('create.visibility.public')
-                : t('create.visibility.friends')}
-            </dd>
-          </div>
 
           <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <button

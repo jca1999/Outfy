@@ -36,7 +36,16 @@
     "connectionError": "No hemos podido comprobar si sois amigos.",
     "connected": "Amigos",
     "requestSent": "Solicitud enviada",
-    "incomingRequest": "Te ha enviado una solicitud de amistad"
+    "incomingRequest": "Te ha enviado una solicitud de amistad",
+    "plans": {
+      "title": "Planes",
+      "description": "Próximos planes organizados por esta persona.",
+      "emptyTitle": "No tiene planes próximos visibles",
+      "emptyDescription": "Cuando publique un plan que puedas ver, aparecerá aquí.",
+      "error": "No hemos podido cargar sus planes.",
+      "retry": "Reintentar",
+      "friendsOnly": "Solo amigos"
+    }
   },
 
   "avatar": {
