@@ -1477,6 +1477,170 @@ router.post("/activities/:id/cancel", async (request, response) => {
   }
 });
 
+router.get("/activities/user/:userId", async (request, response) => {
+  let session;
+
+  try {
+    session = await currentSession(request, response);
+  } catch (error) {
+    request.log.error(
+      { err: error },
+      "Unable to authenticate public profile activity viewer",
+    );
+
+    response.status(401).json({
+      error: "Authentication required.",
+    });
+    return;
+  }
+
+  if (!session) {
+    response.status(401).json({
+      error: "Authentication required.",
+    });
+    return;
+  }
+
+  const userId = request.params.userId;
+
+  if (!UUID_PATTERN.test(userId)) {
+    response.status(404).json({
+      error: "User not found.",
+      code: "user_not_found",
+    });
+    return;
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id,is_profile_private")
+      .eq("id", userId)
+      .maybeSingle();
+
+    if (profileError) {
+      request.log.error(
+        {
+          err: profileError,
+          userId,
+          viewerId: session.user.id,
+        },
+        "Unable to load profile before loading profile activities",
+      );
+
+      response.status(500).json({
+        error: "The activities could not be loaded.",
+      });
+      return;
+    }
+
+    if (!profile) {
+      response.status(404).json({
+        error: "User not found.",
+        code: "user_not_found",
+      });
+      return;
+    }
+
+    const isOwnProfile = userId === session.user.id;
+
+    let isFriend = false;
+
+    if (!isOwnProfile) {
+      const connection = await findConnection(
+        session.user.id,
+        userId,
+      );
+
+      isFriend = connection?.status === "accepted";
+    }
+
+    const canSeePrivateProfile =
+      isOwnProfile ||
+      profile.is_profile_private !== true ||
+      isFriend;
+
+    if (!canSeePrivateProfile) {
+      response.json({
+        activities: [],
+      });
+      return;
+    }
+
+    const canSeeFriendsOnly = isOwnProfile || isFriend;
+
+    let query = supabase
+      .from("activities")
+      .select(
+        "id,title,category,subcategory,starts_at,ends_at,timezone_name,location_type,city,online_platform,participation_mode,max_participants,status,visibility,activity_members(count)",
+      )
+      .eq("creator_id", userId)
+      .eq("status", "active")
+      .gt("starts_at", new Date().toISOString())
+      .order("starts_at", { ascending: true })
+      .limit(12);
+
+    if (canSeeFriendsOnly) {
+      query = query.in("visibility", ["public", "friends"]);
+    } else {
+      query = query.eq("visibility", "public");
+    }
+
+    const { data: activities, error: activitiesError } = await query;
+
+    if (activitiesError) {
+      request.log.error(
+        {
+          err: activitiesError,
+          userId,
+          viewerId: session.user.id,
+        },
+        "Unable to load public profile activities",
+      );
+
+      response.status(500).json({
+        error: "The activities could not be loaded.",
+      });
+      return;
+    }
+
+    response.json({
+      activities: (activities ?? []).map((activity) => ({
+        id: activity.id,
+        title: activity.title,
+        category: activity.category,
+        subcategory: activity.subcategory,
+        startsAt: activity.starts_at,
+        endsAt: activity.ends_at,
+        timezoneName: activity.timezone_name,
+        locationType: activity.location_type,
+        city: activity.city,
+        onlinePlatform: activity.online_platform,
+        participationMode: activity.participation_mode,
+        maxParticipants: activity.max_participants,
+        memberCount: activity.activity_members?.[0]?.count ?? 0,
+        status: activity.status,
+        visibility: activity.visibility,
+      })),
+    });
+  } catch (error) {
+    request.log.error(
+      {
+        err: error,
+        userId,
+        viewerId: session.user.id,
+      },
+      "Unable to load profile activities",
+    );
+
+    response.status(500).json({
+      error: "The activities could not be loaded.",
+    });
+  }
+});
+
 router.get("/activities/:id", async (request, response) => {
   let session;
   try {
