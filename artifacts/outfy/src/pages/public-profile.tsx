@@ -3,6 +3,7 @@ import {
   CalendarDays,
   LockKeyhole,
   MapPin,
+  Star,
   Users,
   UserRound,
 } from "lucide-react";
@@ -18,6 +19,7 @@ import {
 import {
   getUserActivities,
   type ProfileActivity,
+  type ProfileReputation,
 } from "@/activities/activity-api";
 import { ConnectionAvatar } from "@/connections/connection-ui";
 import { ProfileRelationship } from "@/connections/profile-relationship";
@@ -38,6 +40,7 @@ export function PublicProfile() {
   const [reloadKey, setReloadKey] = useState(0);
 
   const [plans, setPlans] = useState<ProfileActivity[]>([]);
+  const [reputation, setReputation] = useState<ProfileReputation | null>(null);
   const [plansState, setPlansState] = useState<
     "idle" | "loading" | "ready" | "error"
   >("idle");
@@ -48,14 +51,22 @@ export function PublicProfile() {
     if (!username) return;
     // A removed connection must immediately stop rendering friends-only data
     // while the server computes the new safe representation.
-    setProfile((current) => current ? {
-      ...current, displayName: null, city: null, country: null,
-    } : current);
+    setProfile((current) =>
+      current
+        ? {
+            ...current,
+            displayName: null,
+            city: null,
+            country: null,
+          }
+        : current,
+    );
     const seq = ++refreshSeq.current;
     getPublicProfile(username)
       .then((result) => {
         if (seq !== refreshSeq.current) return;
-        if (result.profile.username.toLowerCase() !== username.toLowerCase()) return;
+        if (result.profile.username.toLowerCase() !== username.toLowerCase())
+          return;
         setProfile(result.profile);
       })
       .catch(() => {
@@ -110,12 +121,14 @@ export function PublicProfile() {
   useEffect(() => {
     if (!profile) {
       setPlans([]);
+      setReputation(null);
       setPlansState("idle");
       return;
     }
 
     if (profile.isPrivate) {
       setPlans([]);
+      setReputation(null);
       setPlansState("ready");
       return;
     }
@@ -129,12 +142,14 @@ export function PublicProfile() {
         if (!active) return;
 
         setPlans(result.activities);
+        setReputation(result.reputation);
         setPlansState("ready");
       })
       .catch(() => {
         if (!active) return;
 
         setPlans([]);
+        setReputation(null);
         setPlansState("error");
       });
 
@@ -147,7 +162,7 @@ export function PublicProfile() {
     refreshProfile();
     setPlansReloadKey((current) => current + 1);
   }, [refreshProfile]);
-  
+
   function goBack() {
     if (window.history.length > 1) {
       window.history.back();
@@ -216,9 +231,7 @@ export function PublicProfile() {
         </button>
 
         <div className="rounded-[26px] border border-border bg-card p-8 text-center">
-          <h1 className="text-xl font-bold">
-            {t("publicProfile.errorTitle")}
-          </h1>
+          <h1 className="text-xl font-bold">{t("publicProfile.errorTitle")}</h1>
 
           <p className="mt-2 text-sm text-muted-foreground">
             {t("publicProfile.errorDescription")}
@@ -237,8 +250,7 @@ export function PublicProfile() {
     );
   }
 
-  const visibleName =
-    profile.displayName?.trim() || `@${profile.username}`;
+  const visibleName = profile.displayName?.trim() || `@${profile.username}`;
 
   const location =
     profile.city && profile.country
@@ -268,6 +280,39 @@ export function PublicProfile() {
             <p className="mt-1 text-sm font-semibold text-muted-foreground">
               @{profile.username}
             </p>
+          )}
+
+          {!profile.isPrivate && reputation && (
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+              <div className="flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-sm">
+                <Star className="h-4 w-4 text-primary" />
+
+                <span className="font-bold">
+                  {reputation.averageRating !== null
+                    ? reputation.averageRating.toFixed(1)
+                    : t("publicProfile.reputation.noReviews")}
+                </span>
+
+                {reputation.reviewCount > 0 && (
+                  <span className="text-muted-foreground">
+                    ·{" "}
+                    {t("publicProfile.reputation.reviews", {
+                      count: reputation.reviewCount,
+                    })}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-sm">
+                <CalendarDays className="h-4 w-4 text-primary" />
+
+                <span className="font-semibold">
+                  {t("publicProfile.reputation.completedPlans", {
+                    count: reputation.completedActivityCount,
+                  })}
+                </span>
+              </div>
+            </div>
           )}
 
           {!profile.isPrivate && location && (
@@ -330,9 +375,7 @@ export function PublicProfile() {
 
               <button
                 type="button"
-                onClick={() =>
-                  setPlansReloadKey((current) => current + 1)
-                }
+                onClick={() => setPlansReloadKey((current) => current + 1)}
                 className="mt-4 rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background"
               >
                 {t("publicProfile.plans.retry")}
@@ -384,22 +427,18 @@ export function PublicProfile() {
                 const locationLabel =
                   activity.locationType === "online"
                     ? tActivities("locationTypes.online")
-                    : activity.city ?? "";
+                    : (activity.city ?? "");
 
                 return (
                   <button
                     key={activity.id}
                     type="button"
-                    onClick={() =>
-                      navigate(`/activities/${activity.id}`)
-                    }
+                    onClick={() => navigate(`/activities/${activity.id}`)}
                     className="group flex w-full flex-col rounded-[22px] border border-border bg-background p-4 text-left transition hover:border-foreground/20 hover:shadow-sm"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <span className="rounded-md bg-secondary px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-secondary-foreground">
-                        {tActivities(
-                          `categories.${activity.category}`,
-                        )}
+                        {tActivities(`categories.${activity.category}`)}
                       </span>
 
                       {activity.visibility === "friends" && (
@@ -421,9 +460,7 @@ export function PublicProfile() {
 
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 shrink-0 text-foreground/40" />
-                        <span className="truncate">
-                          {locationLabel}
-                        </span>
+                        <span className="truncate">{locationLabel}</span>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -431,13 +468,10 @@ export function PublicProfile() {
 
                         <span>
                           {activity.participationMode === "limited"
-                            ? tActivities(
-                                "create.detail.participantsLimited",
-                                {
-                                  count: activity.memberCount,
-                                  max: activity.maxParticipants,
-                                },
-                              )
+                            ? tActivities("create.detail.participantsLimited", {
+                                count: activity.memberCount,
+                                max: activity.maxParticipants,
+                              })
                             : tActivities(
                                 "create.detail.participantsUnlimited",
                                 {

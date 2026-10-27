@@ -180,8 +180,15 @@ export type ProfileActivity = {
   visibility: 'public' | 'friends';
 };
 
+export type ProfileReputation = {
+  averageRating: number | null;
+  reviewCount: number;
+  completedActivityCount: number;
+};
+
 export type ProfileActivitiesResponse = {
   activities: ProfileActivity[];
+  reputation: ProfileReputation | null;
 };
 
 export type ExploreActivityFilters = {

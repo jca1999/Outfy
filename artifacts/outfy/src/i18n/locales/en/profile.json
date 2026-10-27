@@ -37,6 +37,13 @@
     "connected": "Friends",
     "requestSent": "Request sent",
     "incomingRequest": "This person sent you a friend request",
+    "reputation": {
+      "noReviews": "No ratings yet",
+      "reviews_one": "{{count}} rating",
+      "reviews_other": "{{count}} ratings",
+      "completedPlans_one": "{{count}} completed plan",
+      "completedPlans_other": "{{count}} completed plans"
+    },
     "plans": {
       "title": "Plans",
       "description": "Upcoming plans organized by this person.",

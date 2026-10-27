@@ -1549,22 +1549,18 @@ router.get("/activities/user/:userId", async (request, response) => {
     let isFriend = false;
 
     if (!isOwnProfile) {
-      const connection = await findConnection(
-        session.user.id,
-        userId,
-      );
+      const connection = await findConnection(session.user.id, userId);
 
       isFriend = connection?.status === "accepted";
     }
 
     const canSeePrivateProfile =
-      isOwnProfile ||
-      profile.is_profile_private !== true ||
-      isFriend;
+      isOwnProfile || profile.is_profile_private !== true || isFriend;
 
     if (!canSeePrivateProfile) {
       response.json({
         activities: [],
+        reputation: null,
       });
       return;
     }
@@ -1606,7 +1602,84 @@ router.get("/activities/user/:userId", async (request, response) => {
       return;
     }
 
+    const { data: completedCandidates, error: completedActivitiesError } =
+      await supabase
+        .from("activities")
+        .select("id,starts_at,ends_at,status")
+        .eq("creator_id", userId)
+        .neq("status", "cancelled");
+
+    if (completedActivitiesError) {
+      request.log.error(
+        {
+          err: completedActivitiesError,
+          userId,
+          viewerId: session.user.id,
+        },
+        "Unable to load completed activities for reputation",
+      );
+
+      response.status(500).json({
+        error: "The reputation could not be loaded.",
+      });
+      return;
+    }
+
+    const now = Date.now();
+
+    const completedActivityIds = (completedCandidates ?? [])
+      .filter((activity) => {
+        const finishedAt = Date.parse(activity.ends_at ?? activity.starts_at);
+
+        return Number.isFinite(finishedAt) && finishedAt <= now;
+      })
+      .map((activity) => activity.id);
+
+    let averageRating: number | null = null;
+    let reviewCount = 0;
+
+    if (completedActivityIds.length > 0) {
+      const { data: reviews, error: reviewsError } = await supabase
+        .from("activity_reviews")
+        .select("rating")
+        .in("activity_id", completedActivityIds);
+
+      if (reviewsError) {
+        request.log.error(
+          {
+            err: reviewsError,
+            userId,
+            viewerId: session.user.id,
+          },
+          "Unable to load reviews for reputation",
+        );
+
+        response.status(500).json({
+          error: "The reputation could not be loaded.",
+        });
+        return;
+      }
+
+      reviewCount = reviews?.length ?? 0;
+
+      if (reviewCount > 0) {
+        const ratingSum = reviews!.reduce(
+          (sum, review) => sum + review.rating,
+          0,
+        );
+
+        averageRating = Number((ratingSum / reviewCount).toFixed(1));
+      }
+    }
+
+    const reputation = {
+      averageRating,
+      reviewCount,
+      completedActivityCount: completedActivityIds.length,
+    };
+
     response.json({
+      reputation,
       activities: (activities ?? []).map((activity) => ({
         id: activity.id,
         title: activity.title,
@@ -2046,7 +2119,8 @@ router.post("/activities/:id/join", async (request, response) => {
 
         if (connection?.status !== "accepted") {
           response.status(403).json({
-            error: "This activity is only available to the organizer's friends.",
+            error:
+              "This activity is only available to the organizer's friends.",
             code: "activity_friends_only",
           });
           return;
@@ -2054,13 +2128,10 @@ router.post("/activities/:id/join", async (request, response) => {
       }
     }
 
-    const { data, error } = await supabase.rpc(
-      "join_activity_as_user",
-      {
-        p_activity_id: activityId,
-        p_user_id: session.user.id,
-      },
-    );
+    const { data, error } = await supabase.rpc("join_activity_as_user", {
+      p_activity_id: activityId,
+      p_user_id: session.user.id,
+    });
     const result = membershipRpcRow(data);
 
     if (error || !result) {

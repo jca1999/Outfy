@@ -37,6 +37,13 @@
     "connected": "Amigos",
     "requestSent": "Solicitud enviada",
     "incomingRequest": "Te ha enviado una solicitud de amistad",
+    "reputation": {
+      "noReviews": "Sin valoraciones",
+      "reviews_one": "{{count}} valoración",
+      "reviews_other": "{{count}} valoraciones",
+      "completedPlans_one": "{{count}} plan realizado",
+      "completedPlans_other": "{{count}} planes realizados"
+    },
     "plans": {
       "title": "Planes",
       "description": "Próximos planes organizados por esta persona.",
