@@ -6,6 +6,7 @@ import {
   Edit3,
   MapPin,
   Share2,
+  Star,
   Users,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -432,6 +433,11 @@ export function ActivityDetail() {
 
   const activityFinishedAt = Date.parse(activity.endsAt ?? activity.startsAt);
 
+  const activityFinished =
+    activity.status !== "cancelled" &&
+    Number.isFinite(activityFinishedAt) &&
+    activityFinishedAt <= Date.now();
+
   const canOrganizerEdit =
     activity.membershipRole === "organizer" &&
     activity.status === "active" &&
@@ -799,6 +805,108 @@ export function ActivityDetail() {
               <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-foreground">
                 {activity.description}
               </p>
+            </section>
+          )}
+          {activityFinished && (
+            <section className="mt-3 border-t border-border pt-6 sm:col-span-2">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <h2 className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">
+                    {t("create.detail.reviewsTitle")}
+                  </h2>
+
+                  {activity.averageRating !== null ? (
+                    <div className="mt-2 flex items-center gap-2">
+                      <Star className="h-5 w-5 text-primary" />
+
+                      <span className="text-xl font-bold">
+                        {activity.averageRating.toFixed(1)}/5
+                      </span>
+
+                      <span className="text-sm text-muted-foreground">
+                        ·{" "}
+                        {t("create.detail.reviewsCount", {
+                          count: activity.reviewCount,
+                        })}
+                      </span>
+                    </div>
+                  ) : (
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {t("create.detail.reviewsEmpty")}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {activity.reviews.filter((review) => review.comment).length > 0 ? (
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                  {activity.reviews
+                    .filter((review) => review.comment)
+                    .map((review) => {
+                      const reviewerName =
+                        review.reviewer.displayName ||
+                        review.reviewer.username ||
+                        t("create.detail.reviewerFallback");
+
+                      const initials = reviewerName
+                        .split(/\s+/)
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .map((part) => part[0])
+                        .join("")
+                        .toUpperCase();
+
+                      return (
+                        <article
+                          key={`${review.reviewer.id}-${review.createdAt}`}
+                          className="rounded-[20px] border border-border bg-background/45 p-4"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                              {review.reviewer.avatarUrl ? (
+                                <img
+                                  src={review.reviewer.avatarUrl}
+                                  alt=""
+                                  className="absolute inset-0 h-full w-full object-cover"
+                                />
+                              ) : (
+                                initials
+                              )}
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-bold">
+                                {reviewerName}
+                              </p>
+
+                              {review.reviewer.displayName &&
+                                review.reviewer.username && (
+                                  <p className="truncate text-xs text-muted-foreground">
+                                    @{review.reviewer.username}
+                                  </p>
+                                )}
+                            </div>
+
+                            <div className="flex shrink-0 items-center gap-1 text-sm font-bold">
+                              <Star className="h-4 w-4 text-primary" />
+                              {review.rating}/5
+                            </div>
+                          </div>
+
+                          <p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-foreground">
+                            {review.comment}
+                          </p>
+                        </article>
+                      );
+                    })}
+                </div>
+              ) : (
+                activity.reviewCount > 0 && (
+                  <p className="mt-5 rounded-[18px] border border-dashed border-border p-4 text-sm text-muted-foreground">
+                    {t("create.detail.reviewsNoComments")}
+                  </p>
+                )
+              )}
             </section>
           )}
         </div>

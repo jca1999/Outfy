@@ -89,6 +89,7 @@ const ACTIVITY_CATEGORIES = new Set([
   "other",
 ]);
 const EXPLORE_RESULT_LIMIT = 30;
+const ACTIVITY_AUTO_COMPLETE_MS = 24 * 60 * 60 * 1000;
 const SERVER_OWNED_FIELDS = new Set([
   "creatorId",
   "creator_id",
@@ -99,6 +100,46 @@ const SERVER_OWNED_FIELDS = new Set([
   "updated_at",
   "role",
 ]);
+
+async function completeExpiredActivities() {
+  const supabase = getSupabaseAdmin();
+
+  const now = new Date();
+  const nowIso = now.toISOString();
+
+  const fallbackEndIso = new Date(
+    now.getTime() - ACTIVITY_AUTO_COMPLETE_MS,
+  ).toISOString();
+
+  const [activitiesWithEndResult, activitiesWithoutEndResult] =
+    await Promise.all([
+      supabase
+        .from("activities")
+        .update({
+          status: "completed",
+        })
+        .eq("status", "active")
+        .not("ends_at", "is", null)
+        .lte("ends_at", nowIso),
+
+      supabase
+        .from("activities")
+        .update({
+          status: "completed",
+        })
+        .eq("status", "active")
+        .is("ends_at", null)
+        .lte("starts_at", fallbackEndIso),
+    ]);
+
+  if (activitiesWithEndResult.error) {
+    throw activitiesWithEndResult.error;
+  }
+
+  if (activitiesWithoutEndResult.error) {
+    throw activitiesWithoutEndResult.error;
+  }
+}
 
 function bodyOf(request: Request): ActivityRequest {
   return request.body && typeof request.body === "object"
@@ -354,6 +395,24 @@ function validateActivity(body: ActivityRequest): ValidatedActivity {
     currency,
   };
 }
+
+router.use("/activities", async (request, response, next) => {
+  try {
+    await completeExpiredActivities();
+    next();
+  } catch (error) {
+    request.log.error(
+      {
+        err: error,
+      },
+      "Unable to complete expired activities",
+    );
+
+    response.status(500).json({
+      error: "The activities could not be updated.",
+    });
+  }
+});
 
 router.post("/activities", async (request, response) => {
   let session;
@@ -794,15 +853,10 @@ router.get("/activities/history", async (request, response) => {
 
     const now = Date.now();
 
-    const historicalActivities = (activities ?? []).filter((activity) => {
-      if (activity.status === "cancelled") {
-        return true;
-      }
-
-      const finishedAt = Date.parse(activity.ends_at ?? activity.starts_at);
-
-      return Number.isFinite(finishedAt) && finishedAt <= now;
-    });
+    const historicalActivities = (activities ?? []).filter(
+      (activity) =>
+        activity.status === "completed" || activity.status === "cancelled",
+    );
 
     if (historicalActivities.length === 0) {
       response.json({ activities: [] });
@@ -860,13 +914,8 @@ router.get("/activities/history", async (request, response) => {
 
         const stats = reviewStats.get(activity.id);
 
-        const finishedAt = Date.parse(activity.ends_at ?? activity.starts_at);
-
         const canReview =
-          relationship === "participant" &&
-          activity.status !== "cancelled" &&
-          Number.isFinite(finishedAt) &&
-          finishedAt <= now;
+          relationship === "participant" && activity.status === "completed";
 
         return {
           id: activity.id,
@@ -977,26 +1026,20 @@ router.put("/activities/:id/review", async (request, response) => {
   }
 
   try {
-    const { data, error } = await getSupabaseAdmin().rpc(
-      "upsert_activity_review_as_user",
-      {
-        p_activity_id: activityId,
-        p_user_id: session.user.id,
-        p_rating: rating,
-        p_comment: comment,
-      },
-    );
+    const { data: activity, error: activityError } = await getSupabaseAdmin()
+      .from("activities")
+      .select("status")
+      .eq("id", activityId)
+      .maybeSingle();
 
-    const result = activityReviewRpcRow(data);
-
-    if (error || !result) {
+    if (activityError) {
       request.log.error(
         {
-          err: error,
+          err: activityError,
           activityId,
           userId: session.user.id,
         },
-        "Unable to save activity review",
+        "Unable to check activity before review",
       );
 
       response.status(500).json({
@@ -1005,41 +1048,7 @@ router.put("/activities/:id/review", async (request, response) => {
       return;
     }
 
-    if (
-      result.result === "saved" &&
-      result.review_id &&
-      result.rating !== null &&
-      result.review_count !== null
-    ) {
-      response.json({
-        review: {
-          id: result.review_id,
-          rating: result.rating,
-          comment: result.comment,
-        },
-        averageRating: result.average_rating,
-        reviewCount: result.review_count,
-      });
-      return;
-    }
-
-    if (result.result === "invalid_rating") {
-      response.status(400).json({
-        error: "Rating must be between 1 and 5.",
-        code: "invalid_rating",
-      });
-      return;
-    }
-
-    if (result.result === "comment_too_long") {
-      response.status(400).json({
-        error: "The review comment is too long.",
-        code: "comment_too_long",
-      });
-      return;
-    }
-
-    if (result.result === "not_found") {
+    if (!activity) {
       response.status(404).json({
         error: "Activity not found.",
         code: "activity_not_found",
@@ -1047,7 +1056,7 @@ router.put("/activities/:id/review", async (request, response) => {
       return;
     }
 
-    if (result.result === "cancelled") {
+    if (activity.status === "cancelled") {
       response.status(409).json({
         error: "Cancelled activities cannot be reviewed.",
         code: "activity_cancelled",
@@ -1055,42 +1064,13 @@ router.put("/activities/:id/review", async (request, response) => {
       return;
     }
 
-    if (result.result === "organizer_cannot_review") {
-      response.status(409).json({
-        error: "The organizer cannot review their own activity.",
-        code: "organizer_cannot_review",
-      });
-      return;
-    }
-
-    if (result.result === "not_finished") {
+    if (activity.status !== "completed") {
       response.status(409).json({
         error: "The activity has not finished yet.",
         code: "activity_not_finished",
       });
       return;
     }
-
-    if (result.result === "not_participant") {
-      response.status(403).json({
-        error: "Only participants can review this activity.",
-        code: "not_activity_participant",
-      });
-      return;
-    }
-
-    request.log.error(
-      {
-        rpcResult: result.result,
-        activityId,
-        userId: session.user.id,
-      },
-      "Unexpected activity review result",
-    );
-
-    response.status(500).json({
-      error: "The review could not be saved.",
-    });
   } catch (error) {
     request.log.error(
       {
@@ -1318,6 +1298,168 @@ router.put("/activities/:id", async (request, response) => {
 
     response.status(500).json({
       error: "The activity could not be updated.",
+    });
+  }
+});
+
+router.post("/activities/:id/complete", async (request, response) => {
+  let session;
+
+  try {
+    session = await currentSession(request, response);
+  } catch (error) {
+    request.log.error(
+      { err: error },
+      "Unable to authenticate activity completion",
+    );
+
+    response.status(401).json({
+      error: "Authentication required.",
+    });
+    return;
+  }
+
+  if (!session) {
+    response.status(401).json({
+      error: "Authentication required.",
+    });
+    return;
+  }
+
+  const activityId = request.params.id;
+
+  if (!UUID_PATTERN.test(activityId)) {
+    response.status(404).json({
+      error: "Activity not found.",
+      code: "activity_not_found",
+    });
+    return;
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+
+    const { data: activity, error: activityError } = await supabase
+      .from("activities")
+      .select("id,creator_id,status,starts_at")
+      .eq("id", activityId)
+      .maybeSingle();
+
+    if (activityError) {
+      request.log.error(
+        {
+          err: activityError,
+          activityId,
+          userId: session.user.id,
+        },
+        "Unable to load activity before completion",
+      );
+
+      response.status(500).json({
+        error: "The activity could not be completed.",
+      });
+      return;
+    }
+
+    if (!activity) {
+      response.status(404).json({
+        error: "Activity not found.",
+        code: "activity_not_found",
+      });
+      return;
+    }
+
+    if (activity.creator_id !== session.user.id) {
+      response.status(403).json({
+        error: "Only the organizer can complete this activity.",
+        code: "not_activity_organizer",
+      });
+      return;
+    }
+
+    if (activity.status === "cancelled") {
+      response.status(409).json({
+        error: "Cancelled activities cannot be completed.",
+        code: "activity_cancelled",
+      });
+      return;
+    }
+
+    if (activity.status === "completed") {
+      response.json({
+        result: "already_completed",
+        activity: {
+          id: activity.id,
+          status: "completed",
+        },
+      });
+      return;
+    }
+
+    const startsAt = Date.parse(activity.starts_at);
+
+    if (!Number.isFinite(startsAt) || startsAt > Date.now()) {
+      response.status(409).json({
+        error: "The activity has not started yet.",
+        code: "activity_not_started",
+      });
+      return;
+    }
+
+    const { data: completedActivity, error: completionError } = await supabase
+      .from("activities")
+      .update({
+        status: "completed",
+      })
+      .eq("id", activity.id)
+      .eq("creator_id", session.user.id)
+      .eq("status", "active")
+      .select("id,status")
+      .maybeSingle();
+
+    if (completionError) {
+      request.log.error(
+        {
+          err: completionError,
+          activityId,
+          userId: session.user.id,
+        },
+        "Unable to complete activity",
+      );
+
+      response.status(500).json({
+        error: "The activity could not be completed.",
+      });
+      return;
+    }
+
+    if (!completedActivity) {
+      response.status(409).json({
+        error: "This activity can no longer be completed.",
+        code: "activity_changed",
+      });
+      return;
+    }
+
+    response.json({
+      result: "completed",
+      activity: {
+        id: completedActivity.id,
+        status: "completed",
+      },
+    });
+  } catch (error) {
+    request.log.error(
+      {
+        err: error,
+        activityId,
+        userId: session.user.id,
+      },
+      "Unable to complete activity",
+    );
+
+    response.status(500).json({
+      error: "The activity could not be completed.",
     });
   }
 });
@@ -1801,43 +1943,56 @@ router.get("/activities/:id", async (request, response) => {
       }
     }
 
-    const [profileResult, memberResult, membershipResult, memberListResult] =
-      await Promise.all([
-        getSupabaseAdmin()
-          .from("profiles")
-          .select("username,display_name,display_name_visibility")
-          .eq("id", activity.creator_id)
-          .maybeSingle(),
+    const [
+      profileResult,
+      memberResult,
+      membershipResult,
+      memberListResult,
+      reviewsResult,
+    ] = await Promise.all([
+      getSupabaseAdmin()
+        .from("profiles")
+        .select("username,display_name,display_name_visibility")
+        .eq("id", activity.creator_id)
+        .maybeSingle(),
 
-        getSupabaseAdmin()
-          .from("activity_members")
-          .select("*", {
-            count: "exact",
-            head: true,
-          })
-          .eq("activity_id", activity.id),
+      getSupabaseAdmin()
+        .from("activity_members")
+        .select("*", {
+          count: "exact",
+          head: true,
+        })
+        .eq("activity_id", activity.id),
 
-        getSupabaseAdmin()
-          .from("activity_members")
-          .select("role")
-          .eq("activity_id", activity.id)
-          .eq("user_id", session.user.id)
-          .maybeSingle(),
+      getSupabaseAdmin()
+        .from("activity_members")
+        .select("role")
+        .eq("activity_id", activity.id)
+        .eq("user_id", session.user.id)
+        .maybeSingle(),
 
-        getSupabaseAdmin()
-          .from("activity_members")
-          .select("user_id,role,joined_at")
-          .eq("activity_id", activity.id)
-          .order("joined_at", {
-            ascending: true,
-          }),
-      ]);
+      getSupabaseAdmin()
+        .from("activity_members")
+        .select("user_id,role,joined_at")
+        .eq("activity_id", activity.id)
+        .order("joined_at", {
+          ascending: true,
+        }),
+      getSupabaseAdmin()
+        .from("activity_reviews")
+        .select("reviewer_id,rating,comment,created_at")
+        .eq("activity_id", activity.id)
+        .order("created_at", {
+          ascending: false,
+        }),
+    ]);
 
     if (
       profileResult.error ||
       memberResult.error ||
       membershipResult.error ||
-      memberListResult.error
+      memberListResult.error ||
+      reviewsResult.error
     ) {
       request.log.error(
         {
@@ -1845,6 +2000,7 @@ router.get("/activities/:id", async (request, response) => {
           memberError: memberResult.error,
           membershipError: membershipResult.error,
           memberListError: memberListResult.error,
+          reviewError: reviewsResult.error,
           activityId,
         },
         "Unable to load activity details",
@@ -1967,6 +2123,38 @@ router.get("/activities/:id", async (request, response) => {
       }),
     );
 
+    const memberById = new Map(members.map((member) => [member.id, member]));
+
+    const reviewRows = reviewsResult.data ?? [];
+
+    const reviewCount = reviewRows.length;
+
+    const averageRating =
+      reviewCount > 0
+        ? Number(
+            (
+              reviewRows.reduce((sum, review) => sum + review.rating, 0) /
+              reviewCount
+            ).toFixed(2),
+          )
+        : null;
+
+    const reviews = reviewRows.map((review) => {
+      const reviewer = memberById.get(review.reviewer_id);
+
+      return {
+        reviewer: {
+          id: review.reviewer_id,
+          username: reviewer?.username ?? null,
+          displayName: reviewer?.displayName ?? null,
+          avatarUrl: reviewer?.avatarUrl ?? null,
+        },
+        rating: review.rating,
+        comment: review.comment,
+        createdAt: review.created_at,
+      };
+    });
+
     const organizerVisibility =
       profileResult.data?.display_name_visibility ?? "shared_activity";
 
@@ -2010,6 +2198,9 @@ router.get("/activities/:id", async (request, response) => {
         },
         memberCount: memberResult.count ?? 0,
         members,
+        averageRating,
+        reviewCount,
+        reviews,
         membershipRole:
           membershipResult.data?.role === "organizer" ||
           membershipResult.data?.role === "participant"
@@ -2055,7 +2246,7 @@ router.post("/activities/:id/join", async (request, response) => {
 
     const { data: activity, error: activityError } = await supabase
       .from("activities")
-      .select("id,creator_id,visibility")
+      .select("id,creator_id,visibility,status,starts_at")
       .eq("id", activityId)
       .maybeSingle();
 
@@ -2079,6 +2270,24 @@ router.post("/activities/:id/join", async (request, response) => {
       response.status(404).json({
         error: "Activity not found.",
         code: "activity_not_found",
+      });
+      return;
+    }
+
+    if (activity.status !== "active") {
+      response.status(409).json({
+        error: "The activity is not active.",
+        code: "activity_not_active",
+      });
+      return;
+    }
+
+    const startsAt = Date.parse(activity.starts_at);
+
+    if (Number.isFinite(startsAt) && startsAt <= Date.now()) {
+      response.status(409).json({
+        error: "The activity has already started.",
+        code: "activity_started",
       });
       return;
     }

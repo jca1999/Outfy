@@ -193,9 +193,10 @@
       "subcategoryPlaceholder": "Choose a subcategory"
     },
     "when": {
-      "dateLabel": "Date",
-      "dateFormatHint": "dd/mm/aaaa",
+      "dateLabel": "Start date",
+      "dateFormatHint": "dd/mm/yyyy",
       "startTimeLabel": "Start time",
+      "endDateLabel": "End date (optional)",
       "endTimeLabel": "End time (optional)",
       "timeFormatHint": "hh:mm"
     },
@@ -315,6 +316,12 @@
       "unlimited": "No limit",
       "cost": "Cost",
       "description": "About this plan",
+      "reviewsTitle": "Ratings",
+      "reviewsEmpty": "There are no ratings yet.",
+      "reviewsCount_one": "{{count}} rating",
+      "reviewsCount_other": "{{count}} ratings",
+      "reviewsNoComments": "There are ratings, but no one has left a comment yet.",
+      "reviewerFallback": "Outfy member",
       "onlineNoPlatform": "Online, platform to be decided",
       "share": "Share",
       "shareInvitation": "Join this plan on Outfy.",
@@ -354,7 +361,9 @@
       "endTimeBeforeStart": "The end time must be after the start time.",
       "city": "Add the city for the plan.",
       "maxParticipants": "Choose at least 2 participants.",
-      "estimatedCost": "Add a valid estimated cost."
+      "estimatedCost": "Add a valid estimated cost.",
+      "endTimeRequiredWithDate": "Add an end time as well.",
+      "endDateTimeBeforeStart": "The end date and time must be after the start."
     }
   }
 }

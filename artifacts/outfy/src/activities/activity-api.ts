@@ -55,6 +55,18 @@ export type ActivityMember = {
     | 'participant';
 };
 
+export type ActivityReviewDetail = {
+  reviewer: {
+    id: string;
+    username: string | null;
+    displayName: string | null;
+    avatarUrl: string | null;
+  };
+  rating: number;
+  comment: string | null;
+  createdAt: string;
+};
+
 export type ActivityDetail = {
   id: string;
   title: string;
@@ -85,6 +97,10 @@ export type ActivityDetail = {
   memberCount: number;
 
   members: ActivityMember[];
+
+  averageRating: number | null;
+  reviewCount: number;
+  reviews: ActivityReviewDetail[];
 
   membershipRole:
     | 'organizer'

@@ -45,6 +45,7 @@ type ActivityForm = {
   subcategory: ActivitySubcategoryId | '';
   date: string;
   startTime: string;
+  endDate: string;
   endTime: string;
   locationType: ActivityLocationType;
   city: string;
@@ -65,6 +66,7 @@ const initialForm: ActivityForm = {
   subcategory: '',
   date: '',
   startTime: '',
+  endDate: '',
   endTime: '',
   locationType: 'physical',
   city: '',
@@ -259,9 +261,12 @@ export function CreateActivity() {
   >(isEditing ? 'loading' : 'idle');
   const [dateText, setDateText] = useState('');
   const [startTimeText, setStartTimeText] = useState('');
+  const [endDateText, setEndDateText] = useState('');
   const [endTimeText, setEndTimeText] = useState('');
   const datePickerRef = useRef<HTMLInputElement>(null);
   const startTimePickerRef =
+    useRef<HTMLInputElement>(null);
+  const endDatePickerRef =
     useRef<HTMLInputElement>(null);
   const endTimePickerRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
@@ -309,6 +314,7 @@ export function CreateActivity() {
             activity.subcategory as ActivitySubcategoryId,
           date: startsAt.date,
           startTime: startsAt.time,
+          endDate: endsAt?.date ?? '',
           endTime: endsAt?.time ?? '',
           locationType: activity.locationType,
           city: activity.city ?? '',
@@ -326,6 +332,11 @@ export function CreateActivity() {
 
         setDateText(formatDateInputValue(startsAt.date));
         setStartTimeText(startsAt.time);
+        setEndDateText(
+          endsAt?.date
+            ? formatDateInputValue(endsAt.date)
+            : '',
+        );
         setEndTimeText(endsAt?.time ?? '');
 
         setErrors({});
@@ -430,6 +441,25 @@ export function CreateActivity() {
     clearError('date');
   }
 
+  function handleEndDateTextChange(
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const maskedValue = maskDateInput(
+      event.target.value,
+      isDeleteInput(event) ||
+        event.target.value.length < endDateText.length,
+    );
+
+    setEndDateText(maskedValue);
+
+    updateForm(
+      'endDate',
+      parseDateInputValue(maskedValue) ?? '',
+    );
+
+    clearError('endTime');
+  }
+
   function handleEndTimeTextChange(
     event: ChangeEvent<HTMLInputElement>,
   ) {
@@ -454,6 +484,15 @@ export function CreateActivity() {
     setStartTimeText(value);
     updateForm('startTime', value);
     clearError('date');
+  }
+
+  function handleEndDatePickerChange(value: string) {
+    setEndDateText(
+      value ? formatDateInputValue(value) : '',
+    );
+
+    updateForm('endDate', value);
+    clearError('endTime');
   }
 
   function handleEndTimePickerChange(value: string) {
@@ -485,6 +524,19 @@ export function CreateActivity() {
         startTime: t(
           'create.validation.invalidTime',
         ),
+      }));
+    }
+  }
+
+  function handleEndDateBlur() {
+    if (
+      endDateText.trim() &&
+      !form.endDate &&
+      isCompleteDateInput(endDateText)
+    ) {
+      setErrors((current) => ({
+        ...current,
+        endDate: t('create.validation.invalidDate'),
       }));
     }
   }
@@ -545,20 +597,48 @@ export function CreateActivity() {
       }
     }
 
+    if (endDateText.trim() && !form.endDate) {
+      nextErrors.endDate = t(
+        'create.validation.invalidDate',
+      );
+    }
+
     if (endTimeText.trim() && !form.endTime) {
       nextErrors.endTime = t(
         'create.validation.invalidTime',
       );
     }
 
-    if (
-      form.startTime &&
-      form.endTime &&
-      form.endTime <= form.startTime
-    ) {
+    if (form.endDate && !form.endTime) {
       nextErrors.endTime = t(
-        'create.validation.endTimeBeforeStart',
+        'create.validation.endTimeRequiredWithDate',
       );
+    }
+
+    if (
+      form.date &&
+      form.startTime &&
+      form.endTime
+    ) {
+      const startDateTime = new Date(
+        `${form.date}T${form.startTime}:00`,
+      );
+
+      const effectiveEndDate =
+        form.endDate || form.date;
+
+      const endDateTime = new Date(
+        `${effectiveEndDate}T${form.endTime}:00`,
+      );
+
+      if (
+        endDateTime.getTime() <=
+        startDateTime.getTime()
+      ) {
+        nextErrors.endTime = t(
+          'create.validation.endDateTimeBeforeStart',
+        );
+      }
     }
 
     if (
@@ -608,6 +688,7 @@ export function CreateActivity() {
       subcategory: 'activity-subcategory',
       date: 'activity-date',
       startTime: 'activity-start-time',
+      endDate: 'activity-end-date',
       endTime: 'activity-end-time',
       city: 'activity-city',
       maxParticipants: 'activity-max-participants',
@@ -651,8 +732,10 @@ export function CreateActivity() {
       `${form.date}T${form.startTime}:00`,
     ).toISOString();
     const endsAt = form.endTime
-      ? new Date(`${form.date}T${form.endTime}:00`).toISOString()
-      : undefined;
+    ? new Date(
+        `${form.endDate || form.date}T${form.endTime}:00`,
+      ).toISOString()
+    : undefined;
     const timezoneName =
       Intl.DateTimeFormat().resolvedOptions().timeZone;
 
@@ -806,10 +889,29 @@ export function CreateActivity() {
       return '';
     }
 
-    return new Intl.DateTimeFormat(
+    const formatter = new Intl.DateTimeFormat(
       i18n.language === 'en' ? 'en-GB' : 'es-ES',
-      { dateStyle: 'long' },
-    ).format(new Date(`${form.date}T00:00:00`));
+      {
+        dateStyle: 'long',
+      },
+    );
+
+    const startLabel = formatter.format(
+      new Date(`${form.date}T00:00:00`),
+    );
+
+    if (
+      !form.endDate ||
+      form.endDate === form.date
+    ) {
+      return startLabel;
+    }
+
+    const endLabel = formatter.format(
+      new Date(`${form.endDate}T00:00:00`),
+    );
+
+    return `${startLabel} – ${endLabel}`;
   }
 
   const categoryLabel = form.category
@@ -1351,7 +1453,7 @@ export function CreateActivity() {
               </h2>
             </div>
 
-            <div className="mt-6 grid gap-5 md:grid-cols-3">
+            <div className="mt-6 grid gap-5 md:grid-cols-2">
               <div>
                 <label
                   htmlFor="activity-date"
@@ -1453,6 +1555,61 @@ export function CreateActivity() {
                   </div>
                 </div>
                 {renderError('startTime')}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="activity-end-date"
+                  className="text-sm font-bold"
+                >
+                  {t('create.when.endDateLabel')}
+                </label>
+
+                <div className="mt-2">
+                  <div className={dateTimeFieldClassName}>
+                    <input
+                      id="activity-end-date"
+                      type="text"
+                      value={endDateText}
+                      onChange={handleEndDateTextChange}
+                      placeholder={t(
+                        'create.when.dateFormatHint',
+                      )}
+                      inputMode="numeric"
+                      aria-invalid={Boolean(errors.endDate)}
+                      aria-describedby={
+                        errors.endDate
+                          ? 'endDate-error'
+                          : undefined
+                      }
+                      onBlur={handleEndDateBlur}
+                      className={dateTimeTextInputClassName}
+                    />
+
+                    <span className="relative mr-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:text-foreground focus-within:text-primary focus-within:ring-2 focus-within:ring-primary/30">
+                      <CalendarDays className="pointer-events-none h-4 w-4" />
+
+                      <input
+                        ref={endDatePickerRef}
+                        id="activity-end-date-picker"
+                        type="date"
+                        min={form.date || getLocalDateInputMinimum()}
+                        value={form.endDate}
+                        onChange={(event) =>
+                          handleEndDatePickerChange(
+                            event.target.value,
+                          )
+                        }
+                        aria-label={t(
+                          'create.when.endDateLabel',
+                        )}
+                        className={dateTimePickerInputClassName}
+                      />
+                    </span>
+                  </div>
+                </div>
+
+                {renderError('endDate')}
               </div>
 
               <div>

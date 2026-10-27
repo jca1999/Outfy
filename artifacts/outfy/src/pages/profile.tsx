@@ -22,10 +22,12 @@ import {
   getMyActivityHistory,
   getMyCreatedActivities,
   getMyJoinedActivities,
+  getUserActivities,
   saveActivityReview,
   type MyCreatedActivity,
   type MyHistoryActivity,
   type MyJoinedActivity,
+  type ProfileReputation,
 } from "@/activities/activity-api";
 import {
   deleteProfileAvatar,
@@ -143,15 +145,16 @@ export function Profile() {
   >([]);
 
   const [historyState, setHistoryState] = useState<
-    'idle' | 'loading' | 'ready' | 'error'
-  >('idle');
-  
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
+
   const [reviewActivity, setReviewActivity] =
     useState<MyHistoryActivity | null>(null);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState("");
   const [reviewSaving, setReviewSaving] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
+  const [reputation, setReputation] = useState<ProfileReputation | null>(null);
 
   function loadCreatedActivities() {
     setCreatedState("loading");
@@ -349,6 +352,31 @@ export function Profile() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!user?.id) {
+      setReputation(null);
+      return;
+    }
+
+    let active = true;
+
+    getUserActivities(user.id)
+      .then((result) => {
+        if (!active) return;
+
+        setReputation(result.reputation);
+      })
+      .catch(() => {
+        if (!active) return;
+
+        setReputation(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [user?.id]);
+
   const closeCropEditor = useCallback(() => {
     setCropSource(null);
     setCroppedArea(null);
@@ -533,11 +561,9 @@ export function Profile() {
 
       const now = Date.now();
 
-      const leftUpcoming =
-        left.status === "active" && leftDate >= now;
+      const leftUpcoming = left.status === "active" && leftDate >= now;
 
-      const rightUpcoming =
-        right.status === "active" && rightDate >= now;
+      const rightUpcoming = right.status === "active" && rightDate >= now;
 
       if (leftUpcoming !== rightUpcoming) {
         return leftUpcoming ? -1 : 1;
@@ -589,7 +615,7 @@ export function Profile() {
       </div>
     );
   }
-  
+
   const renderActivityCard = (
     activity: MyCreatedActivity | MyJoinedActivity | MyHistoryActivity,
     historical = false,
@@ -803,6 +829,38 @@ export function Profile() {
                   : user?.homeCity?.trim()) || t("identity.location.notSet")}
               </p>
             </div>
+            {reputation && (
+              <div className="mt-5 flex flex-wrap gap-2">
+                <div className="flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-sm">
+                  <Star className="h-4 w-4 text-primary" />
+
+                  <span className="font-bold">
+                    {reputation.averageRating !== null
+                      ? reputation.averageRating.toFixed(1)
+                      : t("publicProfile.reputation.noReviews")}
+                  </span>
+
+                  {reputation.reviewCount > 0 && (
+                    <span className="text-muted-foreground">
+                      ·{" "}
+                      {t("publicProfile.reputation.reviews", {
+                        count: reputation.reviewCount,
+                      })}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-sm">
+                  <CalendarDays className="h-4 w-4 text-primary" />
+
+                  <span className="font-semibold">
+                    {t("publicProfile.reputation.completedPlans", {
+                      count: reputation.completedActivityCount,
+                    })}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -904,9 +962,7 @@ export function Profile() {
             aria-label={t("activities:myPlans.sortLabel")}
             className="rounded-2xl border border-border bg-card px-4 py-2.5 text-sm font-semibold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
           >
-            <option value="smart">
-              {t("activities:myPlans.sort.smart")}
-            </option>
+            <option value="smart">{t("activities:myPlans.sort.smart")}</option>
 
             <option value="dateAsc">
               {t("activities:myPlans.sort.dateAsc")}
@@ -916,9 +972,7 @@ export function Profile() {
               {t("activities:myPlans.sort.dateDesc")}
             </option>
 
-            <option value="title">
-              {t("activities:myPlans.sort.title")}
-            </option>
+            <option value="title">{t("activities:myPlans.sort.title")}</option>
           </select>
         </div>
 
@@ -980,12 +1034,12 @@ export function Profile() {
 
             {createdState === "ready" &&
               visibleCreatedActivities.length > 0 && (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {visibleCreatedActivities.map((activity) =>
-                  renderActivityCard(activity),
-                )}
-              </div>
-            )}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {visibleCreatedActivities.map((activity) =>
+                    renderActivityCard(activity),
+                  )}
+                </div>
+              )}
           </div>
         )}
 
@@ -1040,8 +1094,7 @@ export function Profile() {
               </div>
             )}
 
-            {joinedState === "ready" &&
-              visibleJoinedActivities.length > 0 && (
+            {joinedState === "ready" && visibleJoinedActivities.length > 0 && (
               <div className="grid gap-3 sm:grid-cols-2">
                 {visibleJoinedActivities.map((activity) =>
                   renderActivityCard(activity),
@@ -1102,71 +1155,71 @@ export function Profile() {
 
             {historyState === "ready" &&
               visibleHistoryActivities.length > 0 && (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {visibleHistoryActivities.map((activity) => (
-                  <div key={activity.id} className="space-y-2">
-                    {renderActivityCard(activity, true)}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {visibleHistoryActivities.map((activity) => (
+                    <div key={activity.id} className="space-y-2">
+                      {renderActivityCard(activity, true)}
 
-                    <div className="rounded-[18px] border border-border bg-card px-4 py-3">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div className="min-w-0">
-                          {activity.averageRating !== null ? (
-                            <div className="flex items-center gap-2">
-                              <Star className="h-4 w-4 fill-primary text-primary" />
-                              <span className="text-sm font-bold">
-                                {activity.averageRating.toFixed(1)}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {t("activities:myPlans.review.reviewCount", {
-                                  count: activity.reviewCount,
+                      <div className="rounded-[18px] border border-border bg-card px-4 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="min-w-0">
+                            {activity.averageRating !== null ? (
+                              <div className="flex items-center gap-2">
+                                <Star className="h-4 w-4 fill-primary text-primary" />
+                                <span className="text-sm font-bold">
+                                  {activity.averageRating.toFixed(1)}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {t("activities:myPlans.review.reviewCount", {
+                                    count: activity.reviewCount,
+                                  })}
+                                </span>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">
+                                {t("activities:myPlans.review.noReviews")}
+                              </p>
+                            )}
+
+                            {activity.myReview && (
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {t("activities:myPlans.review.yourRating", {
+                                  rating: activity.myReview.rating,
                                 })}
-                              </span>
-                            </div>
-                          ) : (
-                            <p className="text-xs text-muted-foreground">
-                              {t("activities:myPlans.review.noReviews")}
-                            </p>
+                              </p>
+                            )}
+                          </div>
+
+                          {activity.canReview && (
+                            <button
+                              type="button"
+                              onClick={() => openReview(activity)}
+                              className="shrink-0 rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground transition hover:bg-primary/90"
+                            >
+                              {activity.myReview
+                                ? t("activities:myPlans.review.edit")
+                                : t("activities:myPlans.review.action")}
+                            </button>
                           )}
 
-                          {activity.myReview && (
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {t("activities:myPlans.review.yourRating", {
-                                rating: activity.myReview.rating,
-                              })}
-                            </p>
-                          )}
-                        </div>
-
-                        {activity.canReview && (
-                          <button
-                            type="button"
-                            onClick={() => openReview(activity)}
-                            className="shrink-0 rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground transition hover:bg-primary/90"
-                          >
-                            {activity.myReview
-                              ? t("activities:myPlans.review.edit")
-                              : t("activities:myPlans.review.action")}
-                          </button>
-                        )}
-
-                        {activity.relationship === "organizer" && (
-                          <span className="text-xs text-muted-foreground">
-                            {t("activities:myPlans.review.organizer")}
-                          </span>
-                        )}
-
-                        {activity.relationship === "participant" &&
-                          activity.status === "cancelled" && (
+                          {activity.relationship === "organizer" && (
                             <span className="text-xs text-muted-foreground">
-                              {t("activities:myPlans.review.cancelled")}
+                              {t("activities:myPlans.review.organizer")}
                             </span>
                           )}
+
+                          {activity.relationship === "participant" &&
+                            activity.status === "cancelled" && (
+                              <span className="text-xs text-muted-foreground">
+                                {t("activities:myPlans.review.cancelled")}
+                              </span>
+                            )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
           </div>
         )}
       </section>
