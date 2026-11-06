@@ -123,7 +123,8 @@
     "noSearchResultsDescription": "No hay planes que coincidan con tu búsqueda.",
     "clearSearch": "Limpiar búsqueda",
     "status": {
-      "active": "Activo",
+      "upcoming": "Próximo",
+      "inProgress": "En curso",
       "completed": "Finalizado",
       "cancelled": "Cancelado"
     },
@@ -349,7 +350,17 @@
       "cancelConfirm": "¿Seguro que quieres cancelar este plan? Los participantes seguirán conservándolo en su historial.",
       "cancelError": "No hemos podido cancelar el plan. Inténtalo de nuevo.",
       "cancelFinishedError": "Este plan ya ha finalizado y no se puede cancelar.",
-      "cancelUnavailableError": "Este plan ya no se puede cancelar."
+      "cancelUnavailableError": "Este plan ya no se puede cancelar.",
+      "inProgress": "EN CURSO",
+      "inProgressDescription": "El plan ya ha comenzado y no admite nuevas incorporaciones.",
+      "joinStartedError": "Este plan ya ha comenzado y no puedes unirte.",
+      "completePlan": "Finalizar ahora",
+      "completingPlan": "Finalizando...",
+      "completeConfirm": "¿Seguro que quieres finalizar este plan? Los participantes podrán valorarlo desde ese momento.",
+      "completeError": "No hemos podido finalizar el plan. Inténtalo de nuevo.",
+      "completeNotStartedError": "Todavía no puedes finalizar el plan porque no ha comenzado.",
+      "completeUnavailableError": "Este plan ya no se puede finalizar.",
+      "cancelStartedError": "Este plan ya ha comenzado y no se puede cancelar."
     },
     "validation": {
       "title": "Escribe un título para el plan.",

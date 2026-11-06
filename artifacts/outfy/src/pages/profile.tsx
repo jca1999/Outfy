@@ -155,6 +155,7 @@ export function Profile() {
   const [reviewSaving, setReviewSaving] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reputation, setReputation] = useState<ProfileReputation | null>(null);
+  const [now, setNow] = useState(() => Date.now());
 
   function loadCreatedActivities() {
     setCreatedState("loading");
@@ -377,6 +378,14 @@ export function Profile() {
     };
   }, [user?.id]);
 
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setNow(Date.now());
+    }, 30_000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
   const closeCropEditor = useCallback(() => {
     setCropSource(null);
     setCroppedArea(null);
@@ -559,17 +568,41 @@ export function Profile() {
         return leftDate - rightDate;
       }
 
-      const now = Date.now();
+      const getActivityPriority = (
+        activity: MyCreatedActivity | MyJoinedActivity | MyHistoryActivity,
+        startsAt: number,
+      ) => {
+        if (
+          activity.status === "active" &&
+          Number.isFinite(startsAt) &&
+          startsAt <= now
+        ) {
+          return 0; // En curso
+        }
 
-      const leftUpcoming = left.status === "active" && leftDate >= now;
+        if (
+          activity.status === "active" &&
+          Number.isFinite(startsAt) &&
+          startsAt > now
+        ) {
+          return 1; // Próximo
+        }
 
-      const rightUpcoming = right.status === "active" && rightDate >= now;
+        if (activity.status === "completed") {
+          return 2; // Finalizado
+        }
 
-      if (leftUpcoming !== rightUpcoming) {
-        return leftUpcoming ? -1 : 1;
+        return 3; // Cancelado
+      };
+
+      const leftPriority = getActivityPriority(left, leftDate);
+      const rightPriority = getActivityPriority(right, rightDate);
+
+      if (leftPriority !== rightPriority) {
+        return leftPriority - rightPriority;
       }
 
-      if (leftUpcoming) {
+      if (leftPriority === 0 || leftPriority === 1) {
         return leftDate - rightDate;
       }
 
@@ -648,10 +681,16 @@ export function Profile() {
         : `${t("activities:create.detail.participantsUnlimited", {
             count: activity.memberCount,
           })} · ${t("activities:create.detail.unlimited")}`;
+    const startsAt = Date.parse(activity.startsAt);
+
     const displayStatus =
-      historical && activity.status === "active"
-        ? "completed"
-        : activity.status;
+      activity.status === "cancelled"
+        ? "cancelled"
+        : activity.status === "completed" || historical
+          ? "completed"
+          : Number.isFinite(startsAt) && startsAt <= now
+            ? "inProgress"
+            : "upcoming";
     return (
       <button
         key={activity.id}
@@ -668,9 +707,14 @@ export function Profile() {
                 ? "bg-destructive/10 text-destructive"
                 : displayStatus === "completed"
                   ? "bg-muted text-muted-foreground"
-                  : "bg-primary/10 text-primary"
+                  : displayStatus === "inProgress"
+                    ? "bg-primary/15 text-primary"
+                    : "bg-primary/10 text-primary"
             }`}
           >
+            {displayStatus === "inProgress" && (
+              <span className="mr-1 inline-block h-2 w-2 rounded-full bg-primary" />
+            )}
             {t(`activities:myPlans.status.${displayStatus}`)}
           </span>
           <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
@@ -873,6 +917,66 @@ export function Profile() {
           </p>
         )}
       </section>
+
+      {reputation && reputation.recentReviews.length > 0 && (
+        <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-7">
+          <div>
+            <h2 className="text-xl font-bold tracking-[-.03em]">
+              {t("publicProfile.reputation.ownOpinionsTitle")}
+            </h2>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t("publicProfile.reputation.opinionsDescription")}
+            </p>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {reputation.recentReviews.map((review) => (
+              <div
+                key={`${review.activityId}-${review.reviewerId}`}
+                className="rounded-[20px] border border-border bg-background p-4"
+              >
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <Star
+                      key={index}
+                      className={`h-4 w-4 ${
+                        index < review.rating
+                          ? "fill-current text-primary"
+                          : "text-muted-foreground/30"
+                      }`}
+                    />
+                  ))}
+                </div>
+
+                <p className="mt-3 text-sm leading-relaxed text-foreground">
+                  “{review.comment}”
+                </p>
+
+                <div className="mt-4 flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/activities/${review.activityId}`)}
+                    className="text-left font-semibold text-primary transition hover:underline"
+                  >
+                    {t("publicProfile.reputation.opinionPlan", {
+                      title: review.activityTitle,
+                    })}
+                  </button>
+
+                  <span>
+                    {review.reviewerUsername
+                      ? t("publicProfile.reputation.opinionBy", {
+                          username: review.reviewerUsername,
+                        })
+                      : t("publicProfile.reputation.opinionByFallback")}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       <ProfileConnectionsCard />
 

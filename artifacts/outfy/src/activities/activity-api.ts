@@ -45,6 +45,14 @@ export type CancelActivityResponse = {
   };
 };
 
+export type CompleteActivityResponse = {
+  result: 'completed' | 'already_completed';
+  activity: {
+    id: string;
+    status: 'completed';
+  };
+};
+
 export type ActivityMember = {
   id: string;
   username: string | null;
@@ -196,10 +204,21 @@ export type ProfileActivity = {
   visibility: 'public' | 'friends';
 };
 
+export type ProfileRecentReview = {
+  rating: number;
+  comment: string;
+  createdAt: string;
+  activityId: string;
+  activityTitle: string;
+  reviewerId: string;
+  reviewerUsername: string | null;
+};
+
 export type ProfileReputation = {
   averageRating: number | null;
   reviewCount: number;
   completedActivityCount: number;
+  recentReviews: ProfileRecentReview[];
 };
 
 export type ProfileActivitiesResponse = {
@@ -342,6 +361,31 @@ export async function cancelActivity(activityId: string) {
   }
 
   return payload as CancelActivityResponse;
+}
+
+export async function completeActivity(activityId: string) {
+  const response = await fetch(
+    `/api/activities/${encodeURIComponent(activityId)}/complete`,
+    {
+      method: 'POST',
+      credentials: 'include',
+    },
+  );
+
+  const payload = (await response.json().catch(() => null)) as
+    | ActivityErrorPayload
+    | CompleteActivityResponse
+    | null;
+
+  if (!response.ok) {
+    throw activityApiError(
+      payload && 'activity' in payload ? null : payload,
+      response.status,
+      'The activity could not be completed.',
+    );
+  }
+
+  return payload as CompleteActivityResponse;
 }
 
 export async function getActivity(id: string) {

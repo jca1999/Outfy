@@ -16,6 +16,7 @@ import { useLocation, useRoute } from "wouter";
 import {
   ActivityApiError,
   cancelActivity,
+  completeActivity,
   getActivity,
   joinActivity,
   leaveActivity,
@@ -47,10 +48,23 @@ export function ActivityDetail() {
   const [organizerActionPending, setOrganizerActionPending] = useState(false);
   const [organizerActionError, setOrganizerActionError] = useState("");
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [participantsOpen, setParticipantsOpen] = useState(false);
   const membershipRequestRef = useRef<symbol | null>(null);
   const currentActivityIdRef = useRef<string | null>(params?.id ?? null);
   currentActivityIdRef.current = params?.id ?? null;
+
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setNow(Date.now());
+    }, 30_000);
+
+    return () => {
+      window.clearInterval(interval);
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -62,6 +76,7 @@ export function ActivityDetail() {
     setOrganizerActionPending(false);
     setOrganizerActionError("");
     setCancelDialogOpen(false);
+    setCompleteDialogOpen(false);
     membershipRequestRef.current = null;
     setParticipantsOpen(false);
 
@@ -195,6 +210,9 @@ export function ActivityDetail() {
                 : current,
             );
           }
+        } else if (error.code === "activity_started") {
+          setMembershipUnavailable(true);
+          setMembershipError(t("create.detail.joinStartedError"));
         } else if (error.code === "activity_not_active") {
           setMembershipUnavailable(true);
           setMembershipError(t("create.detail.joinInactiveError"));
@@ -305,8 +323,8 @@ export function ActivityDetail() {
       }
 
       if (error instanceof ActivityApiError) {
-        if (error.code === "activity_finished") {
-          setOrganizerActionError(t("create.detail.cancelFinishedError"));
+        if (error.code === "activity_started") {
+          setOrganizerActionError(t("create.detail.cancelStartedError"));
         } else if (
           error.code === "activity_not_active" ||
           error.code === "activity_changed"
@@ -319,6 +337,62 @@ export function ActivityDetail() {
         }
       } else {
         setOrganizerActionError(t("create.detail.cancelError"));
+      }
+    } finally {
+      if (currentActivityIdRef.current === activityId) {
+        setOrganizerActionPending(false);
+      }
+    }
+  }
+
+  async function handleCompleteActivity() {
+    if (!activity || organizerActionPending) return;
+
+    const activityId = activity.id;
+
+    setOrganizerActionPending(true);
+    setOrganizerActionError("");
+
+    try {
+      const result = await completeActivity(activityId);
+
+      if (currentActivityIdRef.current !== activityId) {
+        return;
+      }
+
+      setActivity((current) =>
+        current?.id === activityId
+          ? {
+              ...current,
+              status: result.activity.status,
+            }
+          : current,
+      );
+
+      setMembershipUnavailable(true);
+      setCompleteDialogOpen(false);
+
+      refreshActivitySnapshot(activityId);
+    } catch (error) {
+      if (currentActivityIdRef.current !== activityId) {
+        return;
+      }
+
+      if (error instanceof ActivityApiError) {
+        if (error.code === "activity_not_started") {
+          setOrganizerActionError(t("create.detail.completeNotStartedError"));
+        } else if (
+          error.code === "activity_cancelled" ||
+          error.code === "activity_changed"
+        ) {
+          setOrganizerActionError(t("create.detail.completeUnavailableError"));
+        } else if (error.status === 401) {
+          setOrganizerActionError(t("create.detail.sessionErrorMessage"));
+        } else {
+          setOrganizerActionError(t("create.detail.completeError"));
+        }
+      } else {
+        setOrganizerActionError(t("create.detail.completeError"));
       }
     } finally {
       if (currentActivityIdRef.current === activityId) {
@@ -380,10 +454,36 @@ export function ActivityDetail() {
       new Date(activity.startsAt),
     );
     if (activity.endsAt) {
-      endsLabel = new Intl.DateTimeFormat(locale, {
-        timeStyle: "short",
-        timeZone: activity.timezoneName,
-      }).format(new Date(activity.endsAt));
+      const startDate = new Date(activity.startsAt);
+      const endDate = new Date(activity.endsAt);
+
+      const dayFormatter = new Intl.DateTimeFormat(
+        "en-CA",
+        {
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+          timeZone: activity.timezoneName,
+        },
+      );
+
+      const sameDay =
+        dayFormatter.format(startDate) ===
+        dayFormatter.format(endDate);
+
+      endsLabel = new Intl.DateTimeFormat(
+        locale,
+        sameDay
+          ? {
+              timeStyle: "short",
+              timeZone: activity.timezoneName,
+            }
+          : {
+              dateStyle: "full",
+              timeStyle: "short",
+              timeZone: activity.timezoneName,
+            },
+      ).format(endDate);
     }
   } catch {
     startsLabel = new Intl.DateTimeFormat(locale, {
@@ -392,6 +492,7 @@ export function ActivityDetail() {
     }).format(new Date(activity.startsAt));
     if (activity.endsAt) {
       endsLabel = new Intl.DateTimeFormat(locale, {
+        dateStyle: "full",
         timeStyle: "short",
       }).format(new Date(activity.endsAt));
     }
@@ -431,24 +532,27 @@ export function ActivityDetail() {
           });
   const activityStartsAt = Date.parse(activity.startsAt);
 
-  const activityFinishedAt = Date.parse(activity.endsAt ?? activity.startsAt);
+  const activityStarted =
+    Number.isFinite(activityStartsAt) && activityStartsAt <= now;
 
-  const activityFinished =
-    activity.status !== "cancelled" &&
-    Number.isFinite(activityFinishedAt) &&
-    activityFinishedAt <= Date.now();
+  const activityInProgress = activity.status === "active" && activityStarted;
+
+  const activityFinished = activity.status === "completed";
 
   const canOrganizerEdit =
     activity.membershipRole === "organizer" &&
     activity.status === "active" &&
     Number.isFinite(activityStartsAt) &&
-    activityStartsAt > Date.now();
+    activityStartsAt > now;
 
   const canOrganizerCancel =
     activity.membershipRole === "organizer" &&
     activity.status === "active" &&
-    Number.isFinite(activityFinishedAt) &&
-    activityFinishedAt > Date.now();
+    Number.isFinite(activityStartsAt) &&
+    activityStartsAt > now;
+
+  const canOrganizerComplete =
+    activity.membershipRole === "organizer" && activityInProgress;
 
   const cost =
     activity.costType === "free"
@@ -528,6 +632,47 @@ export function ActivityDetail() {
         </DialogContent>
       </Dialog>
 
+      <Dialog
+        open={completeDialogOpen}
+        onOpenChange={(open) => {
+          if (!organizerActionPending) {
+            setCompleteDialogOpen(open);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("create.detail.completePlan")}</DialogTitle>
+
+            <DialogDescription>
+              {t("create.detail.completeConfirm")}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={() => setCompleteDialogOpen(false)}
+              disabled={organizerActionPending}
+              className="rounded-full border border-border px-5 py-2.5 text-sm font-bold transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {t("create.back")}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleCompleteActivity}
+              disabled={organizerActionPending}
+              className="outfy-primary-action rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {organizerActionPending
+                ? t("create.detail.completingPlan")
+                : t("create.detail.completePlan")}
+            </button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <article className="overflow-hidden rounded-[28px] border border-border bg-card soft-shadow">
         <header className="border-b border-border bg-primary/[.04] p-6 sm:p-9">
           <div className="flex flex-wrap gap-2">
@@ -537,6 +682,12 @@ export function ActivityDetail() {
             <span className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-muted-foreground">
               {t(`subcategories.${activity.subcategory}`)}
             </span>
+            {activityInProgress && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+                <span className="h-2 w-2 rounded-full bg-primary" />
+                {t("create.detail.inProgress")}
+              </span>
+            )}
           </div>
           <h1 className="mt-5 text-4xl font-bold tracking-[-.055em] sm:text-5xl">
             {activity.title}
@@ -568,6 +719,11 @@ export function ActivityDetail() {
                 {t("create.detail.joinInactiveError")}
               </p>
             ) : null}
+            {activityInProgress && (
+              <p className="mt-1 text-xs font-semibold text-primary">
+                {t("create.detail.inProgressDescription")}
+              </p>
+            )}
             {membershipError && (
               <p
                 className="mt-2 text-xs font-semibold text-destructive"
@@ -586,7 +742,8 @@ export function ActivityDetail() {
             )}
           </div>
 
-          {activity.membershipRole === "organizer" && canOrganizerCancel ? (
+          {activity.membershipRole === "organizer" &&
+          activity.status === "active" ? (
             <div className="flex flex-col gap-2 sm:flex-row">
               {canOrganizerEdit && (
                 <button
@@ -604,18 +761,31 @@ export function ActivityDetail() {
                 </button>
               )}
 
-              <button
-                type="button"
-                onClick={() => setCancelDialogOpen(true)}
-                disabled={organizerActionPending}
-                className="rounded-full border border-destructive/45 px-5 py-3 text-sm font-bold text-destructive transition hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {organizerActionPending
-                  ? t("create.detail.cancellingPlan")
-                  : t("create.detail.cancelPlan")}
-              </button>
+              {canOrganizerCancel && (
+                <button
+                  type="button"
+                  onClick={() => setCancelDialogOpen(true)}
+                  disabled={organizerActionPending}
+                  className="rounded-full border border-destructive/45 px-5 py-3 text-sm font-bold text-destructive transition hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {t("create.detail.cancelPlan")}
+                </button>
+              )}
+
+              {canOrganizerComplete && (
+                <button
+                  type="button"
+                  onClick={() => setCompleteDialogOpen(true)}
+                  disabled={organizerActionPending}
+                  className="outfy-primary-action rounded-full bg-primary px-5 py-3 text-sm font-bold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {t("create.detail.completePlan")}
+                </button>
+              )}
             </div>
-          ) : activity.membershipRole === "participant" ? (
+          ) : activity.membershipRole === "participant" &&
+            activity.status === "active" &&
+            !activityInProgress ? (
             <button
               type="button"
               onClick={handleLeave}
@@ -630,6 +800,7 @@ export function ActivityDetail() {
             </button>
           ) : activity.membershipRole === null &&
             activity.status === "active" &&
+            !activityInProgress &&
             !membershipUnavailable &&
             !isFull ? (
             <button
@@ -838,7 +1009,8 @@ export function ActivityDetail() {
                 </div>
               </div>
 
-              {activity.reviews.filter((review) => review.comment).length > 0 ? (
+              {activity.reviews.filter((review) => review.comment).length >
+              0 ? (
                 <div className="mt-5 grid gap-3 sm:grid-cols-2">
                   {activity.reviews
                     .filter((review) => review.comment)

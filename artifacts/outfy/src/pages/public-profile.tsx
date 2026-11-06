@@ -344,6 +344,86 @@ export function PublicProfile() {
           />
         </div>
       </section>
+      {!profile.isPrivate &&
+        reputation &&
+        reputation.recentReviews.length > 0 && (
+          <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-7">
+            <div>
+              <h2 className="text-xl font-bold tracking-[-.03em]">
+                {t(
+                  "publicProfile.reputation.publicOpinionsTitle",
+                )}
+              </h2>
+
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t(
+                  "publicProfile.reputation.opinionsDescription",
+                )}
+              </p>
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {reputation.recentReviews.map((review) => (
+                <div
+                  key={`${review.activityId}-${review.reviewerId}`}
+                  className="rounded-[20px] border border-border bg-background p-4"
+                >
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: 5 }).map(
+                      (_, index) => (
+                        <Star
+                          key={index}
+                          className={`h-4 w-4 ${
+                            index < review.rating
+                              ? "fill-current text-primary"
+                              : "text-muted-foreground/30"
+                          }`}
+                        />
+                      ),
+                    )}
+                  </div>
+
+                  <p className="mt-3 text-sm leading-relaxed text-foreground">
+                    “{review.comment}”
+                  </p>
+
+                  <div className="mt-4 flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                    <button
+                      type="button"
+                      onClick={() =>
+                        navigate(
+                          `/activities/${review.activityId}`,
+                        )
+                      }
+                      className="text-left font-semibold text-primary transition hover:underline"
+                    >
+                      {t(
+                        "publicProfile.reputation.opinionPlan",
+                        {
+                          title: review.activityTitle,
+                        },
+                      )}
+                    </button>
+
+                    <span>
+                      {review.reviewerUsername
+                        ? t(
+                            "publicProfile.reputation.opinionBy",
+                            {
+                              username:
+                                review.reviewerUsername,
+                            },
+                          )
+                        : t(
+                            "publicProfile.reputation.opinionByFallback",
+                          )}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
       {!profile.isPrivate && (
         <section className="rounded-[26px] border border-border bg-card p-6 soft-shadow sm:p-8">
           <div className="flex items-start justify-between gap-4">

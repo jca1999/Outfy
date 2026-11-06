@@ -42,7 +42,13 @@
       "reviews_one": "{{count}} valoración",
       "reviews_other": "{{count}} valoraciones",
       "completedPlans_one": "{{count}} plan realizado",
-      "completedPlans_other": "{{count}} planes realizados"
+      "completedPlans_other": "{{count}} planes realizados",
+      "ownOpinionsTitle": "Lo que dicen de tus planes",
+      "publicOpinionsTitle": "Lo que dicen de sus planes",
+      "opinionsDescription": "Opiniones reales de personas que han participado en estos planes.",
+      "opinionPlan": "Plan: {{title}}",
+      "opinionBy": "Por @{{username}}",
+      "opinionByFallback": "Participante de Outfy"
     },
     "plans": {
       "title": "Planes",

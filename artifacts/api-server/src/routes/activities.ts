@@ -740,7 +740,6 @@ router.get("/activities/joined", async (request, response) => {
         .in("id", activityIds)
         .neq("creator_id", session.user.id)
         .eq("status", "active")
-        .gt("starts_at", new Date().toISOString())
         .order("starts_at", { ascending: true });
 
     if (activitiesError) {
@@ -1553,12 +1552,15 @@ router.post("/activities/:id/cancel", async (request, response) => {
       return;
     }
 
-    const finishedAt = Date.parse(activity.ends_at ?? activity.starts_at);
+    const startsAt = Date.parse(activity.starts_at);
 
-    if (Number.isFinite(finishedAt) && finishedAt <= Date.now()) {
+    if (
+      Number.isFinite(startsAt) &&
+      startsAt <= Date.now()
+    ) {
       response.status(409).json({
-        error: "Finished activities cannot be cancelled.",
-        code: "activity_finished",
+        error: "Started activities cannot be cancelled.",
+        code: "activity_started",
       });
       return;
     }
@@ -1747,9 +1749,9 @@ router.get("/activities/user/:userId", async (request, response) => {
     const { data: completedCandidates, error: completedActivitiesError } =
       await supabase
         .from("activities")
-        .select("id,starts_at,ends_at,status")
+        .select("id,title,status")
         .eq("creator_id", userId)
-        .neq("status", "cancelled");
+        .eq("status", "completed");
 
     if (completedActivitiesError) {
       request.log.error(
@@ -1767,24 +1769,40 @@ router.get("/activities/user/:userId", async (request, response) => {
       return;
     }
 
-    const now = Date.now();
+    const completedActivityIds = (completedCandidates ?? []).map(
+      (activity) => activity.id,
+    );
 
-    const completedActivityIds = (completedCandidates ?? [])
-      .filter((activity) => {
-        const finishedAt = Date.parse(activity.ends_at ?? activity.starts_at);
-
-        return Number.isFinite(finishedAt) && finishedAt <= now;
-      })
-      .map((activity) => activity.id);
+    const completedActivityTitleById = new Map(
+      (completedCandidates ?? []).map((activity) => [
+        activity.id,
+        activity.title,
+      ]),
+    );
 
     let averageRating: number | null = null;
     let reviewCount = 0;
 
+    let recentReviews: Array<{
+      rating: number;
+      comment: string;
+      createdAt: string;
+      activityId: string;
+      activityTitle: string;
+      reviewerId: string;
+      reviewerUsername: string | null;
+    }> = [];
+
     if (completedActivityIds.length > 0) {
       const { data: reviews, error: reviewsError } = await supabase
-        .from("activity_reviews")
-        .select("rating")
-        .in("activity_id", completedActivityIds);
+      .from("activity_reviews")
+      .select(
+        "activity_id,reviewer_id,rating,comment,created_at",
+      )
+      .in("activity_id", completedActivityIds)
+      .order("created_at", {
+        ascending: false,
+      });
 
       if (reviewsError) {
         request.log.error(
@@ -1812,12 +1830,87 @@ router.get("/activities/user/:userId", async (request, response) => {
 
         averageRating = Number((ratingSum / reviewCount).toFixed(1));
       }
+      const reviewsWithComments = (reviews ?? [])
+      .filter(
+        (review) =>
+          typeof review.comment === "string" &&
+          review.comment.trim().length > 0,
+      )
+      .slice(0, 3);
+
+      const reviewerIds = [
+        ...new Set(
+          reviewsWithComments.map(
+            (review) => review.reviewer_id,
+          ),
+        ),
+      ];
+
+      let reviewerUsernameById = new Map<
+        string,
+        string
+      >();
+
+      if (reviewerIds.length > 0) {
+        const {
+          data: reviewerProfiles,
+          error: reviewerProfilesError,
+        } = await supabase
+          .from("profiles")
+          .select("id,username")
+          .in("id", reviewerIds);
+
+        if (reviewerProfilesError) {
+          request.log.error(
+            {
+              err: reviewerProfilesError,
+              userId,
+              viewerId: session.user.id,
+            },
+            "Unable to load review authors for reputation",
+          );
+
+          response.status(500).json({
+            error: "The reputation could not be loaded.",
+          });
+          return;
+        }
+
+        reviewerUsernameById = new Map(
+          (reviewerProfiles ?? []).map((profile) => [
+            profile.id,
+            profile.username,
+          ]),
+        );
+      }
+
+      recentReviews = reviewsWithComments.map(
+        (review) => ({
+          rating: review.rating,
+          comment: review.comment!.trim(),
+          createdAt: review.created_at,
+          activityId: review.activity_id,
+          activityTitle:
+            completedActivityTitleById.get(
+              review.activity_id,
+            ) ?? "",
+          reviewerId: review.reviewer_id,
+          reviewerUsername:
+            reviewerUsernameById.get(
+              review.reviewer_id,
+            ) ?? null,
+        }),
+      );
+      
     }
+
+    
 
     const reputation = {
       averageRating,
       reviewCount,
       completedActivityCount: completedActivityIds.length,
+      recentReviews,
     };
 
     response.json({
@@ -2378,6 +2471,16 @@ router.post("/activities/:id/join", async (request, response) => {
       response.status(409).json({
         error: "The activity is not active.",
         code: "activity_not_active",
+      });
+      return;
+    }
+
+    if (result.result === "activity_started") {
+      response.status(409).json({
+        error: "The activity has already started.",
+        code: "activity_started",
+        memberCount: result.member_count,
+        maxParticipants: result.max_participants,
       });
       return;
     }

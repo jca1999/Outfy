@@ -123,7 +123,8 @@
     "noSearchResultsDescription": "No plans match your search.",
     "clearSearch": "Clear search",
     "status": {
-      "active": "Active",
+      "upcoming": "Upcoming",
+      "inProgress": "In progress",
       "completed": "Completed",
       "cancelled": "Cancelled"
     },
@@ -347,7 +348,17 @@
       "cancelConfirm": "Are you sure you want to cancel this plan? Participants will still keep it in their history.",
       "cancelError": "We couldn't cancel the plan. Please try again.",
       "cancelFinishedError": "This plan has already finished and can't be cancelled.",
-      "cancelUnavailableError": "This plan can no longer be cancelled."
+      "cancelUnavailableError": "This plan can no longer be cancelled.",
+      "inProgress": "IN PROGRESS",
+      "inProgressDescription": "This plan has already started and no longer accepts new participants.",
+      "joinStartedError": "This plan has already started and you can no longer join.",
+      "completePlan": "Finish now",
+      "completingPlan": "Finishing...",
+      "completeConfirm": "Are you sure you want to finish this plan? Participants will be able to rate it immediately.",
+      "completeError": "We couldn't finish the plan. Please try again.",
+      "completeNotStartedError": "You can't finish this plan because it hasn't started yet.",
+      "completeUnavailableError": "This plan can no longer be finished.",
+      "cancelStartedError": "This plan has already started and can't be cancelled."
     },
     "validation": {
       "title": "Add a title for the plan.",
