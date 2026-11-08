@@ -1,5 +1,8 @@
 import { BellRing, Loader2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import {
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
+} from "@/components/ui/dialog";
 import { useDevicePush } from "./use-device-push";
 
 /** A separate delivery/device control; category preference toggles stay unchanged. */
@@ -29,6 +32,45 @@ export function DevicePushSettings() {
           </p>}
           {!push.loading && push.supported && (
             <div className="mt-3 flex flex-wrap items-center gap-2">
+              {denied && (
+                <>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <button type="button" disabled={push.busy}
+                        className="min-h-10 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50">
+                        {t("push.permissionHelp")}
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="w-[calc(100%-2rem)] rounded-2xl border-border text-foreground">
+                      <DialogHeader className="pr-5">
+                        <DialogTitle className="leading-snug">{t("push.permissionHelp")}</DialogTitle>
+                        <DialogDescription>{t("push.permissionHelpDescription")}</DialogDescription>
+                      </DialogHeader>
+                      {([
+                        ["android", ["open", "controls", "permissions", "allow"]],
+                        ["ios", ["homeScreen", "settings", "find", "allow"]],
+                        ["desktop", ["permissions", "allow"]],
+                      ] as const).map(([platform, steps]) => (
+                        <section key={platform} aria-labelledby={`push-help-${platform}`}>
+                          <h4 id={`push-help-${platform}`} className="text-sm font-semibold">
+                            {t(`push.permissionInstructions.${platform}.title`)}
+                          </h4>
+                          <ol className="mt-2 list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-muted-foreground">
+                            {steps.map(step => (
+                              <li key={step}>{t(`push.permissionInstructions.${platform}.${step}`)}</li>
+                            ))}
+                            <li>{t("push.permissionInstructions.return")}</li>
+                          </ol>
+                        </section>
+                      ))}
+                    </DialogContent>
+                  </Dialog>
+                  <button type="button" disabled={push.busy} onClick={() => { void push.refresh(); }}
+                    className="min-h-10 rounded-xl border border-border bg-background px-4 py-2 text-xs font-semibold text-foreground transition hover:bg-muted disabled:opacity-50">
+                    {t("push.checkPermission")}
+                  </button>
+                </>
+              )}
               {!push.subscribed && !denied && push.configured && (
                 <button type="button" disabled={push.busy} onClick={() => { void push.enable(); }}
                   className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground transition hover:opacity-90 disabled:opacity-50">
@@ -42,7 +84,7 @@ export function DevicePushSettings() {
                   {t("push.disable")}
                 </button>
               )}
-              {(push.error || (!push.configured && !denied)) && (
+              {!denied && (push.error || !push.configured) && (
                 <button type="button" disabled={push.busy} onClick={() => { void push.refresh(); }}
                   className="min-h-10 rounded-xl px-3 py-2 text-xs font-semibold text-primary hover:bg-muted disabled:opacity-50">
                   {t("push.retry")}

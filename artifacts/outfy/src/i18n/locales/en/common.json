@@ -6,6 +6,31 @@
     "unsupported": "Push notifications are not supported in this browser or browsing context.",
     "iosHint": "On iPhone or iPad, you may need a compatible version of iOS/iPadOS and to open Outfy as an installed Home Screen app.",
     "denied": "Notifications are blocked. You can allow them in your browser or device settings, then return here.",
+    "permissionHelp": "How to enable notifications",
+    "checkPermission": "Check again",
+    "permissionHelpDescription": "Blocked permission must be changed manually. Follow the steps for your device, then return here and select Check again.",
+    "permissionInstructions": {
+      "android": {
+        "title": "Android / Chrome",
+        "open": "Open Outfy in Chrome.",
+        "controls": "Tap the site controls or permissions icon near the address.",
+        "permissions": "Open site permissions.",
+        "allow": "Set Notifications to Allow."
+      },
+      "ios": {
+        "title": "iPhone / iPad",
+        "homeScreen": "Use Web Push from the Outfy web app added to your Home Screen, not a regular browser tab.",
+        "settings": "Open iOS or iPadOS Settings.",
+        "find": "Find Notifications and Outfy, if available.",
+        "allow": "Enable notifications for Outfy."
+      },
+      "desktop": {
+        "title": "Desktop",
+        "permissions": "Open your browser's site permissions for Outfy.",
+        "allow": "Set Notifications to Allow."
+      },
+      "return": "Return to Outfy."
+    },
     "unavailable": "Web Push is currently unavailable on the server. Your in-app notifications still work.",
     "enabled": "Push notifications are enabled on this device.",
     "notEnabled": "Push notifications are not enabled on this device.",

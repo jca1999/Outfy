@@ -6,6 +6,31 @@
     "unsupported": "Las notificaciones push no son compatibles con este navegador o contexto de navegación.",
     "iosHint": "En iPhone o iPad, puede ser necesaria una versión compatible de iOS/iPadOS y abrir Outfy como una app instalada en la pantalla de inicio.",
     "denied": "Las notificaciones están bloqueadas. Puedes permitirlas en los ajustes del navegador o del dispositivo y volver aquí.",
+    "permissionHelp": "Cómo activar las notificaciones",
+    "checkPermission": "Comprobar de nuevo",
+    "permissionHelpDescription": "El permiso bloqueado debe cambiarse manualmente. Sigue los pasos para tu dispositivo, vuelve aquí y pulsa Comprobar de nuevo.",
+    "permissionInstructions": {
+      "android": {
+        "title": "Android / Chrome",
+        "open": "Abre Outfy en Chrome.",
+        "controls": "Pulsa el icono de controles o permisos del sitio junto a la dirección.",
+        "permissions": "Abre los permisos del sitio.",
+        "allow": "Configura Notificaciones en Permitir."
+      },
+      "ios": {
+        "title": "iPhone / iPad",
+        "homeScreen": "Usa las notificaciones push desde la app web de Outfy añadida a la pantalla de inicio, no desde una pestaña normal del navegador.",
+        "settings": "Abre Ajustes de iOS o iPadOS.",
+        "find": "Busca Notificaciones y Outfy, si están disponibles.",
+        "allow": "Activa las notificaciones de Outfy."
+      },
+      "desktop": {
+        "title": "Ordenador",
+        "permissions": "Abre los permisos del sitio de Outfy en tu navegador.",
+        "allow": "Configura Notificaciones en Permitir."
+      },
+      "return": "Vuelve a Outfy."
+    },
     "unavailable": "Las notificaciones push no están disponibles en el servidor por ahora. Tus notificaciones dentro de la app siguen funcionando.",
     "enabled": "Las notificaciones push están activadas en este dispositivo.",
     "notEnabled": "Las notificaciones push no están activadas en este dispositivo.",
