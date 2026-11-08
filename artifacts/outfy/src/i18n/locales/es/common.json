@@ -122,5 +122,70 @@
   },
   "app": {
     "preparingSpace": "Preparando tu espacio"
+  },
+  "notifications": {
+    "bell": "Notificaciones",
+    "bellUnread_one": "Notificaciones, {{count}} sin leer",
+    "bellUnread_other": "Notificaciones, {{count}} sin leer",
+    "bellUnknown": "Notificaciones, recuento no disponible",
+    "eyebrow": "Tu círculo",
+    "title": "Notificaciones",
+    "markAll": "Marcar todo como leído",
+    "markingAll": "Marcando...",
+    "markAllError": "No se pudo marcar todo como leído. Inténtalo de nuevo.",
+    "markError": "No se pudo marcar como leída. Toca para reintentar.",
+    "loading": "Cargando notificaciones",
+    "errorTitle": "No se cargaron las notificaciones",
+    "errorBody": "Revisa tu conexión e inténtalo de nuevo.",
+    "retry": "Reintentar",
+    "emptyTitle": "Nada nuevo por ahora",
+    "emptyBody": "Aquí verás solicitudes de amistad e invitaciones a planes.",
+    "unread": "(sin leer)",
+    "types": {
+      "connection_request": {
+        "actor": "{{name}} te ha enviado una solicitud de amistad",
+        "noActor": "Alguien te ha enviado una solicitud de amistad"
+      },
+      "connection_accepted": {
+        "actor": "{{name}} ha aceptado tu solicitud de amistad",
+        "noActor": "Alguien ha aceptado tu solicitud de amistad"
+      },
+      "activity_invitation": {
+        "actorActivity": "{{name}} te ha invitado a {{title}}",
+        "actor": "{{name}} te ha invitado a un plan",
+        "noActorActivity": "Te han invitado a {{title}}",
+        "noActor": "Te han invitado a un plan"
+      },
+      "activity_invitation_accepted": {
+        "actorActivity": "{{name}} ha aceptado tu invitación a {{title}}",
+        "actor": "{{name}} ha aceptado tu invitación a un plan",
+        "noActorActivity": "Alguien ha aceptado tu invitación a {{title}}",
+        "noActor": "Alguien ha aceptado tu invitación a un plan"
+      },
+      "activity_invitation_declined": {
+        "actorActivity": "{{name}} ha rechazado tu invitación a {{title}}",
+        "actor": "{{name}} ha rechazado tu invitación a un plan",
+        "noActorActivity": "Alguien ha rechazado tu invitación a {{title}}",
+        "noActor": "Alguien ha rechazado tu invitación a un plan"
+      },
+      "activity_reminder": {
+        "actorActivity": "Recordatorio: {{title}} se acerca",
+        "actor": "Recordatorio: se acerca un plan",
+        "noActorActivity": "Recordatorio: {{title}} se acerca",
+        "noActor": "Recordatorio: se acerca un plan"
+      },
+      "chat_message": {
+        "actorActivity": "{{name}} ha escrito en {{title}}",
+        "actor": "{{name}} te ha enviado un mensaje",
+        "noActorActivity": "Nuevo mensaje en {{title}}",
+        "noActor": "Tienes un mensaje nuevo"
+      },
+      "unknown": {
+        "actorActivity": "Novedad de {{name}}",
+        "actor": "Novedad de {{name}}",
+        "noActorActivity": "Novedad en {{title}}",
+        "noActor": "Tienes una novedad"
+      }
+    }
   }
 }

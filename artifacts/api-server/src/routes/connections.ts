@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from "express";
 import { currentSession } from "./auth";
 import { getSupabaseAdmin } from "../lib/supabase";
+import { createNotification } from "../lib/notifications";
 import {
   CONNECTION_FIELDS,
   findConnection,
@@ -183,6 +184,11 @@ router.post("/connections/requests", async (request, response) => {
       fail(response, 409, "relationship_changed"); return;
     }
     if (error) throw error;
+    const created = data as ConnectionRow;
+    await createNotification({
+      recipientId: targetId, actorId: userId, type: "connection_request",
+      metadata: { connectionId: created.id }, dedupeKey: `connection_request:${created.id}`,
+    });
     response.status(201).json({ relationship: relationshipFor(data as ConnectionRow, userId) });
   } catch (error) { unavailable(request, response, error); }
 });
@@ -200,6 +206,11 @@ router.post("/connections/:id/accept", async (request, response) => {
       .select(CONNECTION_FIELDS).maybeSingle();
     if (error) throw error;
     if (!data) { fail(response, 409, "relationship_changed"); return; }
+    const accepted = data as ConnectionRow;
+    await createNotification({
+      recipientId: accepted.requester_id, actorId: userId, type: "connection_accepted",
+      metadata: { connectionId: accepted.id }, dedupeKey: `connection_accepted:${accepted.id}`,
+    });
     response.json({ relationship: relationshipFor(data as ConnectionRow, userId) });
   } catch (error) { unavailable(request, response, error); }
 });

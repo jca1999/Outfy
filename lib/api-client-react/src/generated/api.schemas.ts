@@ -5,6 +5,83 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export type NotificationErrorResponseCode = typeof NotificationErrorResponseCode[keyof typeof NotificationErrorResponseCode];
+
+
+export const NotificationErrorResponseCode = {
+  authentication_required: 'authentication_required',
+  invalid_notification: 'invalid_notification',
+  notification_not_found: 'notification_not_found',
+  notifications_unavailable: 'notifications_unavailable',
+  notifications_migration_required: 'notifications_migration_required',
+} as const;
+
+export interface NotificationErrorResponse {
+  error: string;
+  code: NotificationErrorResponseCode;
+}
+
+export type NotificationItemType = typeof NotificationItemType[keyof typeof NotificationItemType];
+
+
+export const NotificationItemType = {
+  connection_request: 'connection_request',
+  connection_accepted: 'connection_accepted',
+  activity_invitation: 'activity_invitation',
+  activity_invitation_accepted: 'activity_invitation_accepted',
+  activity_invitation_declined: 'activity_invitation_declined',
+  activity_reminder: 'activity_reminder',
+  chat_message: 'chat_message',
+} as const;
+
+export type NotificationItemMetadata = {[key: string]: string};
+
+/**
+ * @nullable
+ */
+export type NotificationItemActor = {
+  id: string;
+  username: string;
+  /** @nullable */
+  displayName: string | null;
+  /** @nullable */
+  avatarUrl: string | null;
+} | null;
+
+/**
+ * @nullable
+ */
+export type NotificationItemActivity = {
+  id: string;
+  title: string;
+} | null;
+
+export interface NotificationItem {
+  id: string;
+  type: NotificationItemType;
+  /** @nullable */
+  readAt: string | null;
+  createdAt: string;
+  metadata: NotificationItemMetadata;
+  /** @nullable */
+  actor: NotificationItemActor;
+  /** @nullable */
+  activity: NotificationItemActivity;
+}
+
+export interface NotificationsList {
+  notifications: NotificationItem[];
+}
+
+export interface NotificationUnreadCount {
+  /** @minimum 0 */
+  count: number;
+}
+
+export interface NotificationReadResult {
+  readAt: string;
+}
+
 export interface FollowRelationship {
   isFollowing: boolean;
   followsYou: boolean;
@@ -131,4 +208,9 @@ export interface ResendVerificationInput {
   /** Valid email address */
   email: string;
 }
+
+/**
+ * 400 invalid_notification; 401 authentication_required; 404 notification_not_found; 500 notifications_unavailable; 503 notifications_migration_required
+ */
+export type NotificationsErrorResponse = NotificationErrorResponse;
 

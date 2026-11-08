@@ -122,5 +122,70 @@
   },
   "app": {
     "preparingSpace": "Preparing your space"
+  },
+  "notifications": {
+    "bell": "Notifications",
+    "bellUnread_one": "Notifications, {{count}} unread",
+    "bellUnread_other": "Notifications, {{count}} unread",
+    "bellUnknown": "Notifications, unread count unavailable",
+    "eyebrow": "Your circle",
+    "title": "Notifications",
+    "markAll": "Mark all as read",
+    "markingAll": "Marking...",
+    "markAllError": "Could not mark everything as read. Try again.",
+    "markError": "Could not mark as read. Tap to try again.",
+    "loading": "Loading notifications",
+    "errorTitle": "Notifications did not load",
+    "errorBody": "Check your connection and try again.",
+    "retry": "Retry",
+    "emptyTitle": "Nothing new yet",
+    "emptyBody": "Friend requests and plan invitations will show up here.",
+    "unread": "(unread)",
+    "types": {
+      "connection_request": {
+        "actor": "{{name}} sent you a friend request",
+        "noActor": "Someone sent you a friend request"
+      },
+      "connection_accepted": {
+        "actor": "{{name}} accepted your friend request",
+        "noActor": "Someone accepted your friend request"
+      },
+      "activity_invitation": {
+        "actorActivity": "{{name}} invited you to {{title}}",
+        "actor": "{{name}} invited you to a plan",
+        "noActorActivity": "You were invited to {{title}}",
+        "noActor": "You were invited to a plan"
+      },
+      "activity_invitation_accepted": {
+        "actorActivity": "{{name}} accepted your invitation to {{title}}",
+        "actor": "{{name}} accepted your plan invitation",
+        "noActorActivity": "Someone accepted your invitation to {{title}}",
+        "noActor": "Someone accepted your plan invitation"
+      },
+      "activity_invitation_declined": {
+        "actorActivity": "{{name}} declined your invitation to {{title}}",
+        "actor": "{{name}} declined your plan invitation",
+        "noActorActivity": "Someone declined your invitation to {{title}}",
+        "noActor": "Someone declined your plan invitation"
+      },
+      "activity_reminder": {
+        "actorActivity": "Reminder: {{title}} is coming up",
+        "actor": "Reminder: a plan is coming up",
+        "noActorActivity": "Reminder: {{title}} is coming up",
+        "noActor": "Reminder: a plan is coming up"
+      },
+      "chat_message": {
+        "actorActivity": "{{name}} sent a message in {{title}}",
+        "actor": "{{name}} sent you a message",
+        "noActorActivity": "New message in {{title}}",
+        "noActor": "You have a new message"
+      },
+      "unknown": {
+        "actorActivity": "New update from {{name}}",
+        "actor": "New update from {{name}}",
+        "noActorActivity": "New update in {{title}}",
+        "noActor": "You have a new update"
+      }
+    }
   }
 }

@@ -14,7 +14,73 @@ tags:
     description: Authentication operations
   - name: follows
     description: Unilateral follows; never grant friend or private-profile access
+  - name: notifications
+    description: Server-only recipient-scoped internal notifications
 paths:
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      security: [{ sessionCookie: [] }]
+      summary: Latest 50 notifications for the authenticated recipient; current privacy applied
+      responses:
+        "200":
+          description: Newest first, with privacy-safe current actors and activities
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationsList"
+        default:
+          $ref: "#/components/responses/NotificationsError"
+  /notifications/unread-count:
+    get:
+      operationId: getNotificationsUnreadCount
+      tags: [notifications]
+      security: [{ sessionCookie: [] }]
+      responses:
+        "200":
+          description: Exact recipient-scoped unread count
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationUnreadCount"
+        default:
+          $ref: "#/components/responses/NotificationsError"
+  /notifications/read-all:
+    post:
+      operationId: markAllNotificationsRead
+      tags: [notifications]
+      security: [{ sessionCookie: [] }]
+      responses:
+        "200":
+          description: All unread recipient-owned entries up to readAt marked read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationReadResult"
+        default:
+          $ref: "#/components/responses/NotificationsError"
+  /notifications/{id}/read:
+    post:
+      operationId: markNotificationRead
+      tags: [notifications]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Idempotent read timestamp; only recipient can write
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationReadResult"
+        default:
+          $ref: "#/components/responses/NotificationsError"
   /follows/with/{userId}:
     parameters:
       - $ref: "#/components/parameters/FollowUserId"
@@ -245,6 +311,12 @@ components:
         type: string
         pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
   responses:
+    NotificationsError:
+      description: "400 invalid_notification; 401 authentication_required; 404 notification_not_found; 500 notifications_unavailable; 503 notifications_migration_required"
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/NotificationErrorResponse"
     FollowError:
       description: "400 invalid_target/self_follow; 401 authentication_required; 404 user_not_found; 500 follows_unavailable; 503 follows_migration_required"
       content:
@@ -252,6 +324,74 @@ components:
           schema:
             $ref: "#/components/schemas/FollowErrorResponse"
   schemas:
+    NotificationErrorResponse:
+      type: object
+      required: [error, code]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+          enum: [authentication_required, invalid_notification, notification_not_found, notifications_unavailable, notifications_migration_required]
+    NotificationItem:
+      type: object
+      required: [id, type, readAt, createdAt, metadata, actor, activity]
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [connection_request, connection_accepted, activity_invitation, activity_invitation_accepted, activity_invitation_declined, activity_reminder, chat_message]
+        readAt:
+          type: [string, "null"]
+        createdAt:
+          type: string
+        metadata:
+          type: object
+          additionalProperties:
+            type: string
+        actor:
+          type: [object, "null"]
+          required: [id, username, displayName, avatarUrl]
+          properties:
+            id:
+              type: string
+            username:
+              type: string
+            displayName:
+              type: [string, "null"]
+            avatarUrl:
+              type: [string, "null"]
+        activity:
+          type: [object, "null"]
+          required: [id, title]
+          properties:
+            id:
+              type: string
+            title:
+              type: string
+    NotificationsList:
+      type: object
+      required: [notifications]
+      properties:
+        notifications:
+          type: array
+          items:
+            $ref: "#/components/schemas/NotificationItem"
+    NotificationUnreadCount:
+      type: object
+      required: [count]
+      properties:
+        count:
+          type: integer
+          minimum: 0
+    NotificationReadResult:
+      type: object
+      required: [readAt]
+      properties:
+        readAt:
+          type: string
     FollowRelationship:
       type: object
       required: [isFollowing, followsYou, followersCount, followingCount]

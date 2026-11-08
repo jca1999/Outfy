@@ -67,6 +67,7 @@ function fakeDb() {
       const predicates = [];
       const q = {
         select() { return q; },
+        abortSignal() { return q; },
         insert(data) { operation = "insert"; values = data; return q; },
         update(data) { operation = "update"; values = data; return q; },
         delete() { operation = "delete"; return q; },

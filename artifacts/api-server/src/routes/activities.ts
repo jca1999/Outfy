@@ -1,6 +1,7 @@
 import { Router, type IRouter, type Request } from "express";
 
 import { findConnection } from "../lib/connections";
+import { createNotification, notifyInvitationResponse } from "../lib/notifications";
 import { getSupabaseAdmin } from "../lib/supabase";
 import { currentSession } from "./auth";
 
@@ -2563,7 +2564,7 @@ router.post("/activities/:id/invitations", async (request, response) => {
 
     const { data: existingInvitation, error: invitationError } = await supabase
       .from("activity_invitations")
-      .select("id,status")
+      .select("id,status,updated_at")
       .eq("activity_id", activityId)
       .eq("invitee_id", inviteeId)
       .maybeSingle();
@@ -2611,8 +2612,9 @@ router.post("/activities/:id/invitations", async (request, response) => {
           responded_at: null,
         })
         .eq("id", existingInvitation.id)
-        .select("id,status")
-        .single();
+        .eq("status", "declined")
+        .select("id,status,updated_at")
+        .maybeSingle();
 
       if (renewError) {
         request.log.error(
@@ -2630,6 +2632,15 @@ router.post("/activities/:id/invitations", async (request, response) => {
         return;
       }
 
+      if (!renewedInvitation) {
+        response.status(409).json({ error: "The invitation has changed.", code: "invitation_changed" });
+        return;
+      }
+      await createNotification({
+        recipientId: inviteeId, actorId: session.user.id, activityId,
+        type: "activity_invitation", metadata: { invitationId: renewedInvitation.id },
+        dedupeKey: `activity_invitation:${renewedInvitation.id}:${renewedInvitation.updated_at}`,
+      });
       response.json({
         result: "invited",
         invitation: {
@@ -2646,7 +2657,7 @@ router.post("/activities/:id/invitations", async (request, response) => {
         activity_id: activityId,
         invitee_id: inviteeId,
       })
-      .select("id,status")
+      .select("id,status,updated_at")
       .single();
 
     if (createError) {
@@ -2665,6 +2676,11 @@ router.post("/activities/:id/invitations", async (request, response) => {
       return;
     }
 
+    await createNotification({
+      recipientId: inviteeId, actorId: session.user.id, activityId,
+      type: "activity_invitation", metadata: { invitationId: invitation.id },
+      dedupeKey: `activity_invitation:${invitation.id}:${invitation.updated_at}`,
+    });
     response.status(201).json({
       result: "invited",
       invitation: {
@@ -3286,7 +3302,7 @@ router.post(
 
       const { data: invitation, error: invitationError } = await supabase
         .from("activity_invitations")
-        .select("id,activity_id,invitee_id,status")
+        .select("id,activity_id,invitee_id,status,updated_at")
         .eq("id", invitationId)
         .eq("invitee_id", session.user.id)
         .maybeSingle();
@@ -3485,6 +3501,12 @@ router.post(
         }
       }
 
+      if (acceptedInvitation) {
+        await notifyInvitationResponse(
+          invitation.activity_id, session.user.id, invitationId,
+          "activity_invitation_accepted", invitation.updated_at,
+        );
+      }
       response.json({
         result:
           result.result === "already_member" ? "already_accepted" : "accepted",
@@ -3550,7 +3572,7 @@ router.post(
 
       const { data: invitation, error: invitationError } = await supabase
         .from("activity_invitations")
-        .select("id,activity_id,status")
+        .select("id,activity_id,status,updated_at")
         .eq("id", invitationId)
         .eq("invitee_id", session.user.id)
         .maybeSingle();
@@ -3630,6 +3652,10 @@ router.post(
         return;
       }
 
+      await notifyInvitationResponse(
+        invitation.activity_id, session.user.id, invitationId,
+        "activity_invitation_declined", invitation.updated_at,
+      );
       response.json({
         result: "declined",
         activityId: invitation.activity_id,

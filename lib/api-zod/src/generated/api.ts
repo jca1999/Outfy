@@ -9,6 +9,53 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Latest 50 notifications for the authenticated recipient; current privacy applied
+ */
+export const ListNotificationsResponse = zod.object({
+  "notifications": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "type": zod.enum(['connection_request', 'connection_accepted', 'activity_invitation', 'activity_invitation_accepted', 'activity_invitation_declined', 'activity_reminder', 'chat_message']),
+  "readAt": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "metadata": zod.record(zod.string(), zod.string()),
+  "actor": zod.object({
+  "id": zod.string(),
+  "username": zod.string(),
+  "displayName": zod.string().nullable(),
+  "avatarUrl": zod.string().nullable()
+}).nullable(),
+  "activity": zod.object({
+  "id": zod.string(),
+  "title": zod.string()
+}).nullable()
+}))
+})
+
+
+export const getNotificationsUnreadCountResponseCountMin = 0;
+
+
+
+export const GetNotificationsUnreadCountResponse = zod.object({
+  "count": zod.number().int().min(getNotificationsUnreadCountResponseCountMin)
+})
+
+
+export const MarkAllNotificationsReadResponse = zod.object({
+  "readAt": zod.string()
+})
+
+
+export const MarkNotificationReadParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const MarkNotificationReadResponse = zod.object({
+  "readAt": zod.string()
+})
+
+
+/**
  * @summary Relationship to the target and exact target follower/following counts
  */
 export const getFollowRelationshipPathUserIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');

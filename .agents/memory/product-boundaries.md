@@ -26,3 +26,9 @@ En Outfy, mantener español e inglés en el mismo cambio, así como tema claro/o
 **Why:** El usuario lo exige al integrar funciones en la interfaz.
 
 **How to apply:** Incluir ambas traducciones y comprobar los modos y tamaños relevantes cuando se cambie la interfaz.
+
+Block 8 is phased: the first notification phase is internal only. Web/mobile push, service workers/VAPID, email, automatic reminders, chat notification generation, sounds and notification-settings redesign are deliberately deferred.
+
+**Why:** The user explicitly separated these into later phases rather than treating them as missing pieces of the internal notification center.
+
+**How to apply:** Do not add these channels or automations without a subsequent explicit request.

@@ -1,4 +1,4 @@
-import { Bell, ChevronDown, Plus, Search } from "lucide-react";
+import { ChevronDown, Plus, Search } from "lucide-react";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -6,6 +6,7 @@ import { Link, useLocation } from "wouter";
 import { useTranslation } from "react-i18next";
 import { navItems } from "@/constants";
 import { cn } from "@/utils";
+import { NotificationBell } from "@/notifications/notification-bell";
 import {
   getProfileAvatar,
   PROFILE_AVATAR_CHANGED_EVENT,
@@ -30,7 +31,6 @@ export function OutfyShell({ children }: OutfyShellProps) {
   const incomingCount = overview.isError ? 0 : (overview.data?.incoming.length ?? 0);
   const { t } = useTranslation("common");
   const [location, navigate] = useLocation();
-  const [notificationsRead, setNotificationsRead] = useState(false);
   const avatarUrlRef = useRef<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loadedAvatarUrl, setLoadedAvatarUrl] = useState<string | null>(null);
@@ -239,18 +239,7 @@ export function OutfyShell({ children }: OutfyShellProps) {
                 {t('shell.createPlan')}
               </button>
               <ThemeSwitcher />
-              <button
-                type="button"
-                onClick={() => setNotificationsRead((current) => !current)}
-                className="relative rounded-full p-2.5 text-muted-foreground hover:bg-muted"
-                aria-label={t('shell.notifications')}
-                data-testid="button-notifications"
-              >
-                <Bell className="h-[18px] w-[18px]" />
-                {!notificationsRead && (
-                  <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-primary" />
-                )}
-              </button>
+              <NotificationBell />
               <Link
                 href="/profile"
                 className="flex items-center gap-2 rounded-full pl-1.5 pr-1 sm:gap-2.5"
