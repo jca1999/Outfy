@@ -1,3 +1,4 @@
 - [Generated validator compatibility](openapi-email-validation.md) — Explicitly target the installed Zod major; Orval's automatic detection emitted incompatible validators.
 - [Product boundaries](product-boundaries.md) — Connections mean mutual friendships, not followers/dating; preserve the user's 0€ development goal.
 - [Toolchain side effects](toolchain-side-effects.md) — Invoking an unconfigured runtime can automatically alter `.replit`; prefer Node under infrastructure freezes.
+- [Web Push ESM compatibility](web-push-compatibility.md) — Runtime named exports may differ from older DefinitelyTyped declarations; typecheck alone misses default-import errors.

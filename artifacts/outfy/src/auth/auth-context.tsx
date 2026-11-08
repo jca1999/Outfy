@@ -13,6 +13,7 @@ import type {
   NotificationPreferences,
 } from './auth-api';
 import * as authApi from './auth-api';
+import { clearPushForSignOut } from '@/push/push-api';
 
 interface AuthContextValue {
   user: AuthUser | null;
@@ -96,6 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return result.user;
       },
       async signOut() {
+        await clearPushForSignOut();
         await authApi.signOut();
         setUser(null);
       },

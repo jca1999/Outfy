@@ -27,8 +27,8 @@ En Outfy, mantener español e inglés en el mismo cambio, así como tema claro/o
 
 **How to apply:** Incluir ambas traducciones y comprobar los modos y tamaños relevantes cuando se cambie la interfaz.
 
-Block 8 is phased: the first notification phase is internal only. Web/mobile push, service workers/VAPID, email, automatic reminders, chat notification generation, sounds and notification-settings redesign are deliberately deferred.
+Block 8 is phased: internal notifications are the source event; standard Web Push is an optional additional channel, not a replacement. Email, automatic reminders, chat notification generation, sounds and notification-settings redesign remain deliberately deferred.
 
-**Why:** The user explicitly separated these into later phases rather than treating them as missing pieces of the internal notification center.
+**Why:** The user explicitly requested the Web Push phase after the internal notification phase, while keeping the other channels and automations out of scope.
 
-**How to apply:** Do not add these channels or automations without a subsequent explicit request.
+**How to apply:** Reuse internal notification creation and category preferences. Do not add the remaining channels or automations without a subsequent explicit request.

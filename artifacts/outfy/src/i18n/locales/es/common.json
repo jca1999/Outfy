@@ -1,4 +1,21 @@
 {
+  "push": {
+    "title": "Notificaciones push",
+    "description": "Recibe avisos importantes de Outfy aunque la app esté cerrada. Se siguen respetando las preferencias de categorías anteriores.",
+    "loading": "Comprobando este dispositivo…",
+    "unsupported": "Las notificaciones push no son compatibles con este navegador o contexto de navegación.",
+    "iosHint": "En iPhone o iPad, puede ser necesaria una versión compatible de iOS/iPadOS y abrir Outfy como una app instalada en la pantalla de inicio.",
+    "denied": "Las notificaciones están bloqueadas. Puedes permitirlas en los ajustes del navegador o del dispositivo y volver aquí.",
+    "unavailable": "Las notificaciones push no están disponibles en el servidor por ahora. Tus notificaciones dentro de la app siguen funcionando.",
+    "enabled": "Las notificaciones push están activadas en este dispositivo.",
+    "notEnabled": "Las notificaciones push no están activadas en este dispositivo.",
+    "enable": "Activar notificaciones push",
+    "disable": "Desactivar en este dispositivo",
+    "retry": "Volver a comprobar",
+    "loadError": "No pudimos comprobar la disponibilidad de las notificaciones push. Inténtalo de nuevo.",
+    "enableError": "No pudimos activar las notificaciones push. No se ha confirmado su activación. Inténtalo de nuevo.",
+    "disableError": "No pudimos terminar de desactivar las notificaciones push. Inténtalo de nuevo."
+  },
   "language": {
     "selector": "Seleccionar idioma",
     "spanish": "Español",

@@ -1,4 +1,21 @@
 {
+  "push": {
+    "title": "Push notifications",
+    "description": "Receive important Outfy alerts even when the app is closed. Your category preferences above still apply.",
+    "loading": "Checking this device…",
+    "unsupported": "Push notifications are not supported in this browser or browsing context.",
+    "iosHint": "On iPhone or iPad, you may need a compatible version of iOS/iPadOS and to open Outfy as an installed Home Screen app.",
+    "denied": "Notifications are blocked. You can allow them in your browser or device settings, then return here.",
+    "unavailable": "Web Push is currently unavailable on the server. Your in-app notifications still work.",
+    "enabled": "Push notifications are enabled on this device.",
+    "notEnabled": "Push notifications are not enabled on this device.",
+    "enable": "Enable push notifications",
+    "disable": "Disable on this device",
+    "retry": "Check again",
+    "loadError": "We could not check push availability. Try again.",
+    "enableError": "We could not enable push notifications. They are not confirmed as active. Try again.",
+    "disableError": "We could not finish disabling push notifications. Try again."
+  },
   "language": {
     "selector": "Select language",
     "spanish": "Spanish",

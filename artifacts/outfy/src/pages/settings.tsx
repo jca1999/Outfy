@@ -13,6 +13,7 @@ import {
 } from '@/auth/auth-api';
 import { useAuth } from '@/auth/auth-context';
 import { LanguageSwitcher } from '@/components/language-switcher';
+import { DevicePushSettings } from '@/push/device-push-settings';
 
 export function Settings() {
   const { t } = useTranslation('profile');
@@ -507,6 +508,7 @@ export function Settings() {
             );
           })}
         </div>
+        <DevicePushSettings />
       </section>
 
       <section className="rounded-[26px] border border-border bg-card p-4 soft-shadow sm:p-5">

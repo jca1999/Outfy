@@ -9,6 +9,64 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Server configuration and ownership of this browser's optional endpoint
+ */
+export const getPushStatusQueryEndpointMax = 2048;
+
+
+
+export const GetPushStatusQueryParams = zod.object({
+  "endpoint": zod.coerce.string().max(getPushStatusQueryEndpointMax).optional()
+})
+
+export const GetPushStatusResponse = zod.object({
+  "configured": zod.boolean(),
+  "subscribed": zod.boolean()
+})
+
+
+export const GetPushPublicKeyResponse = zod.object({
+  "publicKey": zod.string()
+})
+
+
+export const registerPushSubscriptionBodyEndpointMax = 2048;
+
+export const registerPushSubscriptionBodyKeysP256dhMin = 87;
+export const registerPushSubscriptionBodyKeysP256dhMax = 88;
+
+export const registerPushSubscriptionBodyKeysAuthMin = 22;
+export const registerPushSubscriptionBodyKeysAuthMax = 24;
+
+
+
+export const RegisterPushSubscriptionBody = zod.object({
+  "endpoint": zod.string().min(1).max(registerPushSubscriptionBodyEndpointMax),
+  "keys": zod.object({
+  "p256dh": zod.string().min(registerPushSubscriptionBodyKeysP256dhMin).max(registerPushSubscriptionBodyKeysP256dhMax),
+  "auth": zod.string().min(registerPushSubscriptionBodyKeysAuthMin).max(registerPushSubscriptionBodyKeysAuthMax)
+})
+})
+
+export const RegisterPushSubscriptionResponse = zod.object({
+  "subscribed": zod.boolean()
+})
+
+
+export const removePushSubscriptionBodyEndpointMax = 2048;
+
+
+
+export const RemovePushSubscriptionBody = zod.object({
+  "endpoint": zod.string().min(1).max(removePushSubscriptionBodyEndpointMax)
+})
+
+export const RemovePushSubscriptionResponse = zod.object({
+  "subscribed": zod.boolean()
+})
+
+
+/**
  * @summary Latest 50 notifications for the authenticated recipient; current privacy applied
  */
 export const ListNotificationsResponse = zod.object({

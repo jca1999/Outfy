@@ -34,6 +34,9 @@ const compiled = await build({
       bundler.onLoad({ filter: /\/lib\/logger\.ts$/ }, () => ({
         contents: "export const logger={warn:(...args)=>globalThis.__notificationWarnings.push(args)};", loader:"js",
       }));
+      bundler.onLoad({ filter: /\/lib\/push-config\.ts$/ }, () => ({
+        contents: "export const getPushConfiguration=()=>null;", loader:"js",
+      }));
     },
   }],
 });

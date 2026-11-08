@@ -1,6 +1,7 @@
 import { getSupabaseAdmin } from "./supabase";
 import { logger } from "./logger";
 import type { NotificationItem } from "@workspace/api-zod";
+import { sendPushToUser } from "./push-delivery";
 
 export const NOTIFICATION_TYPES = [
   "connection_request", "connection_accepted", "activity_invitation",
@@ -40,15 +41,24 @@ export async function createNotification(input: NotificationInput): Promise<void
     if (preferenceError) throw preferenceError;
     // Missing/unknown preferences fail closed, not as implicit opt-in.
     if (!profile || profile[preference] !== true) return;
-    const { error } = await db.from("notifications").insert({
+    const { data, error } = await db.from("notifications").insert({
       recipient_id: input.recipientId,
       actor_id: input.actorId ?? null,
       activity_id: input.activityId ?? null,
       type: input.type,
       metadata,
       dedupe_key: input.dedupeKey ?? null,
-    }).abortSignal(AbortSignal.timeout(2000));
+    }).select("id,created_at").abortSignal(AbortSignal.timeout(2000)).maybeSingle();
     if (error && error.code !== "23505") throw error;
+    if (!error && data) {
+      // Only a new stored event triggers push; dedupe conflicts never do.
+      // Do not wait for external push providers on a primary business request.
+      void sendPushToUser(input.recipientId, {
+        id: data.id, created_at: data.created_at, read_at: null,
+        type: input.type, actor_id: input.actorId ?? null,
+        activity_id: input.activityId ?? null, metadata,
+      }).catch(() => logger.warn({ notificationType: input.type }, "Web Push delivery unavailable"));
+    }
   } catch (error) {
     logger.warn({ err: error, notificationType: input.type }, "Unable to create internal notification");
   }

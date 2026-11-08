@@ -5,6 +5,7 @@ import activitiesRouter from "./activities";
 import connectionsRouter from "./connections";
 import followsRouter from "./follows";
 import notificationsRouter from "./notifications";
+import pushRouter from "./push";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use(activitiesRouter);
 router.use(connectionsRouter);
 router.use(followsRouter);
 router.use(notificationsRouter);
+router.use(pushRouter);
 
 export default router;

@@ -5,6 +5,54 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface PushStatus {
+  configured: boolean;
+  subscribed: boolean;
+}
+
+export interface PushPublicKey {
+  publicKey: string;
+}
+
+export interface PushEndpointInput {
+  /**
+     * @minLength 1
+     * @maxLength 2048
+     */
+  endpoint: string;
+}
+
+export type PushSubscriptionInputKeys = {
+  /**
+     * @minLength 87
+     * @maxLength 88
+     */
+  p256dh: string;
+  /**
+     * @minLength 22
+     * @maxLength 24
+     */
+  auth: string;
+};
+
+export interface PushSubscriptionInput {
+  /**
+     * @minLength 1
+     * @maxLength 2048
+     */
+  endpoint: string;
+  keys: PushSubscriptionInputKeys;
+}
+
+export interface PushSubscriptionResult {
+  subscribed: boolean;
+}
+
+export interface PushError {
+  error: string;
+  code: string;
+}
+
 export type NotificationErrorResponseCode = typeof NotificationErrorResponseCode[keyof typeof NotificationErrorResponseCode];
 
 
@@ -210,7 +258,19 @@ export interface ResendVerificationInput {
 }
 
 /**
+ * Authentication, input, ownership conflict, or push unavailable
+ */
+export type PushFailureResponse = PushError;
+
+/**
  * 400 invalid_notification; 401 authentication_required; 404 notification_not_found; 500 notifications_unavailable; 503 notifications_migration_required
  */
 export type NotificationsErrorResponse = NotificationErrorResponse;
+
+export type GetPushStatusParams = {
+/**
+ * @maxLength 2048
+ */
+endpoint?: string;
+};
 

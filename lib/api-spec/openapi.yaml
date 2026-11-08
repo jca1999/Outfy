@@ -17,6 +17,97 @@ tags:
   - name: notifications
     description: Server-only recipient-scoped internal notifications
 paths:
+  /push/status:
+    get:
+      operationId: getPushStatus
+      tags: [notifications]
+      security: [{ sessionCookie: [] }]
+      summary: Server configuration and ownership of this browser's optional endpoint
+      parameters:
+        - in: query
+          name: endpoint
+          required: false
+          schema:
+            type: string
+            maxLength: 2048
+      responses:
+        "200":
+          description: Browser permission is not inferred by the server
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushStatus"
+        "400":
+          $ref: "#/components/responses/PushFailure"
+        "401":
+          $ref: "#/components/responses/PushFailure"
+        "503":
+          $ref: "#/components/responses/PushFailure"
+  /push/public-key:
+    get:
+      operationId: getPushPublicKey
+      tags: [notifications]
+      security: [{ sessionCookie: [] }]
+      responses:
+        "200":
+          description: Only the VAPID public key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushPublicKey"
+        "401":
+          $ref: "#/components/responses/PushFailure"
+        "503":
+          $ref: "#/components/responses/PushFailure"
+  /push/subscriptions:
+    post:
+      operationId: registerPushSubscription
+      tags: [notifications]
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PushSubscriptionInput"
+      responses:
+        "200":
+          description: Registered for the authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushSubscriptionResult"
+        "400":
+          $ref: "#/components/responses/PushFailure"
+        "401":
+          $ref: "#/components/responses/PushFailure"
+        "409":
+          $ref: "#/components/responses/PushFailure"
+        "503":
+          $ref: "#/components/responses/PushFailure"
+    delete:
+      operationId: removePushSubscription
+      tags: [notifications]
+      security: [{ sessionCookie: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PushEndpointInput"
+      responses:
+        "200":
+          description: Endpoint removed only from this user's subscriptions; idempotent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PushSubscriptionResult"
+        "400":
+          $ref: "#/components/responses/PushFailure"
+        "401":
+          $ref: "#/components/responses/PushFailure"
+        "503":
+          $ref: "#/components/responses/PushFailure"
   /notifications:
     get:
       operationId: listNotifications
@@ -311,6 +402,12 @@ components:
         type: string
         pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
   responses:
+    PushFailure:
+      description: Authentication, input, ownership conflict, or push unavailable
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/PushError"
     NotificationsError:
       description: "400 invalid_notification; 401 authentication_required; 404 notification_not_found; 500 notifications_unavailable; 503 notifications_migration_required"
       content:
@@ -324,6 +421,65 @@ components:
           schema:
             $ref: "#/components/schemas/FollowErrorResponse"
   schemas:
+    PushStatus:
+      type: object
+      required: [configured, subscribed]
+      properties:
+        configured:
+          type: boolean
+        subscribed:
+          type: boolean
+    PushPublicKey:
+      type: object
+      required: [publicKey]
+      properties:
+        publicKey:
+          type: string
+    PushEndpointInput:
+      type: object
+      additionalProperties: false
+      required: [endpoint]
+      properties:
+        endpoint:
+          type: string
+          minLength: 1
+          maxLength: 2048
+    PushSubscriptionInput:
+      type: object
+      additionalProperties: false
+      required: [endpoint, keys]
+      properties:
+        endpoint:
+          type: string
+          minLength: 1
+          maxLength: 2048
+        keys:
+          type: object
+          additionalProperties: false
+          required: [p256dh, auth]
+          properties:
+            p256dh:
+              type: string
+              minLength: 87
+              maxLength: 88
+            auth:
+              type: string
+              minLength: 22
+              maxLength: 24
+    PushSubscriptionResult:
+      type: object
+      required: [subscribed]
+      properties:
+        subscribed:
+          type: boolean
+    PushError:
+      type: object
+      required: [error, code]
+      properties:
+        error:
+          type: string
+        code:
+          type: string
     NotificationErrorResponse:
       type: object
       required: [error, code]

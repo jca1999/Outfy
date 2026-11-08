@@ -6,6 +6,10 @@ import App from './App';
 import { ErrorBoundary } from '@/components/error-boundary';
 
 import './index.css';
+import { registerPushWorker } from '@/push/push-api';
+
+// Optional capability; no permission request or subscription on page load.
+void registerPushWorker().catch(() => {});
 
 import {
   initializeTheme,
