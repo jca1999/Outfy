@@ -18,7 +18,7 @@ const FRIEND_TYPES: NotificationType[] = ["connection_request", "connection_acce
 const KNOWN = new Set<string>([
   "connection_request", "connection_accepted", "activity_invitation",
   "activity_invitation_accepted", "activity_invitation_declined",
-  "activity_reminder", "chat_message",
+  "activity_reminder", "chat_message","activity_joined",
 ]);
 const ICONS: Record<string, LucideIcon> = {
   connection_request: UserPlus,
@@ -28,6 +28,7 @@ const ICONS: Record<string, LucideIcon> = {
   activity_invitation_declined: CalendarX,
   activity_reminder: Clock,
   chat_message: MessageCircle,
+  activity_joined: UserPlus,
 };
 
 function destination(n: Notification): string | null {

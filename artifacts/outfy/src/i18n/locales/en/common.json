@@ -220,6 +220,12 @@
         "noActorActivity": "Someone declined your invitation to {{title}}",
         "noActor": "Someone declined your plan invitation"
       },
+      "activity_joined": {
+        "actorActivity": "{{name}} joined your plan {{title}}",
+        "actor": "{{name}} joined your plan",
+        "noActorActivity": "Someone joined your plan {{title}}",
+        "noActor": "Someone joined your plan"
+      },
       "activity_reminder": {
         "actorActivity": "Reminder: {{title}} is coming up",
         "actor": "Reminder: a plan is coming up",

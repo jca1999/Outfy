@@ -131,7 +131,7 @@ export const RemovePushSubscriptionResponse = zod.object({
 export const ListNotificationsResponse = zod.object({
   "notifications": zod.array(zod.object({
   "id": zod.string().uuid(),
-  "type": zod.enum(['connection_request', 'connection_accepted', 'activity_invitation', 'activity_invitation_accepted', 'activity_invitation_declined', 'activity_reminder', 'chat_message']),
+  "type": zod.enum(['connection_request', 'connection_accepted', 'activity_invitation', 'activity_invitation_accepted', 'activity_invitation_declined', 'activity_joined', 'activity_reminder', 'chat_message']),
   "readAt": zod.string().nullable(),
   "createdAt": zod.string(),
   "metadata": zod.record(zod.string(), zod.string()),

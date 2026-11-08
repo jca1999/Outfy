@@ -93,6 +93,9 @@
   },
   "myPlans": {
     "title": "My plans",
+    "createdByYou": "Created by you",
+    "createdBy": "By @{{username}}",
+    "createdBySomeone": "By another user",
     "created": "Created",
     "upcoming": "Upcoming",
     "history": "History",

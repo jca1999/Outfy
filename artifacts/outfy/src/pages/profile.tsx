@@ -781,6 +781,20 @@ export function Profile() {
           {t(`activities:categories.${activity.category}`)}
         </p>
 
+        {historical && "relationship" in activity && (
+          <p className="mt-1.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <UserRound className="h-3.5 w-3.5 shrink-0" />
+
+            {activity.relationship === "organizer"
+              ? t("activities:myPlans.createdByYou")
+              : activity.organizerUsername
+                ? t("activities:myPlans.createdBy", {
+                    username: activity.organizerUsername,
+                  })
+                : t("activities:myPlans.createdBySomeone")}
+          </p>
+        )}
+
         <div className="mt-auto grid gap-1.5 pt-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-2">
             <CalendarDays className="h-3.5 w-3.5 shrink-0" />
@@ -794,6 +808,31 @@ export function Profile() {
             <Users className="h-3.5 w-3.5 shrink-0" />
             {participants}
           </span>
+          {historical &&
+            "averageRating" in activity &&
+            activity.status === "completed" && (
+              <span className="flex items-center gap-2">
+                <Star className="h-3.5 w-3.5 shrink-0 fill-primary text-primary" />
+
+                {activity.averageRating !== null ? (
+                  <>
+                    <span className="font-bold text-foreground">
+                      {activity.averageRating.toFixed(1)}
+                    </span>
+
+                    <span>
+                      {t("activities:myPlans.review.reviewCount", {
+                        count: activity.reviewCount,
+                      })}
+                    </span>
+                  </>
+                ) : (
+                  <span>
+                    {t("activities:myPlans.review.noReviews")}
+                  </span>
+                )}
+              </span>
+            )}
         </div>
       </button>
     );
@@ -1503,68 +1542,9 @@ export function Profile() {
             {historyState === "ready" &&
               visibleHistoryActivities.length > 0 && (
                 <div className="grid gap-3 sm:grid-cols-2">
-                  {visibleHistoryActivities.map((activity) => (
-                    <div key={activity.id} className="space-y-2">
-                      {renderActivityCard(activity, true)}
-
-                      <div className="rounded-[18px] border border-border bg-card px-4 py-3">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div className="min-w-0">
-                            {activity.averageRating !== null ? (
-                              <div className="flex items-center gap-2">
-                                <Star className="h-4 w-4 fill-primary text-primary" />
-                                <span className="text-sm font-bold">
-                                  {activity.averageRating.toFixed(1)}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {t("activities:myPlans.review.reviewCount", {
-                                    count: activity.reviewCount,
-                                  })}
-                                </span>
-                              </div>
-                            ) : (
-                              <p className="text-xs text-muted-foreground">
-                                {t("activities:myPlans.review.noReviews")}
-                              </p>
-                            )}
-
-                            {activity.myReview && (
-                              <p className="mt-1 text-xs text-muted-foreground">
-                                {t("activities:myPlans.review.yourRating", {
-                                  rating: activity.myReview.rating,
-                                })}
-                              </p>
-                            )}
-                          </div>
-
-                          {activity.canReview && (
-                            <button
-                              type="button"
-                              onClick={() => navigate(`/activities/${activity.id}`)}
-                              className="shrink-0 rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground transition hover:bg-primary/90"
-                            >
-                              {activity.myReview
-                                ? t("activities:myPlans.review.viewActivity")
-                                : t("activities:myPlans.review.viewAndReview")}
-                            </button>
-                          )}
-
-                          {activity.relationship === "organizer" && (
-                            <span className="text-xs text-muted-foreground">
-                              {t("activities:myPlans.review.organizer")}
-                            </span>
-                          )}
-
-                          {activity.relationship === "participant" &&
-                            activity.status === "cancelled" && (
-                              <span className="text-xs text-muted-foreground">
-                                {t("activities:myPlans.review.cancelled")}
-                              </span>
-                            )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+                  {visibleHistoryActivities.map((activity) =>
+                    renderActivityCard(activity, true),
+                  )}
                 </div>
               )}
           </div>

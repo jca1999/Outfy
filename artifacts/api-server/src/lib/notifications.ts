@@ -6,6 +6,7 @@ import { sendPushToUser } from "./push-delivery";
 export const NOTIFICATION_TYPES = [
   "connection_request", "connection_accepted", "activity_invitation",
   "activity_invitation_accepted", "activity_invitation_declined",
+  "activity_joined",
   "activity_reminder", "chat_message",
 ] as const;
 export type NotificationType = NotificationItem["type"];

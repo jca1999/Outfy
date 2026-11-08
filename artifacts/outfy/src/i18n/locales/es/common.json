@@ -220,6 +220,12 @@
         "noActorActivity": "Alguien ha rechazado tu invitación a {{title}}",
         "noActor": "Alguien ha rechazado tu invitación a un plan"
       },
+      "activity_joined": {
+        "actorActivity": "{{name}} se ha unido a tu plan {{title}}",
+        "actor": "{{name}} se ha unido a tu plan",
+        "noActorActivity": "Alguien se ha unido a tu plan {{title}}",
+        "noActor": "Alguien se ha unido a tu plan"
+      },
       "activity_reminder": {
         "actorActivity": "Recordatorio: {{title}} se acerca",
         "actor": "Recordatorio: se acerca un plan",

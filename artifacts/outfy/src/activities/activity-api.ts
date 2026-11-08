@@ -157,6 +157,7 @@ export type ActivityReview = {
 
 export type MyHistoryActivity = MyCreatedActivity & {
   relationship: 'organizer' | 'participant';
+  organizerUsername: string | null;
   canReview: boolean;
   averageRating: number | null;
   reviewCount: number;

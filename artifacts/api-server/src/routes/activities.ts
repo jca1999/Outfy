@@ -870,6 +870,38 @@ router.get("/activities/history", async (request, response) => {
 
     const activityIds = historicalActivities.map((activity) => activity.id);
 
+    const organizerIds = [
+      ...new Set(
+        historicalActivities
+          .map((activity) => activity.creator_id)
+          .filter((creatorId) => creatorId !== session.user.id),
+      ),
+    ];
+
+    const organizerUsernameById = new Map<string, string>();
+
+    if (organizerIds.length > 0) {
+      const { data: organizerProfiles, error: organizerProfilesError } =
+        await supabase
+          .from("profiles")
+          .select("id,username")
+          .in("id", organizerIds);
+
+      if (organizerProfilesError) {
+        request.log.warn(
+          {
+            err: organizerProfilesError,
+            userId: session.user.id,
+          },
+          "Unable to load activity organizers for history",
+        );
+      } else {
+        for (const profile of organizerProfiles ?? []) {
+          organizerUsernameById.set(profile.id, profile.username);
+        }
+      }
+    }
+
     const { data: reviews, error: reviewsError } = await supabase
       .from("activity_reviews")
       .select("activity_id,reviewer_id,rating,comment")
@@ -938,6 +970,10 @@ router.get("/activities/history", async (request, response) => {
           memberCount: activity.activity_members?.[0]?.count ?? 0,
           status: activity.status,
           relationship,
+          organizerUsername:
+            relationship === "participant"
+              ? organizerUsernameById.get(activity.creator_id) ?? null
+              : null,
           canReview,
           averageRating:
             stats && stats.count > 0
@@ -3897,10 +3933,23 @@ router.post("/activities/:id/join", async (request, response) => {
       return;
     }
 
-    if (
-      (result.result === "joined" || result.result === "already_member") &&
-      result.member_count !== null
-    ) {
+    if (result.result === "joined" && result.member_count !== null) {
+      await createNotification({
+        recipientId: activity.creator_id,
+        actorId: session.user.id,
+        activityId,
+        type: "activity_joined",
+      });
+
+      response.json({
+        result: result.result,
+        memberCount: result.member_count,
+        maxParticipants: result.max_participants,
+      });
+      return;
+    }
+
+    if (result.result === "already_member" && result.member_count !== null) {
       response.json({
         result: result.result,
         memberCount: result.member_count,

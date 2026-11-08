@@ -603,7 +603,7 @@ components:
           format: uuid
         type:
           type: string
-          enum: [connection_request, connection_accepted, activity_invitation, activity_invitation_accepted, activity_invitation_declined, activity_reminder, chat_message]
+          enum: [connection_request, connection_accepted, activity_invitation, activity_invitation_accepted, activity_invitation_declined, activity_joined, activity_reminder, chat_message]
         readAt:
           type: [string, "null"]
         createdAt:

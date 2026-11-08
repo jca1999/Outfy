@@ -15,6 +15,7 @@ export const NotificationItemType = {
   activity_invitation: 'activity_invitation',
   activity_invitation_accepted: 'activity_invitation_accepted',
   activity_invitation_declined: 'activity_invitation_declined',
+  activity_joined: 'activity_joined',
   activity_reminder: 'activity_reminder',
   chat_message: 'chat_message',
 } as const;
