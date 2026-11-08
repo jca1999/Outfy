@@ -96,6 +96,16 @@
     "sendMessage": "Send message"
   },
   "connections": {
+    "search": {
+      "title": "Find people",
+      "placeholder": "Search by username",
+      "hint": "Enter at least 2 characters of a username.",
+      "submit": "Search",
+      "loading": "Searching...",
+      "empty": "No users found",
+      "error": "We couldn't search for users. Please try again.",
+      "clear": "Clear search"
+    },
     "eyebrow": "People on your wavelength",
     "title": "Friends",
     "basedOnInterests": "Based on your interests",

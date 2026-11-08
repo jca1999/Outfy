@@ -20,8 +20,11 @@ import type {
 } from '@tanstack/react-query';
 
 import type {
+  ActivityReviewInput,
+  ActivityReviewSaved,
   AuthMessage,
   AuthSession,
+  ConnectionSearchResults,
   ErrorResponse,
   FollowErrorResponse,
   FollowMutationResult,
@@ -40,6 +43,7 @@ import type {
   PushSubscriptionInput,
   PushSubscriptionResult,
   ResendVerificationInput,
+  SearchConnectionProfilesParams,
   SignInInput,
   SignUpInput,
   VerifyEmailInput
@@ -71,6 +75,156 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getSearchConnectionProfilesUrl = (params: SearchConnectionProfilesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/connections/search?${stringifiedParams}` : `/api/connections/search`
+}
+
+/**
+ * @summary Find people by partial username with existing profile visibility rules
+ */
+export const searchConnectionProfiles = async (params: SearchConnectionProfilesParams, options?: Parameters<typeof customFetch>[1]): Promise<ConnectionSearchResults> => {
+
+  return customFetch<ConnectionSearchResults>(getSearchConnectionProfilesUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getSearchConnectionProfilesQueryKey = (params?: SearchConnectionProfilesParams,) => {
+    return [
+    `/api/connections/search`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getSearchConnectionProfilesQueryOptions = <TData = Awaited<ReturnType<typeof searchConnectionProfiles>>, TError = ErrorType<void>>(params: SearchConnectionProfilesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchConnectionProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getSearchConnectionProfilesQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof searchConnectionProfiles>>> = ({ signal }) => searchConnectionProfiles(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof searchConnectionProfiles>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type SearchConnectionProfilesQueryResult = NonNullable<Awaited<ReturnType<typeof searchConnectionProfiles>>>
+export type SearchConnectionProfilesQueryError = ErrorType<void>
+
+
+/**
+ * @summary Find people by partial username with existing profile visibility rules
+ */
+
+export function useSearchConnectionProfiles<TData = Awaited<ReturnType<typeof searchConnectionProfiles>>, TError = ErrorType<void>>(
+ params: SearchConnectionProfilesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof searchConnectionProfiles>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getSearchConnectionProfilesQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSaveActivityReviewUrl = (id: string,) => {
+
+
+
+
+  return `/api/activities/${id}/review`
+}
+
+export const saveActivityReview = async (id: string,
+    activityReviewInput: ActivityReviewInput, options?: Parameters<typeof customFetch>[1]): Promise<ActivityReviewSaved> => {
+
+  return customFetch<ActivityReviewSaved>(getSaveActivityReviewUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(activityReviewInput)
+  }
+);}
+
+
+
+
+
+export const getSaveActivityReviewMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveActivityReview>>, TError,{id: string;data: BodyType<ActivityReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveActivityReview>>, TError,{id: string;data: BodyType<ActivityReviewInput>}, TContext> => {
+
+const mutationKey = ['saveActivityReview'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveActivityReview>>, {id: string;data: BodyType<ActivityReviewInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  saveActivityReview(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveActivityReviewMutationResult = NonNullable<Awaited<ReturnType<typeof saveActivityReview>>>
+    export type SaveActivityReviewMutationBody = BodyType<ActivityReviewInput>
+    export type SaveActivityReviewMutationError = ErrorType<void>
+
+    export const useSaveActivityReview = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveActivityReview>>, TError,{id: string;data: BodyType<ActivityReviewInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveActivityReview>>,
+        TError,
+        {id: string;data: BodyType<ActivityReviewInput>},
+        TContext
+      > => {
+      return useMutation(getSaveActivityReviewMutationOptions(options));
+    }
 
 export const getGetPushStatusUrl = (params?: GetPushStatusParams,) => {
   const normalizedParams = new URLSearchParams();

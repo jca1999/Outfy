@@ -129,6 +129,12 @@
       "cancelled": "Cancelado"
     },
     "review": {
+      "yourReview": "Tu valoración",
+      "prompt": "¿Qué te ha parecido este plan?",
+      "update": "Actualizar valoración",
+      "saved": "Valoración guardada",
+      "viewAndReview": "Ver actividad y valorar",
+      "viewActivity": "Ver actividad",
       "action": "Valorar",
       "edit": "Editar valoración",
       "title": "Valorar actividad",

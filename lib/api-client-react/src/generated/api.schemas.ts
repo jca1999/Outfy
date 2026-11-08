@@ -5,6 +5,57 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface ConnectionSearchProfile {
+  id: string;
+  username: string;
+  /** @nullable */
+  displayName: string | null;
+  /** @nullable */
+  avatarUrl: string | null;
+  /** @nullable */
+  city: string | null;
+}
+
+export interface ConnectionSearchResults {
+  /** @maxItems 20 */
+  profiles: ConnectionSearchProfile[];
+}
+
+export interface ActivityReviewInput {
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  rating: number;
+  /**
+     * @maxLength 1000
+     * @nullable
+     */
+  comment?: string | null;
+}
+
+export interface ActivityOwnReview {
+  /**
+     * @minimum 1
+     * @maximum 5
+     */
+  rating: number;
+  /** @nullable */
+  comment: string | null;
+}
+
+export type ActivityReviewSavedReview = ActivityOwnReview & {
+  id: string;
+};
+
+export interface ActivityReviewSaved {
+  review: ActivityReviewSavedReview;
+  /** @nullable */
+  averageRating: number | null;
+  /** @minimum 1 */
+  reviewCount: number;
+}
+
 export interface PushStatus {
   configured: boolean;
   subscribed: boolean;
@@ -266,6 +317,14 @@ export type PushFailureResponse = PushError;
  * 400 invalid_notification; 401 authentication_required; 404 notification_not_found; 500 notifications_unavailable; 503 notifications_migration_required
  */
 export type NotificationsErrorResponse = NotificationErrorResponse;
+
+export type SearchConnectionProfilesParams = {
+/**
+ * @minLength 2
+ * @maxLength 50
+ */
+query: string;
+};
 
 export type GetPushStatusParams = {
 /**

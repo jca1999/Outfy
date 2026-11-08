@@ -96,6 +96,16 @@
     "sendMessage": "Enviar mensaje"
   },
   "connections": {
+    "search": {
+      "title": "Buscar personas",
+      "placeholder": "Busca por nombre de usuario",
+      "hint": "Introduce al menos 2 caracteres del nombre de usuario.",
+      "submit": "Buscar",
+      "loading": "Buscando...",
+      "empty": "No hemos encontrado usuarios",
+      "error": "No se han podido buscar usuarios. Inténtalo de nuevo.",
+      "clear": "Limpiar búsqueda"
+    },
     "eyebrow": "Gente con tu ritmo",
     "title": "Amigos",
     "basedOnInterests": "Por vuestros intereses",

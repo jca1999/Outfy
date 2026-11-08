@@ -187,6 +187,7 @@ function nullableRpcNumber(value: unknown): number | null | undefined {
 
 function activityReviewRpcRow(data: unknown): ActivityReviewRpcRow | null {
   if (!Array.isArray(data) || data.length !== 1) return null;
+  if (!data[0] || typeof data[0] !== "object") return null;
 
   const row = data[0] as Record<string, unknown>;
 
@@ -1075,6 +1076,48 @@ router.put("/activities/:id/review", async (request, response) => {
       });
       return;
     }
+
+    const { data, error } = await getSupabaseAdmin().rpc(
+      "upsert_activity_review_as_user",
+      {
+        p_activity_id: activityId,
+        p_user_id: session.user.id,
+        p_rating: rating,
+        p_comment: comment,
+      },
+    );
+    if (error) throw error;
+    const result = activityReviewRpcRow(data);
+    if (!result) throw new Error("Malformed activity review RPC response");
+    const failures: Record<string, { status: number; code: string }> = {
+      not_found: { status: 404, code: "activity_not_found" },
+      cancelled: { status: 409, code: "activity_cancelled" },
+      organizer_cannot_review: { status: 403, code: "organizer_cannot_review" },
+      not_finished: { status: 409, code: "activity_not_finished" },
+      not_participant: { status: 403, code: "not_activity_participant" },
+      invalid_rating: { status: 400, code: "invalid_rating" },
+      comment_too_long: { status: 400, code: "comment_too_long" },
+    };
+    const failure = failures[result.result];
+    if (failure) {
+      response.status(failure.status).json({
+        error: "The review could not be saved.", code: failure.code,
+      });
+      return;
+    }
+    if (
+      result.result !== "saved" || !result.review_id || !UUID_PATTERN.test(result.review_id) ||
+      result.rating === null || !Number.isInteger(result.rating) ||
+      result.rating < 1 || result.rating > 5 ||
+      result.average_rating === null || result.average_rating < 1 || result.average_rating > 5 ||
+      result.review_count === null || !Number.isInteger(result.review_count) || result.review_count < 1
+    ) throw new Error("Unexpected activity review RPC response");
+    response.status(200).json({
+      review: { id: result.review_id, rating: result.rating, comment: result.comment },
+      averageRating: result.average_rating,
+      reviewCount: result.review_count,
+    });
+    return;
   } catch (error) {
     request.log.error(
       {
@@ -2268,6 +2311,7 @@ router.get("/activities/:id", async (request, response) => {
     const memberById = new Map(members.map((member) => [member.id, member]));
 
     const reviewRows = reviewsResult.data ?? [];
+    const ownReview = reviewRows.find((review) => review.reviewer_id === session.user.id);
 
     const reviewCount = reviewRows.length;
 
@@ -2343,6 +2387,10 @@ router.get("/activities/:id", async (request, response) => {
         averageRating,
         reviewCount,
         reviews,
+        canReview: activity.status === "completed" &&
+          activity.creator_id !== session.user.id &&
+          membershipResult.data?.role === "participant",
+        myReview: ownReview ? { rating: ownReview.rating, comment: ownReview.comment } : null,
         membershipRole:
           membershipResult.data?.role === "organizer" ||
           membershipResult.data?.role === "participant"

@@ -129,6 +129,12 @@
       "cancelled": "Cancelled"
     },
     "review": {
+      "yourReview": "Your review",
+      "prompt": "What did you think of this plan?",
+      "update": "Update review",
+      "saved": "Review saved",
+      "viewAndReview": "View activity and review",
+      "viewActivity": "View activity",
       "action": "Review",
       "edit": "Edit review",
       "title": "Review activity",

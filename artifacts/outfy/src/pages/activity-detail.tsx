@@ -33,11 +33,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ActivityReviewForm } from "@/activities/activity-review-form";
+import { useAuth } from "@/auth/auth-context";
 
 type LoadState = "loading" | "ready" | "not-found" | "unauthorized" | "error";
 
 export function ActivityDetail() {
   const { t, i18n } = useTranslation("activities");
+  const { user } = useAuth();
   const [, params] = useRoute("/activities/:id");
   const [, navigate] = useLocation();
   const [activity, setActivity] = useState<Activity | null>(null);
@@ -1233,6 +1236,29 @@ export function ActivityDetail() {
                   )}
                 </div>
               </div>
+
+              {activity.canReview && (
+                <ActivityReviewForm key={activity.id} activity={activity} onSaved={result => {
+                  setActivity(current => {
+                    if (!current || current.id !== activity.id || !user) return current;
+                    const existing = current.reviews.find(review => review.reviewer.id === user.id);
+                    const member = current.members.find(member => member.id === user.id);
+                    const own = {
+                      reviewer: existing?.reviewer ?? {
+                        id: user.id, username: member?.username ?? null,
+                        displayName: member?.displayName ?? null, avatarUrl: member?.avatarUrl ?? null,
+                      },
+                      rating: result.review.rating, comment: result.review.comment,
+                      createdAt: existing?.createdAt ?? new Date().toISOString(),
+                    };
+                    return {
+                      ...current, myReview: { rating: own.rating, comment: own.comment },
+                      averageRating: result.averageRating, reviewCount: result.reviewCount,
+                      reviews: existing ? current.reviews.map(review => review.reviewer.id === user.id ? own : review) : [own, ...current.reviews],
+                    };
+                  });
+                }} />
+              )}
 
               {activity.reviews.filter((review) => review.comment).length >
               0 ? (

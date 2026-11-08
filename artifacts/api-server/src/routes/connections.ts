@@ -146,6 +146,34 @@ router.get("/connections/suggestions", async (request, response) => {
   } catch (error) { unavailable(request, response, error); }
 });
 
+router.get("/connections/search", async (request, response) => {
+  const userId = await viewer(request, response);
+  if (!userId) return;
+  const raw = request.query.query;
+  if (typeof raw !== "string" || raw.trim().length < 2 || raw.trim().length > 50) {
+    fail(response, 400, "invalid_search_query");
+    return;
+  }
+  const query = raw.trim();
+  // Treat SQL LIKE metacharacters literally, not as user-controlled wildcards.
+  const pattern = query.replace(/[\\%_]/g, "\\$&");
+  try {
+    const { data, error } = await getSupabaseAdmin().from("profiles")
+      .select(PROFILE_FIELDS).neq("id", userId)
+      .ilike("username", `%${pattern}%`).order("username").limit(20);
+    if (error) throw error;
+    const lower = query.toLowerCase();
+    const rank = (name: string) => name.toLowerCase() === lower ? 0 : name.toLowerCase().startsWith(lower) ? 1 : 2;
+    const profiles = ((data ?? []) as ProfileRow[])
+      .sort((a, b) => rank(a.username) - rank(b.username) || a.username.localeCompare(b.username));
+    const rows = await userConnections(userId);
+    const accepted = new Set(rows.filter((row) => row.status === "accepted")
+      .map((row) => row.requester_id === userId ? row.addressee_id : row.requester_id));
+    response.set("Cache-Control", "private, no-store");
+    response.json({ profiles: await summaries(profiles, accepted) });
+  } catch (error) { unavailable(request, response, error); }
+});
+
 router.get("/connections/with/:userId", async (request, response) => {
   const userId = await viewer(request, response);
   if (!userId) return;

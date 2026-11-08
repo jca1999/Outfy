@@ -109,6 +109,8 @@ export type ActivityDetail = {
   averageRating: number | null;
   reviewCount: number;
   reviews: ActivityReviewDetail[];
+  canReview: boolean;
+  myReview: { rating: number; comment: string | null } | null;
 
   membershipRole:
     | 'organizer'
@@ -557,6 +559,7 @@ export async function saveActivityReview(
     `/api/activities/${encodeURIComponent(activityId)}/review`,
     {
       method: 'PUT',
+      signal: AbortSignal.timeout(15_000),
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',

@@ -6,9 +6,15 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from './activityOwnReview';
+export * from './activityReviewInput';
+export * from './activityReviewSaved';
+export * from './activityReviewSavedReview';
 export * from './authMessage';
 export * from './authSession';
 export * from './authUser';
+export * from './connectionSearchProfile';
+export * from './connectionSearchResults';
 export * from './errorResponse';
 export * from './followErrorResponse';
 export * from './followErrorResponseCode';
@@ -39,6 +45,7 @@ export * from './pushSubscriptionInput';
 export * from './pushSubscriptionInputKeys';
 export * from './pushSubscriptionResult';
 export * from './resendVerificationInput';
+export * from './searchConnectionProfilesParams';
 export * from './signInInput';
 export * from './signUpInput';
 export * from './verifyEmailInput';

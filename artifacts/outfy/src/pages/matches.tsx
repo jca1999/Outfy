@@ -9,6 +9,7 @@ import {
   getConnectionSuggestions,
   getConnections,
   sendConnectionRequest,
+  searchConnectionProfiles,
   type ConnectionEntry,
   type ConnectionOverview,
   type ConnectionProfile,
@@ -30,6 +31,9 @@ export function Matches() {
   const [busyKey, setBusyKey] = useState<string | null>(null);
   const [actionError, setActionError] = useState(false);
   const [removing, setRemoving] = useState<ConnectionEntry | null>(null);
+  const [query, setQuery] = useState("");
+  const [search, setSearch] = useState<Load<ConnectionProfile[]> | null>(null);
+  const searchSeq = useRef(0);
   const overviewSeq = useRef(0);
   const busyRef = useRef(false);
   const mountedRef = useRef(true);
@@ -39,9 +43,29 @@ export function Matches() {
       mountedRef.current = false;
       overviewSeq.current++;
       suggestionsSeq.current++;
+      searchSeq.current++;
     };
   }, []);
   const suggestionsSeq = useRef(0);
+
+  function changeQuery(value: string) {
+    searchSeq.current++;
+    setQuery(value);
+    setSearch(null);
+  }
+
+  async function findPeople() {
+    const trimmed = query.trim();
+    if (trimmed.length < 2 || trimmed.length > 50) return;
+    const seq = ++searchSeq.current;
+    setSearch({ status: "loading", data: null });
+    try {
+      const result = await searchConnectionProfiles(trimmed);
+      if (seq === searchSeq.current) setSearch({ status: "ready", data: result.profiles });
+    } catch {
+      if (seq === searchSeq.current) setSearch({ status: "error", data: null });
+    }
+  }
 
   const loadOverview = useCallback((silent = false, keepOnError = false) => {
     const seq = ++overviewSeq.current;
@@ -117,6 +141,41 @@ export function Matches() {
       </div>
 
       {actionError && <InlineError message={t("connections.actionError")} testId="error-connection-action" />}
+
+      <Section title={t("connections.search.title")} testId="section-user-search">
+        <form onSubmit={event => { event.preventDefault(); void findPeople(); }} className="flex flex-wrap items-center gap-2">
+          <label className="sr-only" htmlFor="connection-search">{t("connections.search.placeholder")}</label>
+          <input id="connection-search" type="search" value={query} maxLength={50}
+            onChange={event => changeQuery(event.target.value)}
+            placeholder={t("connections.search.placeholder")}
+            aria-describedby="connection-search-hint"
+            className="min-h-11 min-w-0 flex-1 rounded-xl border border-border bg-card px-4 text-sm text-foreground outline-none focus:border-primary" />
+          <button type="submit" disabled={query.trim().length < 2 || search?.status === "loading"}
+            className="min-h-11 rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50">
+            {t(search?.status === "loading" ? "connections.search.loading" : "connections.search.submit")}
+          </button>
+          {(query || search) && <button type="button" onClick={() => changeQuery("")}
+            className="min-h-11 rounded-xl px-3 py-2 text-sm font-semibold text-muted-foreground hover:bg-muted">{t("connections.search.clear")}</button>}
+        </form>
+        <p id="connection-search-hint" className="text-xs text-muted-foreground">{t("connections.search.hint")}</p>
+        <div aria-live="polite" aria-busy={search?.status === "loading"}>
+          {search?.status === "loading" && <RowSkeletons />}
+          {search?.status === "error" && <InlineError message={t("connections.search.error")} onRetry={() => { void findPeople(); }} />}
+          {search?.status === "ready" && (search.data?.length ? (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {search.data.map(profile => {
+                const relation = data?.accepted.find(entry => entry.profile.id === profile.id) ??
+                  data?.incoming.find(entry => entry.profile.id === profile.id) ??
+                  data?.outgoing.find(entry => entry.profile.id === profile.id);
+                return <PersonRow key={profile.id} profile={profile} tag={relation && <Tag
+                  icon={relation.relationship.status === "accepted" ? <Check className="h-3 w-3" /> : <Clock3 className="h-3 w-3" />}
+                  text={t(relation.relationship.status === "accepted" ? "connections.connected" : relation.relationship.direction === "incoming" ? "connections.incomingLabel" : "connections.outgoingLabel")}
+                  accent={relation.relationship.status === "accepted"} />} />;
+              })}
+            </div>
+          ) : <Empty text={t("connections.search.empty")} />)}
+        </div>
+      </Section>
 
       <Section title={t("connections.requestsTitle")} count={overview.status === "ready" ? requestCount : undefined} testId="section-requests">
         {overview.status === "error" ? (
@@ -241,7 +300,7 @@ function Tag({ icon, text, accent }: { icon: React.ReactNode; text: string; acce
   );
 }
 
-function PersonRow({ profile, tag, children }: { profile: ConnectionProfile; tag?: React.ReactNode; children: React.ReactNode }) {
+function PersonRow({ profile, tag, children }: { profile: ConnectionProfile; tag?: React.ReactNode; children?: React.ReactNode }) {
   const { t } = useTranslation("common");
   const name = profileName(profile);
   return (

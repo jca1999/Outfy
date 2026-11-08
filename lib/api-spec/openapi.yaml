@@ -17,6 +17,68 @@ tags:
   - name: notifications
     description: Server-only recipient-scoped internal notifications
 paths:
+  /connections/search:
+    get:
+      operationId: searchConnectionProfiles
+      tags: [connections]
+      security: [{ sessionCookie: [] }]
+      summary: Find people by partial username with existing profile visibility rules
+      parameters:
+        - in: query
+          name: query
+          required: true
+          schema:
+            type: string
+            minLength: 2
+            maxLength: 50
+      responses:
+        "200":
+          description: At most 20 matching profiles, excluding the viewer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConnectionSearchResults"
+        "400":
+          description: Invalid query
+        "401":
+          description: Authentication required
+        "500":
+          description: Search unavailable
+  /activities/{id}/review:
+    put:
+      operationId: saveActivityReview
+      tags: [activities]
+      security: [{ sessionCookie: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActivityReviewInput"
+      responses:
+        "200":
+          description: Own review saved or updated through the existing atomic RPC
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActivityReviewSaved"
+        "400":
+          description: Invalid rating or comment
+        "401":
+          description: Authentication required
+        "403":
+          description: Organizer or non-participant cannot review
+        "404":
+          description: Activity not found
+        "409":
+          description: Cancelled or unfinished activity
+        "500":
+          description: Database error or malformed RPC response
   /push/status:
     get:
       operationId: getPushStatus
@@ -421,6 +483,49 @@ components:
           schema:
             $ref: "#/components/schemas/FollowErrorResponse"
   schemas:
+    ConnectionSearchProfile:
+      type: object
+      required: [id, username, displayName, avatarUrl, city]
+      properties:
+        id: { type: string, format: uuid }
+        username: { type: string }
+        displayName: { type: [string, "null"] }
+        avatarUrl: { type: [string, "null"] }
+        city: { type: [string, "null"] }
+    ConnectionSearchResults:
+      type: object
+      required: [profiles]
+      properties:
+        profiles:
+          type: array
+          maxItems: 20
+          items:
+            $ref: "#/components/schemas/ConnectionSearchProfile"
+    ActivityReviewInput:
+      type: object
+      required: [rating]
+      properties:
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        comment: { type: [string, "null"], maxLength: 1000 }
+    ActivityOwnReview:
+      type: object
+      required: [rating, comment]
+      properties:
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        comment: { type: [string, "null"] }
+    ActivityReviewSaved:
+      type: object
+      required: [review, averageRating, reviewCount]
+      properties:
+        review:
+          allOf:
+            - $ref: "#/components/schemas/ActivityOwnReview"
+            - type: object
+              required: [id]
+              properties:
+                id: { type: string, format: uuid }
+        averageRating: { type: [number, "null"] }
+        reviewCount: { type: integer, minimum: 1 }
     PushStatus:
       type: object
       required: [configured, subscribed]

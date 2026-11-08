@@ -66,6 +66,12 @@ export function getConnectionSuggestions() {
   return request<{ profiles: ConnectionProfile[] }>("/suggestions");
 }
 
+export function searchConnectionProfiles(query: string) {
+  return request<{ profiles: ConnectionProfile[] }>(
+    `/search?query=${encodeURIComponent(query.trim())}`,
+  );
+}
+
 export function getRelationship(userId: string) {
   return request<{ relationship: Relationship | null }>(
     `/with/${encodeURIComponent(userId)}`,

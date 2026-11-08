@@ -32,3 +32,9 @@ Block 8 is phased: internal notifications are the source event; standard Web Pus
 **Why:** The user explicitly requested the Web Push phase after the internal notification phase, while keeping the other channels and automations out of scope.
 
 **How to apply:** Reuse internal notification creation and category preferences. Do not add the remaining channels or automations without a subsequent explicit request.
+
+Review authoring belongs in Activity Detail, not in Profile history. Profile history should retain useful past-plan information and link to the activity to view or write a review.
+
+**Why:** The user explicitly chose one review-editing location rather than duplicate forms.
+
+**How to apply:** Keep future review creation/editing improvements on Activity Detail; do not reintroduce a Profile review editor.

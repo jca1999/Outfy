@@ -31,6 +31,10 @@ const compiled = await build({
         contents: "export function getSupabaseAdmin() { return globalThis.__connectionsTestDb; }",
         loader: "js",
       }));
+      bundler.onLoad({ filter: /\/lib\/notifications\.ts$/ }, () => ({
+        contents: "export async function createNotification() {}",
+        loader: "js",
+      }));
     },
   }],
 });
@@ -72,6 +76,12 @@ function fakeDb() {
         update(data) { operation = "update"; values = data; return q; },
         delete() { operation = "delete"; return q; },
         eq(key, value) { predicates.push((row) => row[key] === value); return q; },
+        neq(key, value) { predicates.push((row) => row[key] !== value); return q; },
+        ilike(key, pattern) {
+          const literal = pattern.slice(1, -1).replace(/\\([\\%_])/g, "$1").toLowerCase();
+          predicates.push(row => row[key].toLowerCase().includes(literal));
+          return q;
+        },
         in(key, values) { predicates.push((row) => values.includes(row[key])); return q; },
         not(key, _operator, list) {
           const excluded = list.slice(1, -1).split(",");
@@ -127,6 +137,63 @@ function fakeDb() {
   };
   return db;
 }
+
+test("username search is authenticated, bounded, private and case-insensitive", async (t) => {
+  const db = fakeDb();
+  db.tables.profiles = [
+    profile(A, { username: "carlos_self" }),
+    profile(B, { username: "Carlos99", email: "never@example.invalid", password: "never" }),
+    profile(C, { username: "otherCARLOS", is_profile_private: true }),
+    ...Array.from({ length: 30 }, (_, i) => profile(`user-${i}`, { username: `carlos_${i}` })),
+    profile("literal", { username: "name_100%" }),
+  ];
+  globalThis.__connectionsTestDb = db;
+  const app = express();
+  app.use((req, _res, next) => { req.log = { error() {}, warn() {} }; next(); });
+  app.use("/api", router);
+  const server = app.listen(0, "127.0.0.1");
+  await new Promise(resolve => server.once("listening", resolve));
+  async function search(query, user = A) {
+    const result = await fetch(`http://127.0.0.1:${server.address().port}/api/connections/search?query=${encodeURIComponent(query)}`, {
+      headers: user ? { "x-test-user": user } : {},
+      signal: AbortSignal.timeout(1500),
+    });
+    return { status: result.status, body: await result.json() };
+  }
+  try {
+    await t.test("requires authentication and validates trimmed query length", async () => {
+      assert.equal((await search("carlos", null)).status, 401);
+      for (const query of ["", " ", "a", "x".repeat(51)]) assert.equal((await search(query)).status, 400);
+    });
+    await t.test("partial matches ignore case and exclude the current user", async () => {
+      const result = await search("  LOS99  ");
+      assert.equal(result.status, 200);
+      assert.deepEqual(result.body.profiles.map(p => p.id), [B]);
+      assert.equal((await search("carlos_self")).body.profiles.length, 0);
+      assert.deepEqual((await search("nomatches")).body.profiles, []);
+    });
+    await t.test("keeps private users discoverable without private fields or auth data", async () => {
+      const privateProfile = (await search("othercar")).body.profiles[0];
+      assert.equal(privateProfile.id, C);
+      assert.equal(privateProfile.city, null);
+      assert.equal(privateProfile.displayName, null);
+      const publicProfile = (await search("los99")).body.profiles[0];
+      assert.deepEqual(Object.keys(publicProfile).sort(), ["id", "username", "displayName", "avatarUrl", "city"].sort());
+      assert.equal(publicProfile.displayName, null);
+      assert.equal(JSON.stringify(publicProfile).includes("never"), false);
+      db.tables.connections.push({ id: "friend", requester_id: A, addressee_id: C, status: "accepted" });
+      const friend = (await search("othercar")).body.profiles[0];
+      assert.equal(friend.city, "Zaragoza");
+      assert.equal(friend.displayName, "Hidden name");
+    });
+    await t.test("caps results at 20 and treats LIKE wildcards literally", async () => {
+      const result = await search("carlos");
+      assert.equal(result.body.profiles.length, 20);
+      assert.ok(result.body.profiles.every(p => p.id !== A && p.username.toLowerCase().includes("carlos")));
+      assert.deepEqual((await search("_100%")).body.profiles.map(p => p.id), ["literal"]);
+    });
+  } finally { await new Promise(resolve => server.close(resolve)); }
+});
 
 test("connections lifecycle, authorization, privacy and race handling", async () => {
   const db = fakeDb();

@@ -9,6 +9,65 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Find people by partial username with existing profile visibility rules
+ */
+export const searchConnectionProfilesQueryQueryMin = 2;
+export const searchConnectionProfilesQueryQueryMax = 50;
+
+
+
+export const SearchConnectionProfilesQueryParams = zod.object({
+  "query": zod.coerce.string().min(searchConnectionProfilesQueryQueryMin).max(searchConnectionProfilesQueryQueryMax)
+})
+
+export const searchConnectionProfilesResponseProfilesMax = 20;
+
+
+
+export const SearchConnectionProfilesResponse = zod.object({
+  "profiles": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "username": zod.string(),
+  "displayName": zod.string().nullable(),
+  "avatarUrl": zod.string().nullable(),
+  "city": zod.string().nullable()
+})).max(searchConnectionProfilesResponseProfilesMax)
+})
+
+
+export const SaveActivityReviewParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const saveActivityReviewBodyRatingMax = 5;
+
+export const saveActivityReviewBodyCommentMax = 1000;
+
+
+
+export const SaveActivityReviewBody = zod.object({
+  "rating": zod.number().int().min(1).max(saveActivityReviewBodyRatingMax),
+  "comment": zod.string().max(saveActivityReviewBodyCommentMax).nullish()
+})
+
+export const saveActivityReviewResponseReviewOneRatingMax = 5;
+
+
+
+
+export const SaveActivityReviewResponse = zod.object({
+  "review": zod.object({
+  "rating": zod.number().int().min(1).max(saveActivityReviewResponseReviewOneRatingMax),
+  "comment": zod.string().nullable()
+}).and(zod.object({
+  "id": zod.string().uuid()
+})),
+  "averageRating": zod.number().nullable(),
+  "reviewCount": zod.number().int().min(1)
+})
+
+
+/**
  * @summary Server configuration and ownership of this browser's optional endpoint
  */
 export const getPushStatusQueryEndpointMax = 2048;

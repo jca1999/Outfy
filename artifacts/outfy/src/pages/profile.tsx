@@ -23,7 +23,6 @@ import {
   getMyCreatedActivities,
   getMyJoinedActivities,
   getUserActivities,
-  saveActivityReview,
   acceptActivityInvitation,
   declineActivityInvitation,
   getPendingActivityInvitations,
@@ -152,12 +151,6 @@ export function Profile() {
     "idle" | "loading" | "ready" | "error"
   >("idle");
 
-  const [reviewActivity, setReviewActivity] =
-    useState<MyHistoryActivity | null>(null);
-  const [reviewRating, setReviewRating] = useState(0);
-  const [reviewComment, setReviewComment] = useState("");
-  const [reviewSaving, setReviewSaving] = useState(false);
-  const [reviewError, setReviewError] = useState<string | null>(null);
   const [reputation, setReputation] = useState<ProfileReputation | null>(null);
   const [pendingInvitations, setPendingInvitations] = useState<
     PendingActivityInvitation[]
@@ -286,67 +279,6 @@ export function Profile() {
       .catch(() => {
         setHistoryState("error");
       });
-  }
-
-  function openReview(activity: MyHistoryActivity) {
-    setReviewActivity(activity);
-    setReviewRating(activity.myReview?.rating ?? 0);
-    setReviewComment(activity.myReview?.comment ?? "");
-    setReviewError(null);
-  }
-
-  function closeReview() {
-    if (reviewSaving) return;
-
-    setReviewActivity(null);
-    setReviewRating(0);
-    setReviewComment("");
-    setReviewError(null);
-  }
-
-  async function handleSaveReview() {
-    if (
-      !reviewActivity ||
-      reviewSaving ||
-      reviewRating < 1 ||
-      reviewRating > 5
-    ) {
-      return;
-    }
-
-    setReviewSaving(true);
-    setReviewError(null);
-
-    try {
-      const result = await saveActivityReview(reviewActivity.id, {
-        rating: reviewRating,
-        comment: reviewComment,
-      });
-
-      setHistoryActivities((current) =>
-        current.map((activity) =>
-          activity.id === reviewActivity.id
-            ? {
-                ...activity,
-                myReview: {
-                  rating: result.review.rating,
-                  comment: result.review.comment,
-                },
-                averageRating: result.averageRating,
-                reviewCount: result.reviewCount,
-              }
-            : activity,
-        ),
-      );
-
-      setReviewActivity(null);
-      setReviewRating(0);
-      setReviewComment("");
-    } catch {
-      setReviewError(t("activities:myPlans.review.saveError"));
-    } finally {
-      setReviewSaving(false);
-    }
   }
 
   useEffect(() => {
@@ -1608,12 +1540,12 @@ export function Profile() {
                           {activity.canReview && (
                             <button
                               type="button"
-                              onClick={() => openReview(activity)}
+                              onClick={() => navigate(`/activities/${activity.id}`)}
                               className="shrink-0 rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground transition hover:bg-primary/90"
                             >
                               {activity.myReview
-                                ? t("activities:myPlans.review.edit")
-                                : t("activities:myPlans.review.action")}
+                                ? t("activities:myPlans.review.viewActivity")
+                                : t("activities:myPlans.review.viewAndReview")}
                             </button>
                           )}
 
@@ -1638,119 +1570,6 @@ export function Profile() {
           </div>
         )}
       </section>
-
-      <Dialog
-        open={Boolean(reviewActivity)}
-        onOpenChange={(open) => {
-          if (!open) closeReview();
-        }}
-      >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {reviewActivity?.myReview
-                ? t("activities:myPlans.review.editTitle")
-                : t("activities:myPlans.review.title")}
-            </DialogTitle>
-
-            <DialogDescription>
-              {reviewActivity
-                ? t("activities:myPlans.review.description", {
-                    title: reviewActivity.title,
-                  })
-                : ""}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-5">
-            <div>
-              <p className="mb-2 text-sm font-bold">
-                {t("activities:myPlans.review.ratingLabel")}
-              </p>
-
-              <div className="flex gap-1">
-                {[1, 2, 3, 4, 5].map((rating) => (
-                  <button
-                    key={rating}
-                    type="button"
-                    onClick={() => setReviewRating(rating)}
-                    disabled={reviewSaving}
-                    aria-label={t("activities:myPlans.review.starAriaLabel", {
-                      rating,
-                    })}
-                    className="rounded-lg p-1.5 transition hover:bg-muted disabled:cursor-not-allowed"
-                  >
-                    <Star
-                      className={`h-8 w-8 transition ${
-                        rating <= reviewRating
-                          ? "fill-primary text-primary"
-                          : "text-muted-foreground/40"
-                      }`}
-                    />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <label
-                htmlFor="activity-review-comment"
-                className="text-sm font-bold"
-              >
-                {t("activities:myPlans.review.commentLabel")}
-              </label>
-
-              <textarea
-                id="activity-review-comment"
-                value={reviewComment}
-                onChange={(event) => setReviewComment(event.target.value)}
-                disabled={reviewSaving}
-                maxLength={1000}
-                rows={4}
-                placeholder={t("activities:myPlans.review.commentPlaceholder")}
-                className="mt-2 w-full resize-none rounded-2xl border border-border bg-background px-4 py-3 text-sm outline-none transition focus:border-primary disabled:cursor-not-allowed disabled:opacity-60"
-              />
-
-              <p className="mt-1 text-right font-mono-ui text-[10px] text-muted-foreground">
-                {reviewComment.length}/1000
-              </p>
-            </div>
-
-            {reviewError && (
-              <p
-                className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive"
-                role="alert"
-              >
-                {reviewError}
-              </p>
-            )}
-
-            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={closeReview}
-                disabled={reviewSaving}
-                className="rounded-full border border-border px-5 py-2.5 text-sm font-bold transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {t("activities:myPlans.review.cancel")}
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSaveReview}
-                disabled={reviewSaving || reviewRating < 1 || reviewRating > 5}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {reviewSaving && <Loader2 className="h-4 w-4 animate-spin" />}
-
-                {reviewSaving
-                  ? t("activities:myPlans.review.saving")
-                  : t("activities:myPlans.review.save")}
-              </button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <Dialog
         open={Boolean(cropSource)}
