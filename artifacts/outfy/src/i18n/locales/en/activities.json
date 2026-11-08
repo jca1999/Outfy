@@ -224,8 +224,10 @@
       "description": "Choose who can discover and access this plan.",
       "public": "Public",
       "friends": "Friends only",
+      "inviteOnly": "Invitation only",
       "publicDescription": "Any Outfy user can discover and view this plan.",
-      "friendsDescription": "Only your friends can view and join this plan."
+      "friendsDescription": "Only your friends can view and join this plan.",
+      "inviteOnlyDescription": "This plan won't appear in Explore or on your profile. Only people you invite will be able to access it."
     },
     "cost": {
       "typeLabel": "Choose an option",
@@ -375,6 +377,45 @@
       "estimatedCost": "Add a valid estimated cost.",
       "endTimeRequiredWithDate": "Add an end time as well.",
       "endDateTimeBeforeStart": "The end date and time must be after the start."
+    },
+    "invitations": {
+      "title": "Invite your friends",
+      "description": "This plan is private. Choose which friends you want to invite.",
+      "loadingFriends": "Loading friends...",
+      "loadFriendsError": "We couldn't load your friends.",
+      "noFriends": "You don't have any friends to invite yet.",
+      "invite": "Invite",
+      "inviting": "Inviting...",
+      "invited": "Invited",
+      "inviteError": "We couldn't send the invitation. Please try again.",
+      "cancelError": "We couldn't cancel the invitation.",
+      "manageTitle": "Plan invitations",
+      "manageDescription": "See who accepted, declined or hasn't responded yet.",
+      "loading": "Loading invitations...",
+      "loadError": "We couldn't load the invitations.",
+      "empty": "You haven't invited anyone yet.",
+      "unknownUser": "Outfy user",
+      "statusPending": "Pending",
+      "statusAccepted": "Accepted",
+      "statusDeclined": "Declined",
+      "cancel": "Cancel",
+      "cancelling": "Cancelling..."
     }
+  },
+  "myInvitations": {
+    "title": "Plan invitations",
+    "description": "Private plans you've been invited to.",
+    "loading": "Loading invitations...",
+    "loadError": "We couldn't load your invitations.",
+    "retry": "Retry",
+    "invitedBy": "{{name}} invited you",
+    "organizerFallback": "Outfy organizer",
+    "accept": "Accept",
+    "accepting": "Accepting...",
+    "decline": "Decline",
+    "declining": "Declining...",
+    "viewPlan": "View plan",
+    "acceptError": "We couldn't accept the invitation.",
+    "declineError": "We couldn't decline the invitation."
   }
 }

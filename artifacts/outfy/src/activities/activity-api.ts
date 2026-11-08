@@ -1,7 +1,7 @@
 export type CreateActivityRequest = {
   title: string;
   description?: string;
-  visibility: 'public' | 'friends';
+  visibility: 'public' | 'friends' | 'invite_only';
   category: string;
   subcategory: string;
   startsAt: string;
@@ -79,7 +79,7 @@ export type ActivityDetail = {
   id: string;
   title: string;
   description: string | null;
-  visibility: 'public' | 'friends';
+  visibility: 'public' | 'friends' | 'invite_only';
   category: string;
   subcategory: string;
   startsAt: string;
@@ -201,7 +201,7 @@ export type ProfileActivity = {
   maxParticipants: number | null;
   memberCount: number;
   status: 'active' | 'completed' | 'cancelled';
-  visibility: 'public' | 'friends';
+  visibility: 'public' | 'friends' | 'invite_only';
 };
 
 export type ProfileRecentReview = {
@@ -235,6 +235,80 @@ export type ActivityMembershipResponse = {
   result: 'joined' | 'already_member' | 'left' | 'not_member';
   memberCount: number;
   maxParticipants: number | null;
+};
+
+export type ActivityInvitationStatus =
+  | 'pending'
+  | 'accepted'
+  | 'declined';
+
+export type ActivityInvitation = {
+  id: string;
+  status: ActivityInvitationStatus;
+  createdAt: string;
+  respondedAt: string | null;
+  invitee: {
+    id: string;
+    username: string | null;
+    displayName: string | null;
+  };
+};
+
+export type ActivityInvitationsResponse = {
+  invitations: ActivityInvitation[];
+};
+
+export type SendActivityInvitationResponse = {
+  result: 'invited' | 'already_pending';
+  invitation: {
+    id: string;
+    status: 'pending';
+  };
+};
+
+export type PendingActivityInvitation = {
+  id: string;
+  createdAt: string;
+  organizer: {
+    id: string;
+    username: string | null;
+    displayName: string | null;
+  };
+  activity: {
+    id: string;
+    title: string;
+    category: string;
+    subcategory: string;
+    startsAt: string;
+    endsAt: string | null;
+    timezoneName: string;
+    locationType: 'physical' | 'online';
+    city: string | null;
+    onlinePlatform: string | null;
+    participationMode: 'limited' | 'unlimited';
+    maxParticipants: number | null;
+    memberCount: number;
+  };
+};
+
+export type PendingActivityInvitationsResponse = {
+  invitations: PendingActivityInvitation[];
+};
+
+export type AcceptActivityInvitationResponse = {
+  result: 'accepted' | 'already_accepted';
+  activityId: string;
+  memberCount?: number | null;
+  maxParticipants?: number | null;
+};
+
+export type DeclineActivityInvitationResponse = {
+  result: 'declined' | 'already_declined';
+  activityId: string;
+};
+
+export type CancelActivityInvitationResponse = {
+  result: 'cancelled';
 };
 
 export class ActivityApiError extends Error {
@@ -611,4 +685,176 @@ export async function leaveActivity(activityId: string) {
   }
 
   return payload as ActivityMembershipResponse;
+}
+
+export async function sendActivityInvitation(
+  activityId: string,
+  inviteeId: string,
+) {
+  const response = await fetch(
+    `/api/activities/${encodeURIComponent(activityId)}/invitations`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        inviteeId,
+      }),
+    },
+  );
+
+  const payload = (await response.json().catch(() => null)) as
+    | ActivityErrorPayload
+    | SendActivityInvitationResponse
+    | null;
+
+  if (!response.ok) {
+    throw activityApiError(
+      payload && 'error' in payload ? payload : null,
+      response.status,
+      'The invitation could not be sent.',
+    );
+  }
+
+  return payload as SendActivityInvitationResponse;
+}
+
+export async function getActivityInvitations(
+  activityId: string,
+) {
+  const response = await fetch(
+    `/api/activities/${encodeURIComponent(activityId)}/invitations`,
+    {
+      credentials: 'include',
+    },
+  );
+
+  const payload = (await response.json().catch(() => null)) as
+    | ActivityErrorPayload
+    | ActivityInvitationsResponse
+    | null;
+
+  if (!response.ok) {
+    throw activityApiError(
+      payload && 'error' in payload ? payload : null,
+      response.status,
+      'The invitations could not be loaded.',
+    );
+  }
+
+  return payload as ActivityInvitationsResponse;
+}
+
+export async function cancelActivityInvitation(
+  activityId: string,
+  invitationId: string,
+) {
+  const response = await fetch(
+    `/api/activities/${encodeURIComponent(
+      activityId,
+    )}/invitations/${encodeURIComponent(invitationId)}`,
+    {
+      method: 'DELETE',
+      credentials: 'include',
+    },
+  );
+
+  const payload = (await response.json().catch(() => null)) as
+    | ActivityErrorPayload
+    | CancelActivityInvitationResponse
+    | null;
+
+  if (!response.ok) {
+    throw activityApiError(
+      payload && 'error' in payload ? payload : null,
+      response.status,
+      'The invitation could not be cancelled.',
+    );
+  }
+
+  return payload as CancelActivityInvitationResponse;
+}
+
+export async function getPendingActivityInvitations() {
+  const response = await fetch(
+    '/api/activities/invitations/pending',
+    {
+      credentials: 'include',
+    },
+  );
+
+  const payload = (await response.json().catch(() => null)) as
+    | ActivityErrorPayload
+    | PendingActivityInvitationsResponse
+    | null;
+
+  if (!response.ok) {
+    throw activityApiError(
+      payload && 'error' in payload ? payload : null,
+      response.status,
+      'The invitations could not be loaded.',
+    );
+  }
+
+  return payload as PendingActivityInvitationsResponse;
+}
+
+export async function acceptActivityInvitation(
+  invitationId: string,
+) {
+  const response = await fetch(
+    `/api/activities/invitations/${encodeURIComponent(
+      invitationId,
+    )}/accept`,
+    {
+      method: 'POST',
+      credentials: 'include',
+    },
+  );
+
+  const payload = (await response.json().catch(() => null)) as
+    | ActivityErrorPayload
+    | AcceptActivityInvitationResponse
+    | null;
+
+  if (!response.ok) {
+    throw activityApiError(
+      payload && 'error' in payload ? payload : null,
+      response.status,
+      'The invitation could not be accepted.',
+    );
+  }
+
+  return payload as AcceptActivityInvitationResponse;
+}
+
+export async function declineActivityInvitation(
+  invitationId: string,
+) {
+  const response = await fetch(
+    `/api/activities/invitations/${encodeURIComponent(
+      invitationId,
+    )}/decline`,
+    {
+      method: 'POST',
+      credentials: 'include',
+    },
+  );
+
+  const payload = (await response.json().catch(() => null)) as
+    | ActivityErrorPayload
+    | DeclineActivityInvitationResponse
+    | null;
+
+  if (!response.ok) {
+    throw activityApiError(
+      payload && 'error' in payload ? payload : null,
+      response.status,
+      'The invitation could not be declined.',
+    );
+  }
+
+  return payload as DeclineActivityInvitationResponse;
 }

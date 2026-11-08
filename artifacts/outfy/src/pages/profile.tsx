@@ -24,6 +24,10 @@ import {
   getMyJoinedActivities,
   getUserActivities,
   saveActivityReview,
+  acceptActivityInvitation,
+  declineActivityInvitation,
+  getPendingActivityInvitations,
+  type PendingActivityInvitation,
   type MyCreatedActivity,
   type MyHistoryActivity,
   type MyJoinedActivity,
@@ -155,7 +159,98 @@ export function Profile() {
   const [reviewSaving, setReviewSaving] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   const [reputation, setReputation] = useState<ProfileReputation | null>(null);
+  const [pendingInvitations, setPendingInvitations] = useState<
+    PendingActivityInvitation[]
+  >([]);
+
+  const [invitationInboxState, setInvitationInboxState] = useState<
+    "loading" | "ready" | "error"
+  >("loading");
+
+  const [invitationAction, setInvitationAction] = useState<{
+    id: string;
+    type: "accept" | "decline";
+  } | null>(null);
+
+  const [invitationInboxError, setInvitationInboxError] =
+    useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
+
+  function loadPendingInvitations() {
+    setInvitationInboxState("loading");
+    setInvitationInboxError(null);
+
+    getPendingActivityInvitations()
+      .then((result) => {
+        setPendingInvitations(result.invitations);
+        setInvitationInboxState("ready");
+      })
+      .catch(() => {
+        setInvitationInboxState("error");
+      });
+  }
+
+  async function handleAcceptInvitation(invitationId: string) {
+    if (invitationAction) {
+      return;
+    }
+
+    setInvitationAction({
+      id: invitationId,
+      type: "accept",
+    });
+
+    setInvitationInboxError(null);
+
+    try {
+      await acceptActivityInvitation(invitationId);
+
+      setPendingInvitations((current) =>
+        current.filter(
+          (invitation) => invitation.id !== invitationId,
+        ),
+      );
+
+      if (tab === "upcoming") {
+        loadJoinedActivities();
+      }
+    } catch {
+      setInvitationInboxError(
+        t("activities:myInvitations.acceptError"),
+      );
+    } finally {
+      setInvitationAction(null);
+    }
+  }
+
+  async function handleDeclineInvitation(invitationId: string) {
+    if (invitationAction) {
+      return;
+    }
+
+    setInvitationAction({
+      id: invitationId,
+      type: "decline",
+    });
+
+    setInvitationInboxError(null);
+
+    try {
+      await declineActivityInvitation(invitationId);
+
+      setPendingInvitations((current) =>
+        current.filter(
+          (invitation) => invitation.id !== invitationId,
+        ),
+      );
+    } catch {
+      setInvitationInboxError(
+        t("activities:myInvitations.declineError"),
+      );
+    } finally {
+      setInvitationAction(null);
+    }
+  }
 
   function loadCreatedActivities() {
     setCreatedState("loading");
@@ -253,6 +348,33 @@ export function Profile() {
       setReviewSaving(false);
     }
   }
+
+  useEffect(() => {
+    let active = true;
+
+    setInvitationInboxState("loading");
+
+    getPendingActivityInvitations()
+      .then((result) => {
+        if (!active) {
+          return;
+        }
+
+        setPendingInvitations(result.invitations);
+        setInvitationInboxState("ready");
+      })
+      .catch(() => {
+        if (!active) {
+          return;
+        }
+
+        setInvitationInboxState("error");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -979,7 +1101,196 @@ export function Profile() {
       )}
 
       <ProfileConnectionsCard />
+      {(
+        invitationInboxState !== "ready" ||
+        pendingInvitations.length > 0
+      ) && (
+        <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-7">
+          <div className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <CalendarDays className="h-4 w-4" />
+            </span>
 
+            <div>
+              <h2 className="text-lg font-bold">
+                {t("activities:myInvitations.title")}
+              </h2>
+
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {t("activities:myInvitations.description")}
+              </p>
+            </div>
+          </div>
+
+          {invitationInboxState === "loading" && (
+            <p className="mt-5 text-sm font-semibold text-muted-foreground">
+              {t("activities:myInvitations.loading")}
+            </p>
+          )}
+
+          {invitationInboxState === "error" && (
+            <div className="mt-5">
+              <p className="text-sm text-destructive">
+                {t("activities:myInvitations.loadError")}
+              </p>
+
+              <button
+                type="button"
+                onClick={loadPendingInvitations}
+                className="mt-3 inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs font-bold transition hover:bg-muted"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                {t("activities:myInvitations.retry")}
+              </button>
+            </div>
+          )}
+
+          {invitationInboxState === "ready" &&
+            pendingInvitations.length > 0 && (
+              <div className="mt-5 space-y-3">
+                {pendingInvitations.map((invitation) => {
+                  const organizerName =
+                    invitation.organizer.displayName?.trim() ||
+                    (invitation.organizer.username
+                      ? `@${invitation.organizer.username}`
+                      : t(
+                          "activities:myInvitations.organizerFallback",
+                        ));
+
+                  const locale =
+                    i18n.language === "en"
+                      ? "en-GB"
+                      : "es-ES";
+
+                  let dateLabel: string;
+
+                  try {
+                    dateLabel = new Intl.DateTimeFormat(locale, {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                      timeZone:
+                        invitation.activity.timezoneName,
+                    }).format(
+                      new Date(invitation.activity.startsAt),
+                    );
+                  } catch {
+                    dateLabel = new Intl.DateTimeFormat(locale, {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    }).format(
+                      new Date(invitation.activity.startsAt),
+                    );
+                  }
+
+                  const location =
+                    invitation.activity.locationType ===
+                    "online"
+                      ? t("activities:locationTypes.online")
+                      : invitation.activity.city ||
+                        t(
+                          "activities:locationTypes.physical",
+                        );
+
+                  const accepting =
+                    invitationAction?.id === invitation.id &&
+                    invitationAction.type === "accept";
+
+                  const declining =
+                    invitationAction?.id === invitation.id &&
+                    invitationAction.type === "decline";
+
+                  return (
+                    <div
+                      key={invitation.id}
+                      className="rounded-[20px] border border-border bg-background p-4"
+                    >
+                      <p className="text-xs font-semibold text-primary">
+                        {t(
+                          "activities:myInvitations.invitedBy",
+                          {
+                            name: organizerName,
+                          },
+                        )}
+                      </p>
+
+                      <h3 className="mt-1 text-base font-bold">
+                        {invitation.activity.title}
+                      </h3>
+
+                      <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+                        <p>{dateLabel}</p>
+                        <p>{location}</p>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          disabled={Boolean(invitationAction)}
+                          onClick={() =>
+                            handleAcceptInvitation(
+                              invitation.id,
+                            )
+                          }
+                          className="rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {accepting
+                            ? t(
+                                "activities:myInvitations.accepting",
+                              )
+                            : t(
+                                "activities:myInvitations.accept",
+                              )}
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={Boolean(invitationAction)}
+                          onClick={() =>
+                            handleDeclineInvitation(
+                              invitation.id,
+                            )
+                          }
+                          className="rounded-full border border-border px-4 py-2 text-xs font-bold text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {declining
+                            ? t(
+                                "activities:myInvitations.declining",
+                              )
+                            : t(
+                                "activities:myInvitations.decline",
+                              )}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            navigate(
+                              `/activities/${invitation.activity.id}`,
+                            )
+                          }
+                          className="rounded-full border border-primary/30 px-4 py-2 text-xs font-bold text-primary transition hover:bg-primary/10"
+                        >
+                          {t(
+                            "activities:myInvitations.viewPlan",
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {invitationInboxError && (
+                  <p
+                    className="text-xs font-semibold text-destructive"
+                    role="alert"
+                  >
+                    {invitationInboxError}
+                  </p>
+                )}
+              </div>
+            )}
+        </section>
+      )}
       <section aria-labelledby="my-plans-title" className="space-y-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h2

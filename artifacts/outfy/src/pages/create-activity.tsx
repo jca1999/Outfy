@@ -23,6 +23,7 @@ import {
   createActivity,
   getActivity,
   updateActivity,
+  sendActivityInvitation,
   type CreateActivityRequest,
 } from '@/activities/activity-api';
 import {
@@ -32,10 +33,18 @@ import {
   type ActivitySubcategoryId,
 } from '@/activity-taxonomy';
 
+import {
+  getConnections,
+  type ConnectionEntry,
+} from '@/connections/connections-api';
+
 type ParticipationMode = 'limited' | 'unlimited';
 type CostType = 'free' | 'paid' | 'each_own';
 type Currency = 'EUR' | 'USD';
-type ActivityVisibility = 'public' | 'friends';
+type ActivityVisibility =
+  | 'public'
+  | 'friends'
+  | 'invite_only';
 
 type ActivityForm = {
   title: string;
@@ -256,6 +265,22 @@ export function CreateActivity() {
   const [shareMessage, setShareMessage] = useState('');
   const [publishedActivityId, setPublishedActivityId] =
     useState<string | null>(null);
+  const [invitationFriends, setInvitationFriends] =
+    useState<ConnectionEntry[]>([]);
+
+  const [invitationFriendsLoading, setInvitationFriendsLoading] =
+    useState(false);
+
+  const [invitationFriendsError, setInvitationFriendsError] =
+    useState('');
+  const [invitingFriendIds, setInvitingFriendIds] =
+    useState<Set<string>>(new Set());
+
+  const [invitedFriendIds, setInvitedFriendIds] =
+    useState<Set<string>>(new Set());
+
+  const [invitationError, setInvitationError] =
+    useState('');
   const [editLoadState, setEditLoadState] = useState<
     'idle' | 'loading' | 'ready' | 'error'
   >(isEditing ? 'loading' : 'idle');
@@ -354,6 +379,51 @@ export function CreateActivity() {
       active = false;
     };
   }, [editingActivityId]);
+
+  useEffect(() => {
+    if (
+      !publishedActivityId ||
+      form.visibility !== 'invite_only'
+    ) {
+      setInvitationFriends([]);
+      setInvitationFriendsLoading(false);
+      setInvitationFriendsError('');
+      return;
+    }
+
+    let active = true;
+
+    setInvitationFriendsLoading(true);
+    setInvitationFriendsError('');
+
+    getConnections()
+      .then((result) => {
+        if (!active) {
+          return;
+        }
+
+        setInvitationFriends(result.accepted);
+      })
+      .catch(() => {
+        if (!active) {
+          return;
+        }
+
+        setInvitationFriends([]);
+        setInvitationFriendsError(
+          t('create.invitations.loadFriendsError'),
+        );
+      })
+      .finally(() => {
+        if (active) {
+          setInvitationFriendsLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [publishedActivityId, form.visibility, t]);
 
   const categoryIds = Object.keys(
     activityTaxonomy,
@@ -884,6 +954,43 @@ export function CreateActivity() {
     setPublishedActivityId(null);
   }
 
+  async function handleInviteFriend(friendId: string) {
+    if (!publishedActivityId) {
+      return;
+    }
+
+    setInvitationError('');
+
+    setInvitingFriendIds((current) => {
+      const next = new Set(current);
+      next.add(friendId);
+      return next;
+    });
+
+    try {
+      await sendActivityInvitation(
+        publishedActivityId,
+        friendId,
+      );
+
+      setInvitedFriendIds((current) => {
+        const next = new Set(current);
+        next.add(friendId);
+        return next;
+      });
+    } catch {
+      setInvitationError(
+        t('create.invitations.inviteError'),
+      );
+    } finally {
+      setInvitingFriendIds((current) => {
+        const next = new Set(current);
+        next.delete(friendId);
+        return next;
+      });
+    }
+  }
+
   function getDateLabel() {
     if (!form.date) {
       return '';
@@ -1044,6 +1151,94 @@ export function CreateActivity() {
         <p className="mx-auto mt-3 max-w-md text-sm leading-relaxed text-muted-foreground">
           {t('create.success.message')}
         </p>
+        {form.visibility === 'invite_only' && (
+          <div className="mx-auto mt-8 max-w-xl rounded-[24px] border border-border bg-background p-5 text-left">
+            <div>
+              <h2 className="text-lg font-bold">
+                {t('create.invitations.title')}
+              </h2>
+
+              <p className="mt-1 text-sm text-muted-foreground">
+                {t('create.invitations.description')}
+              </p>
+            </div>
+
+            {invitationFriendsLoading ? (
+              <p className="mt-5 text-sm font-semibold text-muted-foreground">
+                {t('create.invitations.loadingFriends')}
+              </p>
+            ) : invitationFriendsError ? (
+              <p className="mt-5 text-sm font-semibold text-destructive">
+                {invitationFriendsError}
+              </p>
+            ) : invitationFriends.length === 0 ? (
+              <p className="mt-5 text-sm font-semibold text-muted-foreground">
+                {t('create.invitations.noFriends')}
+              </p>
+            ) : (
+              <div className="mt-5 space-y-3">
+                {invitationFriends.map((friend) => {
+                  const isInviting =
+                    invitingFriendIds.has(friend.profile.id);
+
+                  const isInvited =
+                    invitedFriendIds.has(friend.profile.id);
+
+                  const name =
+                    friend.profile.displayName?.trim() ||
+                    `@${friend.profile.username}`;
+
+                  return (
+                    <div
+                      key={friend.profile.id}
+                      className="flex items-center justify-between gap-4 rounded-2xl border border-border px-4 py-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold">
+                          {name}
+                        </p>
+
+                        {friend.profile.displayName && (
+                          <p className="truncate text-xs text-muted-foreground">
+                            @{friend.profile.username}
+                          </p>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={isInviting || isInvited}
+                        onClick={() =>
+                          handleInviteFriend(friend.profile.id)
+                        }
+                        className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold transition ${
+                          isInvited
+                            ? 'border border-primary/30 bg-primary/10 text-primary'
+                            : 'bg-primary text-primary-foreground hover:opacity-90'
+                        } disabled:cursor-not-allowed disabled:opacity-70`}
+                      >
+                        {isInvited
+                          ? t('create.invitations.invited')
+                          : isInviting
+                            ? t('create.invitations.inviting')
+                            : t('create.invitations.invite')}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {invitationError && (
+              <p
+                className="mt-4 text-xs font-semibold text-destructive"
+                role="alert"
+              >
+                {invitationError}
+              </p>
+            )}
+          </div>
+        )}
         <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
           <button
             type="button"
@@ -1227,7 +1422,9 @@ export function CreateActivity() {
               <dd className="mt-1 text-sm font-semibold">
                 {form.visibility === 'public'
                   ? t('create.visibility.public')
-                  : t('create.visibility.friends')}
+                  : form.visibility === 'friends'
+                    ? t('create.visibility.friends')
+                    : t('create.visibility.inviteOnly')}
               </dd>
             </div>
 
@@ -1894,7 +2091,7 @@ export function CreateActivity() {
               {t('create.visibility.description')}
             </p>
 
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
               {renderChoice(
                 'visibility',
                 'public',
@@ -1910,12 +2107,22 @@ export function CreateActivity() {
                 form.visibility === 'friends',
                 () => updateForm('visibility', 'friends'),
               )}
+
+              {renderChoice(
+                'visibility',
+                'invite_only',
+                t('create.visibility.inviteOnly'),
+                form.visibility === 'invite_only',
+                () => updateForm('visibility', 'invite_only'),
+              )}
             </div>
 
             <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
               {form.visibility === 'public'
                 ? t('create.visibility.publicDescription')
-                : t('create.visibility.friendsDescription')}
+                : form.visibility === 'friends'
+                  ? t('create.visibility.friendsDescription')
+                  : t('create.visibility.inviteOnlyDescription')}
             </p>
           </section>
 

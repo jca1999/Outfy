@@ -20,6 +20,9 @@ import {
   getActivity,
   joinActivity,
   leaveActivity,
+  cancelActivityInvitation,
+  getActivityInvitations,
+  type ActivityInvitation,
   type ActivityDetail as Activity,
 } from "@/activities/activity-api";
 
@@ -50,6 +53,19 @@ export function ActivityDetail() {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [completeDialogOpen, setCompleteDialogOpen] = useState(false);
   const [participantsOpen, setParticipantsOpen] = useState(false);
+  const [activityInvitations, setActivityInvitations] = useState<
+    ActivityInvitation[]
+  >([]);
+
+  const [activityInvitationsState, setActivityInvitationsState] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
+
+  const [cancellingInvitationId, setCancellingInvitationId] =
+    useState<string | null>(null);
+
+  const [activityInvitationsError, setActivityInvitationsError] =
+    useState("");
   const membershipRequestRef = useRef<symbol | null>(null);
   const currentActivityIdRef = useRef<string | null>(params?.id ?? null);
   currentActivityIdRef.current = params?.id ?? null;
@@ -80,6 +96,11 @@ export function ActivityDetail() {
     membershipRequestRef.current = null;
     setParticipantsOpen(false);
 
+    setActivityInvitations([]);
+    setActivityInvitationsState("idle");
+    setCancellingInvitationId(null);
+    setActivityInvitationsError("");
+
     if (!params?.id) {
       setLoadState("not-found");
       return () => {
@@ -108,6 +129,48 @@ export function ActivityDetail() {
       active = false;
     };
   }, [params?.id]);
+
+  useEffect(() => {
+    if (
+      !activity ||
+      activity.membershipRole !== "organizer" ||
+      activity.visibility !== "invite_only"
+    ) {
+      setActivityInvitations([]);
+      setActivityInvitationsState("idle");
+      return;
+    }
+
+    let active = true;
+
+    setActivityInvitationsState("loading");
+    setActivityInvitationsError("");
+
+    getActivityInvitations(activity.id)
+      .then((result) => {
+        if (!active) {
+          return;
+        }
+
+        setActivityInvitations(result.invitations);
+        setActivityInvitationsState("ready");
+      })
+      .catch(() => {
+        if (!active) {
+          return;
+        }
+
+        setActivityInvitationsState("error");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    activity?.id,
+    activity?.membershipRole,
+    activity?.visibility,
+  ]);
 
   function goBack() {
     if (window.history.length > 1) {
@@ -291,6 +354,36 @@ export function ActivityDetail() {
     }
   }
 
+  async function handleCancelInvitation(
+    invitationId: string,
+  ) {
+    if (!activity || cancellingInvitationId) {
+      return;
+    }
+
+    setCancellingInvitationId(invitationId);
+    setActivityInvitationsError("");
+
+    try {
+      await cancelActivityInvitation(
+        activity.id,
+        invitationId,
+      );
+
+      setActivityInvitations((current) =>
+        current.filter(
+          (invitation) => invitation.id !== invitationId,
+        ),
+      );
+    } catch {
+      setActivityInvitationsError(
+        t("create.invitations.cancelError"),
+      );
+    } finally {
+      setCancellingInvitationId(null);
+    }
+  }
+  
   async function handleCancelActivity() {
     if (!activity || organizerActionPending) return;
 
@@ -967,6 +1060,138 @@ export function ActivityDetail() {
               </section>
             </div>
           </div>
+
+          {activity.membershipRole === "organizer" &&
+            activity.visibility === "invite_only" && (
+              <section className="mt-3 border-t border-border pt-6 sm:col-span-2">
+                <div>
+                  <h2 className="text-xs font-bold uppercase tracking-[.12em] text-muted-foreground">
+                    {t("create.invitations.manageTitle")}
+                  </h2>
+
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    {t("create.invitations.manageDescription")}
+                  </p>
+                </div>
+
+                {activityInvitationsState === "loading" && (
+                  <p className="mt-4 text-sm font-semibold text-muted-foreground">
+                    {t("create.invitations.loading")}
+                  </p>
+                )}
+
+                {activityInvitationsState === "error" && (
+                  <p className="mt-4 text-sm font-semibold text-destructive">
+                    {t("create.invitations.loadError")}
+                  </p>
+                )}
+
+                {activityInvitationsState === "ready" &&
+                  activityInvitations.length === 0 && (
+                    <p className="mt-4 rounded-2xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+                      {t("create.invitations.empty")}
+                    </p>
+                  )}
+
+                {activityInvitationsState === "ready" &&
+                  activityInvitations.length > 0 && (
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      {activityInvitations.map((invitation) => {
+                        const name =
+                          invitation.invitee.displayName?.trim() ||
+                          (invitation.invitee.username
+                            ? `@${invitation.invitee.username}`
+                            : t(
+                                "create.invitations.unknownUser",
+                              ));
+
+                        const isCancelling =
+                          cancellingInvitationId ===
+                          invitation.id;
+
+                        return (
+                          <div
+                            key={invitation.id}
+                            className="flex items-center justify-between gap-3 rounded-[20px] border border-border bg-background/45 p-4"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-bold">
+                                {name}
+                              </p>
+
+                              {invitation.invitee.displayName &&
+                                invitation.invitee.username && (
+                                  <p className="truncate text-xs text-muted-foreground">
+                                    @{invitation.invitee.username}
+                                  </p>
+                                )}
+
+                              <span
+                                className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${
+                                  invitation.status ===
+                                  "accepted"
+                                    ? "bg-primary/10 text-primary"
+                                    : invitation.status ===
+                                        "declined"
+                                      ? "bg-muted text-muted-foreground"
+                                      : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                                }`}
+                              >
+                                {invitation.status ===
+                                "accepted"
+                                  ? t(
+                                      "create.invitations.statusAccepted",
+                                    )
+                                  : invitation.status ===
+                                      "declined"
+                                    ? t(
+                                        "create.invitations.statusDeclined",
+                                      )
+                                    : t(
+                                        "create.invitations.statusPending",
+                                      )}
+                              </span>
+                            </div>
+
+                            {invitation.status ===
+                              "pending" && (
+                              <button
+                                type="button"
+                                disabled={Boolean(
+                                  cancellingInvitationId,
+                                )}
+                                onClick={() =>
+                                  handleCancelInvitation(
+                                    invitation.id,
+                                  )
+                                }
+                                className="shrink-0 rounded-full border border-destructive/30 px-3 py-2 text-xs font-bold text-destructive transition hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {isCancelling
+                                  ? t(
+                                      "create.invitations.cancelling",
+                                    )
+                                  : t(
+                                      "create.invitations.cancel",
+                                    )}
+                              </button>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                {activityInvitationsError && (
+                  <p
+                    className="mt-4 text-xs font-semibold text-destructive"
+                    role="alert"
+                  >
+                    {activityInvitationsError}
+                  </p>
+                )}
+              </section>
+            )}
 
           {activity.description && (
             <section className="mt-3 border-t border-border pt-6 sm:col-span-2">

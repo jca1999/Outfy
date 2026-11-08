@@ -33,7 +33,7 @@ type ActivityRequest = {
 type ValidatedActivity = {
   title: string;
   description: string | null;
-  visibility: "public" | "friends";
+  visibility: "public" | "friends" | "invite_only";
   category: string;
   subcategory: string;
   starts_at: string;
@@ -354,7 +354,11 @@ function validateActivity(body: ActivityRequest): ValidatedActivity {
 
   const visibility = body.visibility === undefined ? "public" : body.visibility;
 
-  if (visibility !== "public" && visibility !== "friends") {
+  if (
+    visibility !== "public" &&
+    visibility !== "friends" &&
+    visibility !== "invite_only"
+  ) {
     throw new Error("visibility is invalid");
   }
 
@@ -1142,7 +1146,7 @@ router.put("/activities/:id", async (request, response) => {
       await supabase
         .from("activities")
         .select(
-          "id,creator_id,status,starts_at,location_type,city,country_code,region_code,region_name,latitude,longitude",
+          "id,creator_id,status,starts_at,visibility,location_type,city,country_code,region_code,region_name,latitude,longitude",
         )
         .eq("id", activityId)
         .maybeSingle();
@@ -1278,6 +1282,27 @@ router.put("/activities/:id", async (request, response) => {
         code: "activity_changed",
       });
       return;
+    }
+
+    if (
+      currentActivity.visibility === "invite_only" &&
+      activity.visibility !== "invite_only"
+    ) {
+      const { error: invitationCleanupError } = await supabase
+        .from("activity_invitations")
+        .delete()
+        .eq("activity_id", activityId);
+
+      if (invitationCleanupError) {
+        request.log.error(
+          {
+            err: invitationCleanupError,
+            activityId,
+            userId: session.user.id,
+          },
+          "Unable to clean invitations after changing activity visibility",
+        );
+      }
     }
 
     response.json({
@@ -1554,10 +1579,7 @@ router.post("/activities/:id/cancel", async (request, response) => {
 
     const startsAt = Date.parse(activity.starts_at);
 
-    if (
-      Number.isFinite(startsAt) &&
-      startsAt <= Date.now()
-    ) {
+    if (Number.isFinite(startsAt) && startsAt <= Date.now()) {
       response.status(409).json({
         error: "Started activities cannot be cancelled.",
         code: "activity_started",
@@ -1795,14 +1817,12 @@ router.get("/activities/user/:userId", async (request, response) => {
 
     if (completedActivityIds.length > 0) {
       const { data: reviews, error: reviewsError } = await supabase
-      .from("activity_reviews")
-      .select(
-        "activity_id,reviewer_id,rating,comment,created_at",
-      )
-      .in("activity_id", completedActivityIds)
-      .order("created_at", {
-        ascending: false,
-      });
+        .from("activity_reviews")
+        .select("activity_id,reviewer_id,rating,comment,created_at")
+        .in("activity_id", completedActivityIds)
+        .order("created_at", {
+          ascending: false,
+        });
 
       if (reviewsError) {
         request.log.error(
@@ -1831,34 +1851,25 @@ router.get("/activities/user/:userId", async (request, response) => {
         averageRating = Number((ratingSum / reviewCount).toFixed(1));
       }
       const reviewsWithComments = (reviews ?? [])
-      .filter(
-        (review) =>
-          typeof review.comment === "string" &&
-          review.comment.trim().length > 0,
-      )
-      .slice(0, 3);
+        .filter(
+          (review) =>
+            typeof review.comment === "string" &&
+            review.comment.trim().length > 0,
+        )
+        .slice(0, 3);
 
       const reviewerIds = [
-        ...new Set(
-          reviewsWithComments.map(
-            (review) => review.reviewer_id,
-          ),
-        ),
+        ...new Set(reviewsWithComments.map((review) => review.reviewer_id)),
       ];
 
-      let reviewerUsernameById = new Map<
-        string,
-        string
-      >();
+      let reviewerUsernameById = new Map<string, string>();
 
       if (reviewerIds.length > 0) {
-        const {
-          data: reviewerProfiles,
-          error: reviewerProfilesError,
-        } = await supabase
-          .from("profiles")
-          .select("id,username")
-          .in("id", reviewerIds);
+        const { data: reviewerProfiles, error: reviewerProfilesError } =
+          await supabase
+            .from("profiles")
+            .select("id,username")
+            .in("id", reviewerIds);
 
         if (reviewerProfilesError) {
           request.log.error(
@@ -1884,27 +1895,16 @@ router.get("/activities/user/:userId", async (request, response) => {
         );
       }
 
-      recentReviews = reviewsWithComments.map(
-        (review) => ({
-          rating: review.rating,
-          comment: review.comment!.trim(),
-          createdAt: review.created_at,
-          activityId: review.activity_id,
-          activityTitle:
-            completedActivityTitleById.get(
-              review.activity_id,
-            ) ?? "",
-          reviewerId: review.reviewer_id,
-          reviewerUsername:
-            reviewerUsernameById.get(
-              review.reviewer_id,
-            ) ?? null,
-        }),
-      );
-      
+      recentReviews = reviewsWithComments.map((review) => ({
+        rating: review.rating,
+        comment: review.comment!.trim(),
+        createdAt: review.created_at,
+        activityId: review.activity_id,
+        activityTitle: completedActivityTitleById.get(review.activity_id) ?? "",
+        reviewerId: review.reviewer_id,
+        reviewerUsername: reviewerUsernameById.get(review.reviewer_id) ?? null,
+      }));
     }
-
-    
 
     const reputation = {
       averageRating,
@@ -2033,6 +2033,54 @@ router.get("/activities/:id", async (request, response) => {
           });
           return;
         }
+      }
+    }
+
+    if (
+      activity.visibility === "invite_only" &&
+      activity.creator_id !== session.user.id
+    ) {
+      const supabase = getSupabaseAdmin();
+
+      const [membershipResult, invitationResult] = await Promise.all([
+        supabase
+          .from("activity_members")
+          .select("role")
+          .eq("activity_id", activity.id)
+          .eq("user_id", session.user.id)
+          .maybeSingle(),
+
+        supabase
+          .from("activity_invitations")
+          .select("id,status")
+          .eq("activity_id", activity.id)
+          .eq("invitee_id", session.user.id)
+          .eq("status", "pending")
+          .maybeSingle(),
+      ]);
+
+      if (membershipResult.error || invitationResult.error) {
+        request.log.error(
+          {
+            membershipError: membershipResult.error,
+            invitationError: invitationResult.error,
+            activityId,
+            userId: session.user.id,
+          },
+          "Unable to check invite-only activity access",
+        );
+
+        response.status(500).json({
+          error: "The activity could not be loaded.",
+        });
+        return;
+      }
+
+      if (!membershipResult.data && !invitationResult.data) {
+        response.status(404).json({
+          error: "Activity not found.",
+        });
+        return;
       }
     }
 
@@ -2310,6 +2358,1299 @@ router.get("/activities/:id", async (request, response) => {
   }
 });
 
+router.post("/activities/:id/invitations", async (request, response) => {
+  let session;
+
+  try {
+    session = await currentSession(request, response);
+  } catch (error) {
+    request.log.error(
+      { err: error },
+      "Unable to authenticate activity invitation",
+    );
+
+    response.status(401).json({
+      error: "Authentication required.",
+    });
+    return;
+  }
+
+  if (!session) {
+    response.status(401).json({
+      error: "Authentication required.",
+    });
+    return;
+  }
+
+  const activityId = request.params.id;
+
+  if (!UUID_PATTERN.test(activityId)) {
+    response.status(404).json({
+      error: "Activity not found.",
+      code: "activity_not_found",
+    });
+    return;
+  }
+
+  const inviteeId =
+    request.body &&
+    typeof request.body === "object" &&
+    typeof request.body.inviteeId === "string"
+      ? request.body.inviteeId
+      : "";
+
+  if (!UUID_PATTERN.test(inviteeId)) {
+    response.status(400).json({
+      error: "The invited user is invalid.",
+      code: "invalid_invitee",
+    });
+    return;
+  }
+
+  if (inviteeId === session.user.id) {
+    response.status(400).json({
+      error: "You cannot invite yourself.",
+      code: "cannot_invite_self",
+    });
+    return;
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+
+    const { data: activity, error: activityError } = await supabase
+      .from("activities")
+      .select(
+        "id,creator_id,status,starts_at,visibility,participation_mode,max_participants",
+      )
+      .eq("id", activityId)
+      .maybeSingle();
+
+    if (activityError) {
+      request.log.error(
+        {
+          err: activityError,
+          activityId,
+          userId: session.user.id,
+        },
+        "Unable to load activity before invitation",
+      );
+
+      response.status(500).json({
+        error: "The invitation could not be sent.",
+      });
+      return;
+    }
+
+    if (!activity) {
+      response.status(404).json({
+        error: "Activity not found.",
+        code: "activity_not_found",
+      });
+      return;
+    }
+
+    if (activity.creator_id !== session.user.id) {
+      response.status(403).json({
+        error: "Only the organizer can invite people.",
+        code: "not_activity_organizer",
+      });
+      return;
+    }
+
+    if (activity.visibility !== "invite_only") {
+      response.status(409).json({
+        error: "This activity does not use invitations.",
+        code: "activity_not_invite_only",
+      });
+      return;
+    }
+
+    if (activity.status !== "active") {
+      response.status(409).json({
+        error: "This activity is no longer active.",
+        code: "activity_not_active",
+      });
+      return;
+    }
+
+    const startsAt = Date.parse(activity.starts_at);
+
+    if (Number.isFinite(startsAt) && startsAt <= Date.now()) {
+      response.status(409).json({
+        error: "Invitations cannot be sent after the activity starts.",
+        code: "activity_started",
+      });
+      return;
+    }
+
+    const connection = await findConnection(session.user.id, inviteeId);
+
+    if (connection?.status !== "accepted") {
+      response.status(403).json({
+        error: "Only friends can be invited.",
+        code: "invitee_not_friend",
+      });
+      return;
+    }
+
+    const { data: existingMember, error: memberError } = await supabase
+      .from("activity_members")
+      .select("role")
+      .eq("activity_id", activityId)
+      .eq("user_id", inviteeId)
+      .maybeSingle();
+
+    if (memberError) {
+      request.log.error(
+        {
+          err: memberError,
+          activityId,
+          inviteeId,
+        },
+        "Unable to check activity member before invitation",
+      );
+
+      response.status(500).json({
+        error: "The invitation could not be sent.",
+      });
+      return;
+    }
+
+    if (existingMember) {
+      response.status(409).json({
+        error: "This user is already participating.",
+        code: "already_member",
+      });
+      return;
+    }
+
+    if (
+      activity.participation_mode === "limited" &&
+      activity.max_participants !== null
+    ) {
+      const { count: memberCount, error: memberCountError } = await supabase
+        .from("activity_members")
+        .select("*", {
+          count: "exact",
+          head: true,
+        })
+        .eq("activity_id", activityId);
+
+      if (memberCountError) {
+        request.log.error(
+          {
+            err: memberCountError,
+            activityId,
+          },
+          "Unable to count activity members before invitation",
+        );
+
+        response.status(500).json({
+          error: "The invitation could not be sent.",
+        });
+        return;
+      }
+
+      if ((memberCount ?? 0) >= activity.max_participants) {
+        response.status(409).json({
+          error: "The activity is full.",
+          code: "activity_full",
+        });
+        return;
+      }
+    }
+
+    const { data: existingInvitation, error: invitationError } = await supabase
+      .from("activity_invitations")
+      .select("id,status")
+      .eq("activity_id", activityId)
+      .eq("invitee_id", inviteeId)
+      .maybeSingle();
+
+    if (invitationError) {
+      request.log.error(
+        {
+          err: invitationError,
+          activityId,
+          inviteeId,
+        },
+        "Unable to check existing activity invitation",
+      );
+
+      response.status(500).json({
+        error: "The invitation could not be sent.",
+      });
+      return;
+    }
+
+    if (existingInvitation?.status === "pending") {
+      response.json({
+        result: "already_pending",
+        invitation: {
+          id: existingInvitation.id,
+          status: "pending",
+        },
+      });
+      return;
+    }
+
+    if (existingInvitation?.status === "accepted") {
+      response.status(409).json({
+        error: "This invitation has already been accepted.",
+        code: "invitation_already_accepted",
+      });
+      return;
+    }
+
+    if (existingInvitation?.status === "declined") {
+      const { data: renewedInvitation, error: renewError } = await supabase
+        .from("activity_invitations")
+        .update({
+          status: "pending",
+          responded_at: null,
+        })
+        .eq("id", existingInvitation.id)
+        .select("id,status")
+        .single();
+
+      if (renewError) {
+        request.log.error(
+          {
+            err: renewError,
+            activityId,
+            inviteeId,
+          },
+          "Unable to renew activity invitation",
+        );
+
+        response.status(500).json({
+          error: "The invitation could not be sent.",
+        });
+        return;
+      }
+
+      response.json({
+        result: "invited",
+        invitation: {
+          id: renewedInvitation.id,
+          status: renewedInvitation.status,
+        },
+      });
+      return;
+    }
+
+    const { data: invitation, error: createError } = await supabase
+      .from("activity_invitations")
+      .insert({
+        activity_id: activityId,
+        invitee_id: inviteeId,
+      })
+      .select("id,status")
+      .single();
+
+    if (createError) {
+      request.log.error(
+        {
+          err: createError,
+          activityId,
+          inviteeId,
+        },
+        "Unable to create activity invitation",
+      );
+
+      response.status(500).json({
+        error: "The invitation could not be sent.",
+      });
+      return;
+    }
+
+    response.status(201).json({
+      result: "invited",
+      invitation: {
+        id: invitation.id,
+        status: invitation.status,
+      },
+    });
+  } catch (error) {
+    request.log.error(
+      {
+        err: error,
+        activityId,
+        inviteeId,
+        userId: session.user.id,
+      },
+      "Unable to send activity invitation",
+    );
+
+    response.status(500).json({
+      error: "The invitation could not be sent.",
+    });
+  }
+});
+
+router.get("/activities/:id/invitations", async (request, response) => {
+  let session;
+
+  try {
+    session = await currentSession(request, response);
+  } catch (error) {
+    request.log.error(
+      { err: error },
+      "Unable to authenticate activity invitation list",
+    );
+
+    response.status(401).json({
+      error: "Authentication required.",
+    });
+    return;
+  }
+
+  if (!session) {
+    response.status(401).json({
+      error: "Authentication required.",
+    });
+    return;
+  }
+
+  const activityId = request.params.id;
+
+  if (!UUID_PATTERN.test(activityId)) {
+    response.status(404).json({
+      error: "Activity not found.",
+      code: "activity_not_found",
+    });
+    return;
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+
+    const { data: activity, error: activityError } = await supabase
+      .from("activities")
+      .select("id,creator_id,visibility")
+      .eq("id", activityId)
+      .maybeSingle();
+
+    if (activityError) {
+      request.log.error(
+        {
+          err: activityError,
+          activityId,
+          userId: session.user.id,
+        },
+        "Unable to load activity before listing invitations",
+      );
+
+      response.status(500).json({
+        error: "The invitations could not be loaded.",
+      });
+      return;
+    }
+
+    if (!activity) {
+      response.status(404).json({
+        error: "Activity not found.",
+        code: "activity_not_found",
+      });
+      return;
+    }
+
+    if (activity.creator_id !== session.user.id) {
+      response.status(403).json({
+        error: "Only the organizer can view invitations.",
+        code: "not_activity_organizer",
+      });
+      return;
+    }
+
+    if (activity.visibility !== "invite_only") {
+      response.json({
+        invitations: [],
+      });
+      return;
+    }
+
+    const { data: invitationRows, error: invitationsError } = await supabase
+      .from("activity_invitations")
+      .select("id,invitee_id,status,created_at,updated_at,responded_at")
+      .eq("activity_id", activityId)
+      .order("created_at", {
+        ascending: false,
+      });
+
+    if (invitationsError) {
+      request.log.error(
+        {
+          err: invitationsError,
+          activityId,
+          userId: session.user.id,
+        },
+        "Unable to load activity invitations",
+      );
+
+      response.status(500).json({
+        error: "The invitations could not be loaded.",
+      });
+      return;
+    }
+
+    if (!invitationRows?.length) {
+      response.json({
+        invitations: [],
+      });
+      return;
+    }
+
+    const inviteeIds = [
+      ...new Set(
+        invitationRows
+          .map((invitation) => invitation.invitee_id)
+          .filter(
+            (inviteeId): inviteeId is string => typeof inviteeId === "string",
+          ),
+      ),
+    ];
+
+    const { data: profiles, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id,username,display_name,display_name_visibility")
+      .in("id", inviteeIds);
+
+    if (profilesError) {
+      request.log.error(
+        {
+          err: profilesError,
+          activityId,
+        },
+        "Unable to load invited user profiles",
+      );
+
+      response.status(500).json({
+        error: "The invitations could not be loaded.",
+      });
+      return;
+    }
+
+    const profileById = new Map(
+      (profiles ?? []).map((profile) => [profile.id, profile]),
+    );
+
+    const invitations = invitationRows.map((invitation) => {
+      const profile = profileById.get(invitation.invitee_id);
+
+      const displayNameVisible =
+        profile?.display_name_visibility === "everyone" ||
+        profile?.display_name_visibility === "friends";
+
+      return {
+        id: invitation.id,
+        status: invitation.status,
+        createdAt: invitation.created_at,
+        respondedAt: invitation.responded_at,
+
+        invitee: {
+          id: invitation.invitee_id,
+          username: profile?.username ?? null,
+          displayName:
+            displayNameVisible && profile?.display_name?.trim()
+              ? profile.display_name.trim()
+              : null,
+        },
+      };
+    });
+
+    response.json({
+      invitations,
+    });
+  } catch (error) {
+    request.log.error(
+      {
+        err: error,
+        activityId,
+        userId: session.user.id,
+      },
+      "Unable to load activity invitations",
+    );
+
+    response.status(500).json({
+      error: "The invitations could not be loaded.",
+    });
+  }
+});
+
+router.delete(
+  "/activities/:id/invitations/:invitationId",
+  async (request, response) => {
+    let session;
+
+    try {
+      session = await currentSession(request, response);
+    } catch (error) {
+      request.log.error(
+        { err: error },
+        "Unable to authenticate activity invitation cancellation",
+      );
+
+      response.status(401).json({
+        error: "Authentication required.",
+      });
+      return;
+    }
+
+    if (!session) {
+      response.status(401).json({
+        error: "Authentication required.",
+      });
+      return;
+    }
+
+    const activityId = request.params.id;
+    const invitationId = request.params.invitationId;
+
+    if (!UUID_PATTERN.test(activityId) || !UUID_PATTERN.test(invitationId)) {
+      response.status(404).json({
+        error: "Invitation not found.",
+        code: "invitation_not_found",
+      });
+      return;
+    }
+
+    try {
+      const supabase = getSupabaseAdmin();
+
+      const { data: activity, error: activityError } = await supabase
+        .from("activities")
+        .select("id,creator_id")
+        .eq("id", activityId)
+        .maybeSingle();
+
+      if (activityError) {
+        request.log.error(
+          {
+            err: activityError,
+            activityId,
+            invitationId,
+          },
+          "Unable to load activity before cancelling invitation",
+        );
+
+        response.status(500).json({
+          error: "The invitation could not be cancelled.",
+        });
+        return;
+      }
+
+      if (!activity) {
+        response.status(404).json({
+          error: "Activity not found.",
+          code: "activity_not_found",
+        });
+        return;
+      }
+
+      if (activity.creator_id !== session.user.id) {
+        response.status(403).json({
+          error: "Only the organizer can cancel invitations.",
+          code: "not_activity_organizer",
+        });
+        return;
+      }
+
+      const { data: invitation, error: invitationError } = await supabase
+        .from("activity_invitations")
+        .select("id,status")
+        .eq("id", invitationId)
+        .eq("activity_id", activityId)
+        .maybeSingle();
+
+      if (invitationError) {
+        request.log.error(
+          {
+            err: invitationError,
+            activityId,
+            invitationId,
+          },
+          "Unable to load invitation before cancellation",
+        );
+
+        response.status(500).json({
+          error: "The invitation could not be cancelled.",
+        });
+        return;
+      }
+
+      if (!invitation) {
+        response.status(404).json({
+          error: "Invitation not found.",
+          code: "invitation_not_found",
+        });
+        return;
+      }
+
+      if (invitation.status !== "pending") {
+        response.status(409).json({
+          error: "Only pending invitations can be cancelled.",
+          code: "invitation_not_pending",
+        });
+        return;
+      }
+
+      const { error: deleteError } = await supabase
+        .from("activity_invitations")
+        .delete()
+        .eq("id", invitationId)
+        .eq("activity_id", activityId)
+        .eq("status", "pending");
+
+      if (deleteError) {
+        request.log.error(
+          {
+            err: deleteError,
+            activityId,
+            invitationId,
+          },
+          "Unable to cancel activity invitation",
+        );
+
+        response.status(500).json({
+          error: "The invitation could not be cancelled.",
+        });
+        return;
+      }
+
+      response.json({
+        result: "cancelled",
+      });
+    } catch (error) {
+      request.log.error(
+        {
+          err: error,
+          activityId,
+          invitationId,
+          userId: session.user.id,
+        },
+        "Unable to cancel activity invitation",
+      );
+
+      response.status(500).json({
+        error: "The invitation could not be cancelled.",
+      });
+    }
+  },
+);
+
+router.get("/activities/invitations/pending", async (request, response) => {
+  let session;
+
+  try {
+    session = await currentSession(request, response);
+  } catch (error) {
+    request.log.error(
+      { err: error },
+      "Unable to authenticate activity invitations viewer",
+    );
+
+    response.status(401).json({
+      error: "Authentication required.",
+    });
+    return;
+  }
+
+  if (!session) {
+    response.status(401).json({
+      error: "Authentication required.",
+    });
+    return;
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+
+    const { data: invitationRows, error: invitationsError } = await supabase
+      .from("activity_invitations")
+      .select("id,activity_id,created_at")
+      .eq("invitee_id", session.user.id)
+      .eq("status", "pending")
+      .order("created_at", {
+        ascending: false,
+      })
+      .limit(50);
+
+    if (invitationsError) {
+      request.log.error(
+        {
+          err: invitationsError,
+          userId: session.user.id,
+        },
+        "Unable to load pending activity invitations",
+      );
+
+      response.status(500).json({
+        error: "The invitations could not be loaded.",
+      });
+      return;
+    }
+
+    if (!invitationRows?.length) {
+      response.json({
+        invitations: [],
+      });
+      return;
+    }
+
+    const activityIds = [
+      ...new Set(
+        invitationRows
+          .map((invitation) => invitation.activity_id)
+          .filter(
+            (activityId): activityId is string =>
+              typeof activityId === "string",
+          ),
+      ),
+    ];
+
+    const { data: activities, error: activitiesError } = await supabase
+      .from("activities")
+      .select(
+        "id,creator_id,title,category,subcategory,starts_at,ends_at,timezone_name,location_type,city,online_platform,participation_mode,max_participants,status,visibility,activity_members(count)",
+      )
+      .in("id", activityIds)
+      .eq("status", "active")
+      .eq("visibility", "invite_only")
+      .gt("starts_at", new Date().toISOString());
+
+    if (activitiesError) {
+      request.log.error(
+        {
+          err: activitiesError,
+          userId: session.user.id,
+        },
+        "Unable to load activities for pending invitations",
+      );
+
+      response.status(500).json({
+        error: "The invitations could not be loaded.",
+      });
+      return;
+    }
+
+    if (!activities?.length) {
+      response.json({
+        invitations: [],
+      });
+      return;
+    }
+
+    const activityById = new Map(
+      activities.map((activity) => [activity.id, activity]),
+    );
+
+    const organizerIds = [
+      ...new Set(
+        activities
+          .map((activity) => activity.creator_id)
+          .filter(
+            (organizerId): organizerId is string =>
+              typeof organizerId === "string",
+          ),
+      ),
+    ];
+
+    const { data: organizerProfiles, error: profilesError } = await supabase
+      .from("profiles")
+      .select("id,username,display_name,display_name_visibility")
+      .in("id", organizerIds);
+
+    if (profilesError) {
+      request.log.error(
+        {
+          err: profilesError,
+          userId: session.user.id,
+        },
+        "Unable to load organizers for pending invitations",
+      );
+
+      response.status(500).json({
+        error: "The invitations could not be loaded.",
+      });
+      return;
+    }
+
+    const profileById = new Map(
+      (organizerProfiles ?? []).map((profile) => [profile.id, profile]),
+    );
+
+    const invitations = invitationRows.flatMap((invitation) => {
+      const activity = activityById.get(invitation.activity_id);
+
+      if (!activity) {
+        return [];
+      }
+
+      const organizer = profileById.get(activity.creator_id);
+
+      const displayNameVisible =
+        organizer?.display_name_visibility === "everyone" ||
+        organizer?.display_name_visibility === "friends";
+
+      return [
+        {
+          id: invitation.id,
+          createdAt: invitation.created_at,
+
+          organizer: {
+            id: activity.creator_id,
+            username: organizer?.username ?? null,
+            displayName:
+              displayNameVisible && organizer?.display_name?.trim()
+                ? organizer.display_name.trim()
+                : null,
+          },
+
+          activity: {
+            id: activity.id,
+            title: activity.title,
+            category: activity.category,
+            subcategory: activity.subcategory,
+            startsAt: activity.starts_at,
+            endsAt: activity.ends_at,
+            timezoneName: activity.timezone_name,
+            locationType: activity.location_type,
+            city: activity.city,
+            onlinePlatform: activity.online_platform,
+            participationMode: activity.participation_mode,
+            maxParticipants: activity.max_participants,
+            memberCount: activity.activity_members?.[0]?.count ?? 0,
+          },
+        },
+      ];
+    });
+
+    response.json({
+      invitations,
+    });
+  } catch (error) {
+    request.log.error(
+      {
+        err: error,
+        userId: session.user.id,
+      },
+      "Unable to load pending activity invitations",
+    );
+
+    response.status(500).json({
+      error: "The invitations could not be loaded.",
+    });
+  }
+});
+
+router.post(
+  "/activities/invitations/:invitationId/accept",
+  async (request, response) => {
+    let session;
+
+    try {
+      session = await currentSession(request, response);
+    } catch (error) {
+      request.log.error(
+        { err: error },
+        "Unable to authenticate activity invitation acceptance",
+      );
+
+      response.status(401).json({
+        error: "Authentication required.",
+      });
+      return;
+    }
+
+    if (!session) {
+      response.status(401).json({
+        error: "Authentication required.",
+      });
+      return;
+    }
+
+    const invitationId = request.params.invitationId;
+
+    if (!UUID_PATTERN.test(invitationId)) {
+      response.status(404).json({
+        error: "Invitation not found.",
+        code: "invitation_not_found",
+      });
+      return;
+    }
+
+    try {
+      const supabase = getSupabaseAdmin();
+
+      const { data: invitation, error: invitationError } = await supabase
+        .from("activity_invitations")
+        .select("id,activity_id,invitee_id,status")
+        .eq("id", invitationId)
+        .eq("invitee_id", session.user.id)
+        .maybeSingle();
+
+      if (invitationError) {
+        request.log.error(
+          {
+            err: invitationError,
+            invitationId,
+            userId: session.user.id,
+          },
+          "Unable to load activity invitation",
+        );
+
+        response.status(500).json({
+          error: "The invitation could not be accepted.",
+        });
+        return;
+      }
+
+      if (!invitation) {
+        response.status(404).json({
+          error: "Invitation not found.",
+          code: "invitation_not_found",
+        });
+        return;
+      }
+
+      if (invitation.status === "accepted") {
+        response.json({
+          result: "already_accepted",
+          activityId: invitation.activity_id,
+        });
+        return;
+      }
+
+      if (invitation.status === "declined") {
+        response.status(409).json({
+          error: "This invitation was declined.",
+          code: "invitation_declined",
+        });
+        return;
+      }
+
+      const { data: activity, error: activityError } = await supabase
+        .from("activities")
+        .select("id,visibility")
+        .eq("id", invitation.activity_id)
+        .maybeSingle();
+
+      if (activityError) {
+        request.log.error(
+          {
+            err: activityError,
+            invitationId,
+            activityId: invitation.activity_id,
+          },
+          "Unable to load activity before accepting invitation",
+        );
+
+        response.status(500).json({
+          error: "The invitation could not be accepted.",
+        });
+        return;
+      }
+
+      if (!activity) {
+        response.status(404).json({
+          error: "Activity not found.",
+          code: "activity_not_found",
+        });
+        return;
+      }
+
+      if (activity.visibility !== "invite_only") {
+        response.status(409).json({
+          error: "This activity no longer uses invitations.",
+          code: "activity_not_invite_only",
+        });
+        return;
+      }
+
+      const { data, error } = await supabase.rpc("join_activity_as_user", {
+        p_activity_id: invitation.activity_id,
+        p_user_id: session.user.id,
+      });
+
+      const result = membershipRpcRow(data);
+
+      if (error || !result) {
+        request.log.error(
+          {
+            err: error,
+            invitationId,
+            activityId: invitation.activity_id,
+            userId: session.user.id,
+          },
+          "Unable to join activity from invitation",
+        );
+
+        response.status(500).json({
+          error: "The invitation could not be accepted.",
+        });
+        return;
+      }
+
+      if (result.result !== "joined" && result.result !== "already_member") {
+        if (result.result === "full") {
+          response.status(409).json({
+            error: "The activity is full.",
+            code: "activity_full",
+          });
+          return;
+        }
+
+        if (result.result === "activity_started") {
+          response.status(409).json({
+            error: "The activity has already started.",
+            code: "activity_started",
+          });
+          return;
+        }
+
+        if (result.result === "not_active") {
+          response.status(409).json({
+            error: "The activity is no longer active.",
+            code: "activity_not_active",
+          });
+          return;
+        }
+
+        if (result.result === "not_found") {
+          response.status(404).json({
+            error: "Activity not found.",
+            code: "activity_not_found",
+          });
+          return;
+        }
+
+        request.log.error(
+          {
+            rpcResult: result.result,
+            invitationId,
+            activityId: invitation.activity_id,
+          },
+          "Unexpected activity invitation acceptance result",
+        );
+
+        response.status(500).json({
+          error: "The invitation could not be accepted.",
+        });
+        return;
+      }
+
+      const { data: acceptedInvitation, error: updateError } = await supabase
+        .from("activity_invitations")
+        .update({
+          status: "accepted",
+          responded_at: new Date().toISOString(),
+        })
+        .eq("id", invitationId)
+        .eq("invitee_id", session.user.id)
+        .eq("status", "pending")
+        .select("id,status")
+        .maybeSingle();
+
+      if (updateError) {
+        request.log.error(
+          {
+            err: updateError,
+            invitationId,
+            activityId: invitation.activity_id,
+          },
+          "Unable to mark activity invitation as accepted",
+        );
+
+        response.status(500).json({
+          error: "The invitation could not be accepted.",
+        });
+        return;
+      }
+
+      if (!acceptedInvitation) {
+        const { data: currentInvitation } = await supabase
+          .from("activity_invitations")
+          .select("status")
+          .eq("id", invitationId)
+          .maybeSingle();
+
+        if (currentInvitation?.status !== "accepted") {
+          response.status(409).json({
+            error: "The invitation has changed.",
+            code: "invitation_changed",
+          });
+          return;
+        }
+      }
+
+      response.json({
+        result:
+          result.result === "already_member" ? "already_accepted" : "accepted",
+        activityId: invitation.activity_id,
+        memberCount: result.member_count,
+        maxParticipants: result.max_participants,
+      });
+    } catch (error) {
+      request.log.error(
+        {
+          err: error,
+          invitationId,
+          userId: session.user.id,
+        },
+        "Unable to accept activity invitation",
+      );
+
+      response.status(500).json({
+        error: "The invitation could not be accepted.",
+      });
+    }
+  },
+);
+
+router.post(
+  "/activities/invitations/:invitationId/decline",
+  async (request, response) => {
+    let session;
+
+    try {
+      session = await currentSession(request, response);
+    } catch (error) {
+      request.log.error(
+        { err: error },
+        "Unable to authenticate activity invitation decline",
+      );
+
+      response.status(401).json({
+        error: "Authentication required.",
+      });
+      return;
+    }
+
+    if (!session) {
+      response.status(401).json({
+        error: "Authentication required.",
+      });
+      return;
+    }
+
+    const invitationId = request.params.invitationId;
+
+    if (!UUID_PATTERN.test(invitationId)) {
+      response.status(404).json({
+        error: "Invitation not found.",
+        code: "invitation_not_found",
+      });
+      return;
+    }
+
+    try {
+      const supabase = getSupabaseAdmin();
+
+      const { data: invitation, error: invitationError } = await supabase
+        .from("activity_invitations")
+        .select("id,activity_id,status")
+        .eq("id", invitationId)
+        .eq("invitee_id", session.user.id)
+        .maybeSingle();
+
+      if (invitationError) {
+        request.log.error(
+          {
+            err: invitationError,
+            invitationId,
+            userId: session.user.id,
+          },
+          "Unable to load invitation before decline",
+        );
+
+        response.status(500).json({
+          error: "The invitation could not be declined.",
+        });
+        return;
+      }
+
+      if (!invitation) {
+        response.status(404).json({
+          error: "Invitation not found.",
+          code: "invitation_not_found",
+        });
+        return;
+      }
+
+      if (invitation.status === "declined") {
+        response.json({
+          result: "already_declined",
+          activityId: invitation.activity_id,
+        });
+        return;
+      }
+
+      if (invitation.status === "accepted") {
+        response.status(409).json({
+          error: "An accepted invitation cannot be declined.",
+          code: "invitation_already_accepted",
+        });
+        return;
+      }
+
+      const { data: declinedInvitation, error: updateError } = await supabase
+        .from("activity_invitations")
+        .update({
+          status: "declined",
+          responded_at: new Date().toISOString(),
+        })
+        .eq("id", invitationId)
+        .eq("invitee_id", session.user.id)
+        .eq("status", "pending")
+        .select("id,status")
+        .maybeSingle();
+
+      if (updateError) {
+        request.log.error(
+          {
+            err: updateError,
+            invitationId,
+          },
+          "Unable to decline activity invitation",
+        );
+
+        response.status(500).json({
+          error: "The invitation could not be declined.",
+        });
+        return;
+      }
+
+      if (!declinedInvitation) {
+        response.status(409).json({
+          error: "The invitation has changed.",
+          code: "invitation_changed",
+        });
+        return;
+      }
+
+      response.json({
+        result: "declined",
+        activityId: invitation.activity_id,
+      });
+    } catch (error) {
+      request.log.error(
+        {
+          err: error,
+          invitationId,
+          userId: session.user.id,
+        },
+        "Unable to decline activity invitation",
+      );
+
+      response.status(500).json({
+        error: "The invitation could not be declined.",
+      });
+    }
+  },
+);
+
 router.post("/activities/:id/join", async (request, response) => {
   let session;
   try {
@@ -2383,6 +3724,43 @@ router.post("/activities/:id/join", async (request, response) => {
         code: "activity_started",
       });
       return;
+    }
+
+    if (
+      activity.visibility === "invite_only" &&
+      activity.creator_id !== session.user.id
+    ) {
+      const { data: existingMembership, error: membershipError } =
+        await supabase
+          .from("activity_members")
+          .select("role")
+          .eq("activity_id", activityId)
+          .eq("user_id", session.user.id)
+          .maybeSingle();
+
+      if (membershipError) {
+        request.log.error(
+          {
+            err: membershipError,
+            activityId,
+            userId: session.user.id,
+          },
+          "Unable to check membership before joining invite-only activity",
+        );
+
+        response.status(500).json({
+          error: "The activity could not be joined.",
+        });
+        return;
+      }
+
+      if (!existingMembership) {
+        response.status(403).json({
+          error: "This activity is only available by invitation.",
+          code: "activity_invite_only",
+        });
+        return;
+      }
     }
 
     if (
@@ -2551,6 +3929,24 @@ router.delete("/activities/:id/membership", async (request, response) => {
     }
 
     if (result.result === "left" && result.member_count !== null) {
+      const { error: invitationCleanupError } = await getSupabaseAdmin()
+        .from("activity_invitations")
+        .delete()
+        .eq("activity_id", activityId)
+        .eq("invitee_id", session.user.id)
+        .eq("status", "accepted");
+
+      if (invitationCleanupError) {
+        request.log.error(
+          {
+            err: invitationCleanupError,
+            activityId,
+            userId: session.user.id,
+          },
+          "Unable to clean accepted invitation after leaving activity",
+        );
+      }
+
       response.json({
         result: result.result,
         memberCount: result.member_count,

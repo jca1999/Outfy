@@ -224,8 +224,10 @@
       "description": "Elige quién podrá descubrir y acceder a este plan.",
       "public": "Público",
       "friends": "Solo amigos",
+      "inviteOnly": "Solo con invitación",
       "publicDescription": "Cualquier usuario de Outfy podrá descubrir y ver este plan.",
-      "friendsDescription": "Solo tus amigos podrán ver y unirse a este plan."
+      "friendsDescription": "Solo tus amigos podrán ver y unirse a este plan.",
+      "inviteOnlyDescription": "Este plan no aparecerá en Explorar ni en tu perfil. Solo podrán acceder las personas que invites."
     },
     "cost": {
       "typeLabel": "Elige una opción",
@@ -377,6 +379,45 @@
       "estimatedCost": "Indica un coste aproximado válido.",
       "endTimeRequiredWithDate": "Indica también una hora de fin.",
       "endDateTimeBeforeStart": "La fecha y hora de fin deben ser posteriores al inicio."
+    },
+    "invitations": {
+      "title": "Invita a tus amigos",
+      "description": "El plan es privado. Elige qué amigos quieres invitar.",
+      "loadingFriends": "Cargando amigos...",
+      "loadFriendsError": "No hemos podido cargar tus amigos.",
+      "noFriends": "Todavía no tienes amigos a los que invitar.",
+      "invite": "Invitar",
+      "inviting": "Invitando...",
+      "invited": "Invitado",
+      "inviteError": "No hemos podido enviar la invitación. Inténtalo de nuevo.",
+      "cancelError": "No hemos podido cancelar la invitación.",
+      "manageTitle": "Invitados al plan",
+      "manageDescription": "Consulta quién ha aceptado, rechazado o todavía no ha respondido.",
+      "loading": "Cargando invitados...",
+      "loadError": "No hemos podido cargar los invitados.",
+      "empty": "Todavía no has invitado a nadie.",
+      "unknownUser": "Usuario de Outfy",
+      "statusPending": "Pendiente",
+      "statusAccepted": "Aceptada",
+      "statusDeclined": "Rechazada",
+      "cancel": "Cancelar",
+      "cancelling": "Cancelando..."
     }
+  },
+  "myInvitations": {
+    "title": "Invitaciones a planes",
+    "description": "Planes privados a los que te han invitado.",
+    "loading": "Cargando invitaciones...",
+    "loadError": "No hemos podido cargar tus invitaciones.",
+    "retry": "Reintentar",
+    "invitedBy": "{{name}} te ha invitado",
+    "organizerFallback": "Organizador de Outfy",
+    "accept": "Aceptar",
+    "accepting": "Aceptando...",
+    "decline": "Rechazar",
+    "declining": "Rechazando...",
+    "viewPlan": "Ver plan",
+    "acceptError": "No hemos podido aceptar la invitación.",
+    "declineError": "No hemos podido rechazar la invitación."
   }
 }
