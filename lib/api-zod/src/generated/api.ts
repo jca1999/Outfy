@@ -9,6 +9,218 @@ import * as zod from 'zod';
 
 
 /**
+ * @summary Accessible inbox ordered by last message descending, nulls last, then creation and ID descending
+ */
+export const listChatConversationsQueryLimitDefault = 20;
+export const listChatConversationsQueryLimitMax = 50;
+
+export const listChatConversationsQueryCursorMax = 512;
+
+
+
+export const ListChatConversationsQueryParams = zod.object({
+  "limit": zod.coerce.number().int().min(1).max(listChatConversationsQueryLimitMax).default(listChatConversationsQueryLimitDefault),
+  "cursor": zod.coerce.string().max(listChatConversationsQueryCursorMax).optional()
+})
+
+export const listChatConversationsResponseConversationsItemUnreadCountMin = 0;
+
+
+
+export const ListChatConversationsResponse = zod.object({
+  "conversations": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "type": zod.enum(['direct', 'activity']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "lastMessageAt": zod.coerce.date().nullable(),
+  "unreadCount": zod.number().int().min(listChatConversationsResponseConversationsItemUnreadCountMin),
+  "lastMessage": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "body": zod.string(),
+  "senderId": zod.string().uuid(),
+  "createdAt": zod.coerce.date()
+}),zod.null()]),
+  "otherUser": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "username": zod.string(),
+  "displayName": zod.string().nullable(),
+  "avatarUrl": zod.string().nullable()
+}),zod.null()]),
+  "activity": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "category": zod.string()
+}),zod.null()])
+})),
+  "nextCursor": zod.string().nullable()
+})
+
+
+/**
+ * @summary Create or return the unique conversation with an accepted friend
+ */
+export const OpenDirectChatBody = zod.object({
+  "userId": zod.string().uuid()
+})
+
+export const openDirectChatResponseConversationUnreadCountMin = 0;
+
+
+
+export const OpenDirectChatResponse = zod.object({
+  "conversation": zod.object({
+  "id": zod.string().uuid(),
+  "type": zod.enum(['direct', 'activity']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "lastMessageAt": zod.coerce.date().nullable(),
+  "unreadCount": zod.number().int().min(openDirectChatResponseConversationUnreadCountMin),
+  "lastMessage": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "body": zod.string(),
+  "senderId": zod.string().uuid(),
+  "createdAt": zod.coerce.date()
+}),zod.null()]),
+  "otherUser": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "username": zod.string(),
+  "displayName": zod.string().nullable(),
+  "avatarUrl": zod.string().nullable()
+}),zod.null()]),
+  "activity": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "category": zod.string()
+}),zod.null()])
+})
+})
+
+
+/**
+ * @summary Fetch the latest page or older messages; each page is returned oldest to newest
+ */
+export const ListChatMessagesParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const listChatMessagesQueryLimitDefault = 50;
+export const listChatMessagesQueryLimitMax = 100;
+
+export const listChatMessagesQueryCursorMax = 512;
+
+
+
+export const ListChatMessagesQueryParams = zod.object({
+  "limit": zod.coerce.number().int().min(1).max(listChatMessagesQueryLimitMax).default(listChatMessagesQueryLimitDefault),
+  "cursor": zod.coerce.string().max(listChatMessagesQueryCursorMax).optional()
+})
+
+export const ListChatMessagesResponse = zod.object({
+  "messages": zod.array(zod.object({
+  "id": zod.string().uuid(),
+  "body": zod.string(),
+  "senderId": zod.string().uuid(),
+  "createdAt": zod.coerce.date()
+}).and(zod.object({
+  "conversationId": zod.string().uuid(),
+  "sender": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "username": zod.string(),
+  "displayName": zod.string().nullable(),
+  "avatarUrl": zod.string().nullable()
+}),zod.null()]).describe('Safe profile or null if a profile is unavailable')
+}))),
+  "nextCursor": zod.string().nullable()
+})
+
+
+/**
+ * @summary Send as the authenticated user; direct chats require a current accepted friendship
+ */
+export const SendChatMessageParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const SendChatMessageBody = zod.object({
+  "body": zod.string().describe('Trimmed server-side; 1-2000 Unicode characters after trimming')
+})
+
+export const SendChatMessageResponse = zod.object({
+  "message": zod.object({
+  "id": zod.string().uuid(),
+  "body": zod.string(),
+  "senderId": zod.string().uuid(),
+  "createdAt": zod.coerce.date()
+}).and(zod.object({
+  "conversationId": zod.string().uuid(),
+  "sender": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "username": zod.string(),
+  "displayName": zod.string().nullable(),
+  "avatarUrl": zod.string().nullable()
+}),zod.null()]).describe('Safe profile or null if a profile is unavailable')
+}))
+})
+
+
+/**
+ * @summary Mark read with server time for the authenticated participant only
+ */
+export const MarkChatReadParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const MarkChatReadResponse = zod.object({
+  "success": zod.literal(true),
+  "readAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Return the existing activity chat for current activity members only
+ */
+export const GetActivityChatParams = zod.object({
+  "activityId": zod.coerce.string().uuid()
+})
+
+export const getActivityChatResponseConversationUnreadCountMin = 0;
+
+
+
+export const GetActivityChatResponse = zod.object({
+  "conversation": zod.object({
+  "id": zod.string().uuid(),
+  "type": zod.enum(['direct', 'activity']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "lastMessageAt": zod.coerce.date().nullable(),
+  "unreadCount": zod.number().int().min(getActivityChatResponseConversationUnreadCountMin),
+  "lastMessage": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "body": zod.string(),
+  "senderId": zod.string().uuid(),
+  "createdAt": zod.coerce.date()
+}),zod.null()]),
+  "otherUser": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "username": zod.string(),
+  "displayName": zod.string().nullable(),
+  "avatarUrl": zod.string().nullable()
+}),zod.null()]),
+  "activity": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "category": zod.string()
+}),zod.null()])
+})
+})
+
+
+/**
  * @summary Find people by partial username with existing profile visibility rules
  */
 export const searchConnectionProfilesQueryQueryMin = 2;

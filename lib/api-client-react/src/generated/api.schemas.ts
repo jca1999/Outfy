@@ -5,6 +5,106 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface ChatErrorResponse {
+  error: string;
+  /** Stable code including authentication_required, invalid_conversation, invalid_activity, invalid_target, self_chat, user_not_found, chat_connection_not_accepted, chat_access_denied, chat_not_found, invalid_message_body, invalid_limit, invalid_cursor, chat_changed, chat_unavailable */
+  code: string;
+}
+
+export interface ChatDirectInput {
+  userId: string;
+}
+
+export interface ChatMessageInput {
+  /** Trimmed server-side; 1-2000 Unicode characters after trimming */
+  body: string;
+}
+
+export interface ChatProfile {
+  id: string;
+  username: string;
+  /** @nullable */
+  displayName: string | null;
+  /** @nullable */
+  avatarUrl: string | null;
+}
+
+export interface ChatLastMessage {
+  id: string;
+  body: string;
+  senderId: string;
+  createdAt: string;
+}
+
+export type ChatMessage = ChatLastMessage & ({
+  conversationId: string;
+  /** Safe profile or null if a profile is unavailable */
+  sender: ChatProfile | null;
+});
+
+export type ChatActivityStatus = typeof ChatActivityStatus[keyof typeof ChatActivityStatus];
+
+
+export const ChatActivityStatus = {
+  active: 'active',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export interface ChatActivity {
+  id: string;
+  title: string;
+  status: ChatActivityStatus;
+  category: string;
+}
+
+export type ChatConversationType = typeof ChatConversationType[keyof typeof ChatConversationType];
+
+
+export const ChatConversationType = {
+  direct: 'direct',
+  activity: 'activity',
+} as const;
+
+export interface ChatConversation {
+  id: string;
+  type: ChatConversationType;
+  createdAt: string;
+  updatedAt: string;
+  /** @nullable */
+  lastMessageAt: string | null;
+  /** @minimum 0 */
+  unreadCount: number;
+  lastMessage: ChatLastMessage | null;
+  otherUser: ChatProfile | null;
+  activity: ChatActivity | null;
+}
+
+export interface ChatConversationResult {
+  conversation: ChatConversation;
+}
+
+export interface ChatInboxPage {
+  conversations: ChatConversation[];
+  /** @nullable */
+  nextCursor: string | null;
+}
+
+export interface ChatMessagePage {
+  messages: ChatMessage[];
+  /** @nullable */
+  nextCursor: string | null;
+}
+
+export interface ChatMessageResult {
+  message: ChatMessage;
+}
+
+export interface ChatReadResult {
+  success: true;
+  readAt: string;
+}
+
 export interface ConnectionSearchProfile {
   id: string;
   username: string;
@@ -318,6 +418,30 @@ export type PushFailureResponse = PushError;
  * 400 invalid_notification; 401 authentication_required; 404 notification_not_found; 500 notifications_unavailable; 503 notifications_migration_required
  */
 export type NotificationsErrorResponse = NotificationErrorResponse;
+
+export type ListChatConversationsParams = {
+/**
+ * @minimum 1
+ * @maximum 50
+ */
+limit?: number;
+/**
+ * @maxLength 512
+ */
+cursor?: string;
+};
+
+export type ListChatMessagesParams = {
+/**
+ * @minimum 1
+ * @maximum 100
+ */
+limit?: number;
+/**
+ * @maxLength 512
+ */
+cursor?: string;
+};
 
 export type SearchConnectionProfilesParams = {
 /**

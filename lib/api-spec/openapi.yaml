@@ -17,6 +17,133 @@ tags:
   - name: notifications
     description: Server-only recipient-scoped internal notifications
 paths:
+  /chat/conversations:
+    get:
+      operationId: listChatConversations
+      tags: [chat]
+      security: [{ sessionCookie: [] }]
+      summary: Accessible inbox ordered by last message descending, nulls last, then creation and ID descending
+      parameters:
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 50, default: 20 } }
+        - { in: query, name: cursor, schema: { type: string, maxLength: 512 } }
+      responses:
+        "200":
+          description: Bounded inbox page; use nextCursor for older conversations
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatInboxPage" }
+        "400": { $ref: "#/components/responses/ChatError" }
+        "401": { $ref: "#/components/responses/ChatError" }
+        "500": { $ref: "#/components/responses/ChatError" }
+  /chat/direct:
+    post:
+      operationId: openDirectChat
+      tags: [chat]
+      security: [{ sessionCookie: [] }]
+      summary: Create or return the unique conversation with an accepted friend
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChatDirectInput" }
+      responses:
+        "200":
+          description: Existing conversation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatConversationResult" }
+        "201":
+          description: Conversation created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatConversationResult" }
+        "400": { $ref: "#/components/responses/ChatError" }
+        "401": { $ref: "#/components/responses/ChatError" }
+        "403": { $ref: "#/components/responses/ChatError" }
+        "404": { $ref: "#/components/responses/ChatError" }
+        "409": { $ref: "#/components/responses/ChatError" }
+        "500": { $ref: "#/components/responses/ChatError" }
+  /chat/conversations/{id}/messages:
+    parameters:
+      - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+    get:
+      operationId: listChatMessages
+      tags: [chat]
+      security: [{ sessionCookie: [] }]
+      summary: Fetch the latest page or older messages; each page is returned oldest to newest
+      parameters:
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+        - { in: query, name: cursor, schema: { type: string, maxLength: 512 } }
+      responses:
+        "200":
+          description: Cursor binds the oldest returned timestamp and ID to this conversation; own messages do not count as unread
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatMessagePage" }
+        "400": { $ref: "#/components/responses/ChatError" }
+        "401": { $ref: "#/components/responses/ChatError" }
+        "403": { $ref: "#/components/responses/ChatError" }
+        "404": { $ref: "#/components/responses/ChatError" }
+        "500": { $ref: "#/components/responses/ChatError" }
+    post:
+      operationId: sendChatMessage
+      tags: [chat]
+      security: [{ sessionCookie: [] }]
+      summary: Send as the authenticated user; direct chats require a current accepted friendship
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ChatMessageInput" }
+      responses:
+        "201":
+          description: Saved message; no notification is created in this phase
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatMessageResult" }
+        "400": { $ref: "#/components/responses/ChatError" }
+        "401": { $ref: "#/components/responses/ChatError" }
+        "403": { $ref: "#/components/responses/ChatError" }
+        "404": { $ref: "#/components/responses/ChatError" }
+        "500": { $ref: "#/components/responses/ChatError" }
+  /chat/conversations/{id}/read:
+    post:
+      operationId: markChatRead
+      tags: [chat]
+      security: [{ sessionCookie: [] }]
+      summary: Mark read with server time for the authenticated participant only
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Read state saved
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatReadResult" }
+        "400": { $ref: "#/components/responses/ChatError" }
+        "401": { $ref: "#/components/responses/ChatError" }
+        "403": { $ref: "#/components/responses/ChatError" }
+        "404": { $ref: "#/components/responses/ChatError" }
+        "500": { $ref: "#/components/responses/ChatError" }
+  /chat/activities/{activityId}:
+    get:
+      operationId: getActivityChat
+      tags: [chat]
+      security: [{ sessionCookie: [] }]
+      summary: Return the existing activity chat for current activity members only
+      parameters:
+        - { in: path, name: activityId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Activity conversation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatConversationResult" }
+        "400": { $ref: "#/components/responses/ChatError" }
+        "401": { $ref: "#/components/responses/ChatError" }
+        "403": { $ref: "#/components/responses/ChatError" }
+        "404": { $ref: "#/components/responses/ChatError" }
+        "500": { $ref: "#/components/responses/ChatError" }
   /connections/search:
     get:
       operationId: searchConnectionProfiles
@@ -464,6 +591,11 @@ components:
         type: string
         pattern: "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$"
   responses:
+    ChatError:
+      description: Chat request rejected; code is stable and does not contain database details
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/ChatErrorResponse" }
     PushFailure:
       description: Authentication, input, ownership conflict, or push unavailable
       content:
@@ -483,6 +615,116 @@ components:
           schema:
             $ref: "#/components/schemas/FollowErrorResponse"
   schemas:
+    ChatErrorResponse:
+      type: object
+      required: [error, code]
+      properties:
+        error: { type: string }
+        code:
+          type: string
+          description: Stable code including authentication_required, invalid_conversation, invalid_activity, invalid_target, self_chat, user_not_found, chat_connection_not_accepted, chat_access_denied, chat_not_found, invalid_message_body, invalid_limit, invalid_cursor, chat_changed, chat_unavailable
+    ChatDirectInput:
+      type: object
+      required: [userId]
+      properties:
+        userId: { type: string, format: uuid }
+    ChatMessageInput:
+      type: object
+      required: [body]
+      properties:
+        body:
+          type: string
+          description: Trimmed server-side; 1-2000 Unicode characters after trimming
+    ChatProfile:
+      type: object
+      required: [id, username, displayName, avatarUrl]
+      properties:
+        id: { type: string, format: uuid }
+        username: { type: string }
+        displayName: { type: [string, "null"] }
+        avatarUrl: { type: [string, "null"] }
+    ChatLastMessage:
+      type: object
+      required: [id, body, senderId, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        body: { type: string }
+        senderId: { type: string, format: uuid }
+        createdAt: { type: string, format: date-time }
+    ChatMessage:
+      allOf:
+        - { $ref: "#/components/schemas/ChatLastMessage" }
+        - type: object
+          required: [conversationId, sender]
+          properties:
+            conversationId: { type: string, format: uuid }
+            sender:
+              description: Safe profile or null if a profile is unavailable
+              anyOf:
+                - { $ref: "#/components/schemas/ChatProfile" }
+                - { type: "null" }
+    ChatActivity:
+      type: object
+      required: [id, title, status, category]
+      properties:
+        id: { type: string, format: uuid }
+        title: { type: string }
+        status: { type: string, enum: [active, completed, cancelled] }
+        category: { type: string }
+    ChatConversation:
+      type: object
+      required: [id, type, createdAt, updatedAt, lastMessageAt, unreadCount, lastMessage, otherUser, activity]
+      properties:
+        id: { type: string, format: uuid }
+        type: { type: string, enum: [direct, activity] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        lastMessageAt: { type: [string, "null"], format: date-time }
+        unreadCount: { type: integer, minimum: 0 }
+        lastMessage:
+          anyOf:
+            - { $ref: "#/components/schemas/ChatLastMessage" }
+            - { type: "null" }
+        otherUser:
+          anyOf:
+            - { $ref: "#/components/schemas/ChatProfile" }
+            - { type: "null" }
+        activity:
+          anyOf:
+            - { $ref: "#/components/schemas/ChatActivity" }
+            - { type: "null" }
+    ChatConversationResult:
+      type: object
+      required: [conversation]
+      properties:
+        conversation: { $ref: "#/components/schemas/ChatConversation" }
+    ChatInboxPage:
+      type: object
+      required: [conversations, nextCursor]
+      properties:
+        conversations:
+          type: array
+          items: { $ref: "#/components/schemas/ChatConversation" }
+        nextCursor: { type: [string, "null"] }
+    ChatMessagePage:
+      type: object
+      required: [messages, nextCursor]
+      properties:
+        messages:
+          type: array
+          items: { $ref: "#/components/schemas/ChatMessage" }
+        nextCursor: { type: [string, "null"] }
+    ChatMessageResult:
+      type: object
+      required: [message]
+      properties:
+        message: { $ref: "#/components/schemas/ChatMessage" }
+    ChatReadResult:
+      type: object
+      required: [success, readAt]
+      properties:
+        success: { type: boolean, enum: [true] }
+        readAt: { type: string, format: date-time }
     ConnectionSearchProfile:
       type: object
       required: [id, username, displayName, avatarUrl, city]

@@ -24,6 +24,14 @@ import type {
   ActivityReviewSaved,
   AuthMessage,
   AuthSession,
+  ChatConversationResult,
+  ChatDirectInput,
+  ChatErrorResponse,
+  ChatInboxPage,
+  ChatMessageInput,
+  ChatMessagePage,
+  ChatMessageResult,
+  ChatReadResult,
   ConnectionSearchResults,
   ErrorResponse,
   FollowErrorResponse,
@@ -32,6 +40,8 @@ import type {
   FollowRelationship,
   GetPushStatusParams,
   HealthStatus,
+  ListChatConversationsParams,
+  ListChatMessagesParams,
   NotificationReadResult,
   NotificationUnreadCount,
   NotificationsErrorResponse,
@@ -75,6 +85,470 @@ const withQueryKey = <T extends object, K>(query: T, queryKey: K): T & { queryKe
   }
   return result;
 };
+
+export const getListChatConversationsUrl = (params?: ListChatConversationsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/chat/conversations?${stringifiedParams}` : `/api/chat/conversations`
+}
+
+/**
+ * @summary Accessible inbox ordered by last message descending, nulls last, then creation and ID descending
+ */
+export const listChatConversations = async (params?: ListChatConversationsParams, options?: Parameters<typeof customFetch>[1]): Promise<ChatInboxPage> => {
+
+  return customFetch<ChatInboxPage>(getListChatConversationsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListChatConversationsQueryKey = (params?: ListChatConversationsParams,) => {
+    return [
+    `/api/chat/conversations`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListChatConversationsQueryOptions = <TData = Awaited<ReturnType<typeof listChatConversations>>, TError = ErrorType<ChatErrorResponse>>(params?: ListChatConversationsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listChatConversations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListChatConversationsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listChatConversations>>> = ({ signal }) => listChatConversations(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listChatConversations>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListChatConversationsQueryResult = NonNullable<Awaited<ReturnType<typeof listChatConversations>>>
+export type ListChatConversationsQueryError = ErrorType<ChatErrorResponse>
+
+
+/**
+ * @summary Accessible inbox ordered by last message descending, nulls last, then creation and ID descending
+ */
+
+export function useListChatConversations<TData = Awaited<ReturnType<typeof listChatConversations>>, TError = ErrorType<ChatErrorResponse>>(
+ params?: ListChatConversationsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listChatConversations>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListChatConversationsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getOpenDirectChatUrl = () => {
+
+
+
+
+  return `/api/chat/direct`
+}
+
+/**
+ * @summary Create or return the unique conversation with an accepted friend
+ */
+export const openDirectChat = async (chatDirectInput: ChatDirectInput, options?: Parameters<typeof customFetch>[1]): Promise<ChatConversationResult> => {
+
+  return customFetch<ChatConversationResult>(getOpenDirectChatUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(chatDirectInput)
+  }
+);}
+
+
+
+
+
+export const getOpenDirectChatMutationOptions = <TError = ErrorType<ChatErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openDirectChat>>, TError,{data: BodyType<ChatDirectInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof openDirectChat>>, TError,{data: BodyType<ChatDirectInput>}, TContext> => {
+
+const mutationKey = ['openDirectChat'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof openDirectChat>>, {data: BodyType<ChatDirectInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  openDirectChat(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type OpenDirectChatMutationResult = NonNullable<Awaited<ReturnType<typeof openDirectChat>>>
+    export type OpenDirectChatMutationBody = BodyType<ChatDirectInput>
+    export type OpenDirectChatMutationError = ErrorType<ChatErrorResponse>
+
+    /**
+ * @summary Create or return the unique conversation with an accepted friend
+ */
+export const useOpenDirectChat = <TError = ErrorType<ChatErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof openDirectChat>>, TError,{data: BodyType<ChatDirectInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof openDirectChat>>,
+        TError,
+        {data: BodyType<ChatDirectInput>},
+        TContext
+      > => {
+      return useMutation(getOpenDirectChatMutationOptions(options));
+    }
+
+export const getListChatMessagesUrl = (id: string,
+    params?: ListChatMessagesParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/chat/conversations/${id}/messages?${stringifiedParams}` : `/api/chat/conversations/${id}/messages`
+}
+
+/**
+ * @summary Fetch the latest page or older messages; each page is returned oldest to newest
+ */
+export const listChatMessages = async (id: string,
+    params?: ListChatMessagesParams, options?: Parameters<typeof customFetch>[1]): Promise<ChatMessagePage> => {
+
+  return customFetch<ChatMessagePage>(getListChatMessagesUrl(id,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListChatMessagesQueryKey = (id: string,
+    params?: ListChatMessagesParams,) => {
+    return [
+    `/api/chat/conversations/${id}/messages`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListChatMessagesQueryOptions = <TData = Awaited<ReturnType<typeof listChatMessages>>, TError = ErrorType<ChatErrorResponse>>(id: string,
+    params?: ListChatMessagesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listChatMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListChatMessagesQueryKey(id,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listChatMessages>>> = ({ signal }) => listChatMessages(id,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listChatMessages>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListChatMessagesQueryResult = NonNullable<Awaited<ReturnType<typeof listChatMessages>>>
+export type ListChatMessagesQueryError = ErrorType<ChatErrorResponse>
+
+
+/**
+ * @summary Fetch the latest page or older messages; each page is returned oldest to newest
+ */
+
+export function useListChatMessages<TData = Awaited<ReturnType<typeof listChatMessages>>, TError = ErrorType<ChatErrorResponse>>(
+ id: string,
+    params?: ListChatMessagesParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listChatMessages>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListChatMessagesQueryOptions(id,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSendChatMessageUrl = (id: string,) => {
+
+
+
+
+  return `/api/chat/conversations/${id}/messages`
+}
+
+/**
+ * @summary Send as the authenticated user; direct chats require a current accepted friendship
+ */
+export const sendChatMessage = async (id: string,
+    chatMessageInput: ChatMessageInput, options?: Parameters<typeof customFetch>[1]): Promise<ChatMessageResult> => {
+
+  return customFetch<ChatMessageResult>(getSendChatMessageUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(chatMessageInput)
+  }
+);}
+
+
+
+
+
+export const getSendChatMessageMutationOptions = <TError = ErrorType<ChatErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendChatMessage>>, TError,{id: string;data: BodyType<ChatMessageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendChatMessage>>, TError,{id: string;data: BodyType<ChatMessageInput>}, TContext> => {
+
+const mutationKey = ['sendChatMessage'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendChatMessage>>, {id: string;data: BodyType<ChatMessageInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  sendChatMessage(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendChatMessageMutationResult = NonNullable<Awaited<ReturnType<typeof sendChatMessage>>>
+    export type SendChatMessageMutationBody = BodyType<ChatMessageInput>
+    export type SendChatMessageMutationError = ErrorType<ChatErrorResponse>
+
+    /**
+ * @summary Send as the authenticated user; direct chats require a current accepted friendship
+ */
+export const useSendChatMessage = <TError = ErrorType<ChatErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendChatMessage>>, TError,{id: string;data: BodyType<ChatMessageInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendChatMessage>>,
+        TError,
+        {id: string;data: BodyType<ChatMessageInput>},
+        TContext
+      > => {
+      return useMutation(getSendChatMessageMutationOptions(options));
+    }
+
+export const getMarkChatReadUrl = (id: string,) => {
+
+
+
+
+  return `/api/chat/conversations/${id}/read`
+}
+
+/**
+ * @summary Mark read with server time for the authenticated participant only
+ */
+export const markChatRead = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<ChatReadResult> => {
+
+  return customFetch<ChatReadResult>(getMarkChatReadUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+
+export const getMarkChatReadMutationOptions = <TError = ErrorType<ChatErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markChatRead>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof markChatRead>>, TError,{id: string}, TContext> => {
+
+const mutationKey = ['markChatRead'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof markChatRead>>, {id: string}> = (props) => {
+          const {id} = props ?? {};
+
+          return  markChatRead(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type MarkChatReadMutationResult = NonNullable<Awaited<ReturnType<typeof markChatRead>>>
+
+    export type MarkChatReadMutationError = ErrorType<ChatErrorResponse>
+
+    /**
+ * @summary Mark read with server time for the authenticated participant only
+ */
+export const useMarkChatRead = <TError = ErrorType<ChatErrorResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof markChatRead>>, TError,{id: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof markChatRead>>,
+        TError,
+        {id: string},
+        TContext
+      > => {
+      return useMutation(getMarkChatReadMutationOptions(options));
+    }
+
+export const getGetActivityChatUrl = (activityId: string,) => {
+
+
+
+
+  return `/api/chat/activities/${activityId}`
+}
+
+/**
+ * @summary Return the existing activity chat for current activity members only
+ */
+export const getActivityChat = async (activityId: string, options?: Parameters<typeof customFetch>[1]): Promise<ChatConversationResult> => {
+
+  return customFetch<ChatConversationResult>(getGetActivityChatUrl(activityId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetActivityChatQueryKey = (activityId: string,) => {
+    return [
+    `/api/chat/activities/${activityId}`
+    ] as const;
+    }
+
+
+export const getGetActivityChatQueryOptions = <TData = Awaited<ReturnType<typeof getActivityChat>>, TError = ErrorType<ChatErrorResponse>>(activityId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getActivityChat>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetActivityChatQueryKey(activityId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getActivityChat>>> = ({ signal }) => getActivityChat(activityId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: activityId !== null && activityId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getActivityChat>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetActivityChatQueryResult = NonNullable<Awaited<ReturnType<typeof getActivityChat>>>
+export type GetActivityChatQueryError = ErrorType<ChatErrorResponse>
+
+
+/**
+ * @summary Return the existing activity chat for current activity members only
+ */
+
+export function useGetActivityChat<TData = Awaited<ReturnType<typeof getActivityChat>>, TError = ErrorType<ChatErrorResponse>>(
+ activityId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getActivityChat>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetActivityChatQueryOptions(activityId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 
 export const getSearchConnectionProfilesUrl = (params: SearchConnectionProfilesParams,) => {
   const normalizedParams = new URLSearchParams();

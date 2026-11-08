@@ -6,6 +6,7 @@ import connectionsRouter from "./connections";
 import followsRouter from "./follows";
 import notificationsRouter from "./notifications";
 import pushRouter from "./push";
+import chatRouter from "./chat";
 
 const router: IRouter = Router();
 
@@ -16,5 +17,6 @@ router.use(connectionsRouter);
 router.use(followsRouter);
 router.use(notificationsRouter);
 router.use(pushRouter);
+router.use(chatRouter);
 
 export default router;
