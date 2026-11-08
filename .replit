@@ -98,3 +98,10 @@ timeoutMs = 20000
 [nix]
 channel = "stable-25_05"
 packages = ["psmisc", "supabase-cli"]
+
+[userenv]
+
+[userenv.shared]
+VAPID_PUBLIC_KEY = "BDf0Ft64JRtfoC6jPZsMQyPl5wffTQ_gX6s4V1z0J5kyjobz1xU5Vnh0YDiIY8ntwqN2J1dW0haPZ-cPSguJph8"
+VAPID_PRIVATE_KEY = "RIcM5hD733TvyRH2a9YAFtmlAUFgmjOPW83xwaqEGl0"
+VAPID_SUBJECT = "support@outfy.es"
