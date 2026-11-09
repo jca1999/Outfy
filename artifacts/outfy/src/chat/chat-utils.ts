@@ -20,6 +20,8 @@ export const chatKeys = {
     ["outfy-chat", userId, "conversation", id] as const,
   messages: (userId: string, id: string) =>
     ["outfy-chat", userId, "messages", id] as const,
+  unread: (userId: string) =>
+    ["outfy-chat", userId, "unread-count"] as const,
 };
 
 export const CHAT_KEY_ROOT = "outfy-chat";

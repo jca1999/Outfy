@@ -19,6 +19,7 @@ import {
   connectionOverviewKey,
   useConnectionOverview,
 } from "@/connections/use-connection-overview";
+import { useChatUnreadCount } from "@/chat/use-chat";
 
 interface OutfyShellProps {
   children: ReactNode;
@@ -29,6 +30,11 @@ export function OutfyShell({ children }: OutfyShellProps) {
   const queryClient = useQueryClient();
   const overview = useConnectionOverview();
   const incomingCount = overview.isError ? 0 : (overview.data?.incoming.length ?? 0);
+  const chatUnread = useChatUnreadCount();
+  const unreadMessages =
+    chatUnread.data?.count && chatUnread.data.count > 0
+      ? chatUnread.data.count
+      : 0;
   const { t } = useTranslation("common");
   const [location, navigate] = useLocation();
   const mobileConversation = /^\/chats\/[^/]+\/?$/.test(location);
@@ -178,6 +184,15 @@ export function OutfyShell({ children }: OutfyShellProps) {
                   </span>
                 )}
 
+                {item.id === "messages" && unreadMessages > 0 && (
+                  <span
+                    className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-primary-foreground"
+                    data-testid="badge-messages-desktop"
+                  >
+                    {unreadMessages > 99 ? "99+" : unreadMessages}
+                  </span>
+                )}
+
               </Link>
             );
           })}
@@ -322,6 +337,15 @@ export function OutfyShell({ children }: OutfyShellProps) {
                     data-testid="badge-connections-mobile"
                   >
                     {incomingCount > 9 ? "9+" : incomingCount}
+                  </span>
+                )}
+
+                {item.id === "messages" && unreadMessages > 0 && (
+                  <span
+                    className="absolute -right-3 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-primary-foreground"
+                    data-testid="badge-messages-mobile"
+                  >
+                    {unreadMessages > 99 ? "99+" : unreadMessages}
                   </span>
                 )}
               </span>

@@ -28,6 +28,42 @@ function retryUnlessDenied(count: number, error: unknown) {
   return count < 2;
 }
 
+export function useChatUnreadCount() {
+  const { user } = useAuth();
+  const userId = user?.id ?? "";
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (!userId) return;
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        void queryClient.invalidateQueries({
+          queryKey: chatKeys.unread(userId),
+          exact: true,
+        });
+      }
+    };
+
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+
+    return () => {
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [userId, queryClient]);
+
+  return useQuery({
+    queryKey: chatKeys.unread(userId),
+    enabled: Boolean(userId),
+    queryFn: ({ signal }) => chatApi.getUnreadCount(signal),
+    staleTime: 10_000,
+    refetchInterval: 30_000,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    retry: 1,
+  });
+}
+
 export function useChatInbox() {
   const { user } = useAuth();
   const userId = user?.id ?? "";
@@ -102,18 +138,81 @@ export function useChatCacheWriters() {
     },
     onRead(conversationId: string) {
       if (!userId) return;
+
+      let previousUnread = 0;
+
+      const conversation =
+        queryClient.getQueryData<ChatConversationResult>(
+          chatKeys.conversation(userId, conversationId),
+        )?.conversation;
+
+      if (conversation?.unreadCount) {
+        previousUnread = conversation.unreadCount;
+      } else {
+        const inbox =
+          queryClient.getQueryData<InfiniteData<ChatInboxPage, string | null>>(
+            chatKeys.inbox(userId),
+          );
+
+        for (const page of inbox?.pages ?? []) {
+          const found = page.conversations.find(
+            (c) => c.id === conversationId,
+          );
+
+          if (found) {
+            previousUnread = found.unreadCount ?? 0;
+            break;
+          }
+        }
+      }
+
       queryClient.setQueryData<InfiniteData<ChatInboxPage, string | null>>(
         chatKeys.inbox(userId),
-        (old) => patchInboxConversation(old, conversationId, (c) => ({ ...c, unreadCount: 0 })),
+        (old) =>
+          patchInboxConversation(
+            old,
+            conversationId,
+            (c) => ({ ...c, unreadCount: 0 }),
+          ),
       );
+
       queryClient.setQueryData<ChatConversationResult>(
         chatKeys.conversation(userId, conversationId),
-        (old) => (old ? { conversation: { ...old.conversation, unreadCount: 0 } } : old),
+        (old) =>
+          old
+            ? {
+                conversation: {
+                  ...old.conversation,
+                  unreadCount: 0,
+                },
+              }
+            : old,
       );
+
+      if (previousUnread > 0) {
+        queryClient.setQueryData<{ count: number }>(
+          chatKeys.unread(userId),
+          (old) =>
+            old
+              ? {
+                  count: Math.max(
+                    0,
+                    old.count - previousUnread,
+                  ),
+                }
+              : old,
+        );
+      }
+
       void queryClient.invalidateQueries({
         queryKey: chatKeys.inbox(userId),
         exact: true,
         refetchType: "none",
+      });
+
+      void queryClient.invalidateQueries({
+        queryKey: chatKeys.unread(userId),
+        exact: true,
       });
     },
   };

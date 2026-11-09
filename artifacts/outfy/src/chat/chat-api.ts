@@ -38,7 +38,47 @@ async function withRequest<T>(signal: AbortSignal | undefined, run: (init: Reque
   }
 }
 
+type ChatUnreadCount = {
+  count: number;
+};
+
+async function getUnreadCount(signal?: AbortSignal): Promise<ChatUnreadCount> {
+  return withRequest(signal, async (init) => {
+    const response = await fetch("/api/chat/unread-count", init);
+
+    let data: unknown = null;
+
+    try {
+      data = await response.json();
+    } catch {
+      // Invalid responses are handled below.
+    }
+
+    if (!response.ok) {
+      const error = new Error("chat_unread_count_unavailable") as Error & {
+        status?: number;
+      };
+      error.status = response.status;
+      throw error;
+    }
+
+    if (
+      !data ||
+      typeof data !== "object" ||
+      !("count" in data) ||
+      typeof (data as { count?: unknown }).count !== "number" ||
+      !Number.isSafeInteger((data as { count: number }).count) ||
+      (data as { count: number }).count < 0
+    ) {
+      throw new Error("invalid_chat_unread_count");
+    }
+
+    return data as ChatUnreadCount;
+  });
+}
+
 export const chatApi = {
+  getUnreadCount,
   listConversations: (cursor: string | null, signal?: AbortSignal) =>
     withRequest(signal, (init) =>
       listChatConversations(

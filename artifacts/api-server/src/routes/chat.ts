@@ -42,6 +42,28 @@ function endpoint(handler: (request: Request, response: Response, userId: string
   };
 }
 
+router.get("/chat/unread-count", endpoint(async (_request, response, userId) => {
+  const { data, error } = await getSupabaseAdmin().rpc(
+    "get_chat_unread_count",
+    { input_user_id: userId },
+  );
+
+  if (error) throw error;
+
+  const count =
+    typeof data === "number"
+      ? data
+      : typeof data === "string" && /^\d+$/.test(data)
+        ? Number(data)
+        : Number.NaN;
+
+  if (!Number.isSafeInteger(count) || count < 0) {
+    throw new Error("Invalid chat unread count");
+  }
+
+  response.json({ count });
+}));
+
 router.get("/chat/conversations", endpoint(async (request, response, userId) => {
   const limit = pageLimit(request.query.limit, 20, 50);
   const cursor = decodeCursor(request.query.cursor, "inbox", userId);
