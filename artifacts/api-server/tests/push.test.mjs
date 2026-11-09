@@ -280,7 +280,7 @@ test("new internal events alone trigger push; preferences/dedupe/reserved events
   await assert.doesNotReject(() => createNotification({ ...input, dedupeKey: "storage-failed" }));
   assert.equal(db.tables.notifications.length, 2);
   delete db.fail.push_subscriptions;
-  for (const type of ["activity_reminder", "chat_message"]) await sendPushToUser(A, row(type));
+  for (const type of ["activity_reminder"]) await sendPushToUser(A, row(type));
   assert.equal(sends.length, 1);
   for (const type of ["connection_accepted", "activity_invitation", "activity_invitation_accepted", "activity_invitation_declined"]) {
     await sendPushToUser(A, row(type));
@@ -311,6 +311,47 @@ test("actual VAPID configuration fails closed when absent; warning contains no k
   assert.match(JSON.stringify(globalThis.__pushWarnings), /push_not_configured/);
 });
 
+test("chat push is eligible, private, deep-linked, preference-controlled and deduplicated across devices", async () => {
+  const db = reset();
+  const conversationId = "11111111-1111-4111-8111-111111111111";
+  const messageId = "22222222-2222-4222-8222-222222222222";
+  db.tables.profiles[0].notify_messages = true;
+  db.tables.push_subscriptions.push(device("one"), device("two"), device("sender", B));
+  const sends = [];
+  globalThis.__pushSend = async (subscription, payload) => sends.push({ endpoint: subscription.endpoint, ...JSON.parse(payload) });
+  const input = {
+    recipientId: A, actorId: B, type: "chat_message",
+    metadata: { conversationId, messageId, body: "PRIVATE MESSAGE MUST NOT LEAK" },
+    dedupeKey: `chat_message:${messageId}:${A}`,
+  };
+  await createNotification(input); await flush();
+  assert.equal(db.tables.notifications.length, 1);
+  assert.equal(sends.length, 2);
+  for (const payload of sends) {
+    assert.equal(payload.body, "@bob sent you a message.");
+    assert.equal(payload.url, `/chats/${conversationId}`);
+    assert.doesNotMatch(JSON.stringify(payload), /PRIVATE MESSAGE/);
+    assert.notEqual(payload.endpoint, endpoint("sender"));
+  }
+  await createNotification(input); await flush();
+  assert.equal(sends.length, 2);
+  await createNotification({ ...input, recipientId: B }); await flush();
+  assert.equal(db.tables.notifications.length, 1); // sender guard
+  db.tables.profiles[0].notify_messages = false;
+  await createNotification({ ...input, dedupeKey: "opted-out-chat" }); await flush();
+  assert.equal(db.tables.notifications.length, 1);
+  assert.equal(sends.length, 2);
+  const activityId = "33333333-3333-4333-8333-333333333333";
+  db.tables.activities.push({ id: activityId, title: "Weekend walk", creator_id: A, visibility: "invite_only" });
+  await sendPushToUser(A, { ...row("chat_message"), activity_id: activityId, metadata: { conversationId } });
+  assert.equal(sends.at(-1).body, '@bob sent a message in "Weekend walk".');
+  assert.equal(sends.at(-1).url, `/chats/${conversationId}`);
+  for (const metadata of [{}, { conversationId: "bad" }, { conversationId: "-".repeat(36) }, { conversationId: "//evil.test" }]) {
+    await sendPushToUser(A, { ...row("chat_message"), activity_id: activityId, metadata });
+    assert.equal(sends.at(-1).url, "/chats");
+  }
+});
+
 test("service worker safely parses payloads, respects app base and prevents external/unsafe navigation", async () => {
   const source = await readFile(`${root}../outfy/public/outfy-push-sw.js`, "utf8");
   for (const base of ["/", "/outfy/"]) {
@@ -335,8 +376,14 @@ test("service worker safely parses payloads, respects app base and prevents exte
     assert.equal(shown.at(-1).options.icon, `${scope}icon-192.png`);
     assert.equal(shown.at(-1).options.silent, true);
     assert.equal(await push({ url: `${base}users/bob` }), `${scope}users/bob`);
+    const chatId = "11111111-1111-4111-8111-111111111111";
+    assert.equal(await push({ url: "/chats" }), `${scope}chats`);
+    assert.equal(await push({ url: `/chats/${chatId}` }), `${scope}chats/${chatId}`);
     for (const url of ["https://evil.test/path", "//evil.test/path", "/\\evil.test", "/api/auth/signout",
-      "/users/%2f%2fevil.test", "/users/%5cevil", "/users/bob?next=https://evil.test", "/users/%2e%2e/settings"]) {
+      "/users/%2f%2fevil.test", "/users/%5cevil", "/users/bob?next=https://evil.test", "/users/%2e%2e/settings",
+      "/chats/nope", "/chats/", "/chats?", "/chats#", `/chats/${chatId}/`, `/chats/${chatId}?next=x`, `/chats/${chatId}#fragment`,
+      `/chats/%2e%2e/chats/${chatId}`, `/chats/../chats/${chatId}`, `/chats/%252e%252e/${chatId}`,
+      `/chats/${"-".repeat(36)}`, `/chats/${chatId}/extra`, `/chats%2f${chatId}`]) {
       assert.equal(await push({ url }), scope, url);
     }
     assert.equal(await push("malformed"), scope);
@@ -419,8 +466,10 @@ test("migration is server-only; push translations match ES/EN; worker has no cac
   assert.doesNotMatch(migration, /create policy/i);
   const en = JSON.parse(await readFile(`${root}../outfy/src/i18n/locales/en/common.json`, "utf8")).push;
   const es = JSON.parse(await readFile(`${root}../outfy/src/i18n/locales/es/common.json`, "utf8")).push;
-  assert.deepEqual(Object.keys(en).sort(), Object.keys(es).sort());
-  for (const value of [...Object.values(en), ...Object.values(es)]) assert.equal(typeof value, "string");
+  const leaves = (object, prefix = "") => Object.entries(object).flatMap(([key, value]) =>
+    typeof value === "string" ? [[`${prefix}${key}`, value]] : leaves(value, `${prefix}${key}.`));
+  assert.deepEqual(leaves(en).map(([key]) => key).sort(), leaves(es).map(([key]) => key).sort());
+  for (const [, value] of [...leaves(en), ...leaves(es)]) assert.ok(value.trim());
   const worker = await readFile(`${root}../outfy/public/outfy-push-sw.js`, "utf8");
   assert.doesNotMatch(worker, /addEventListener\(["']fetch|caches\.|sound\s*:/);
   const frontend = await readFile(`${root}../outfy/src/push/push-api.ts`, "utf8");

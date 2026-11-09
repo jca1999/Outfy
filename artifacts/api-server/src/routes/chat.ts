@@ -7,6 +7,7 @@ import {
 import { currentSession } from "./auth";
 import { getSupabaseAdmin } from "../lib/supabase";
 import { streamChatEvents } from "../lib/chat-events";
+import { notifyChatMessage } from "../lib/chat-notifications";
 import {
   CHAT_UUID, CONVERSATION_FIELDS, MESSAGE_FIELDS, ChatError, authorizeConversation,
   requireActivityMember, requireFriend, findDirect, databaseError, presentConversations,
@@ -164,6 +165,7 @@ router.post("/chat/conversations/:id/messages", endpoint(async (request, respons
   if (error) databaseError(error);
   const payload = { message: (await presentMessages([data as MessageRow], userId, conversation))[0] };
   SendChatMessageResponse.parse(payload);
+  void notifyChatMessage(conversation, data as MessageRow, userId);
   response.status(201).json(payload);
 }));
 

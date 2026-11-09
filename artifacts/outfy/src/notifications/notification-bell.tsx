@@ -6,6 +6,7 @@ import { useLocation } from "wouter";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/utils";
 import type { Notification, NotificationType } from "./notifications-api";
+import { notificationDestination as destination } from "./notification-destination";
 import {
   useMarkAllNotificationsRead,
   useMarkNotificationRead,
@@ -14,7 +15,6 @@ import {
   useUnreadNotificationCount,
 } from "./use-notifications";
 
-const FRIEND_TYPES: NotificationType[] = ["connection_request", "connection_accepted"];
 const KNOWN = new Set<string>([
   "connection_request", "connection_accepted", "activity_invitation",
   "activity_invitation_accepted", "activity_invitation_declined",
@@ -30,16 +30,6 @@ const ICONS: Record<string, LucideIcon> = {
   chat_message: MessageCircle,
   activity_joined: UserPlus,
 };
-
-function destination(n: Notification): string | null {
-  if (FRIEND_TYPES.includes(n.type)) {
-    return n.actor?.username ? `/users/${encodeURIComponent(n.actor.username)}` : null;
-  }
-  if (n.type.startsWith("activity_") || n.type === "chat_message") {
-    return n.activity?.id ? `/activities/${encodeURIComponent(n.activity.id)}` : null;
-  }
-  return null;
-}
 
 function relativeTime(iso: string, lang: string) {
   const then = new Date(iso).getTime();

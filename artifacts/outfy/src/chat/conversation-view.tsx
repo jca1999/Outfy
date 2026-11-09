@@ -128,7 +128,7 @@ function AuthorizedConversation({ conversation }: { conversation: ChatConversati
 
   return (
     <div className="flex min-h-0 flex-1 flex-col" data-testid={`view-conversation-${conversation.id}`}>
-      <header className="flex items-center gap-3 border-b border-border p-4">
+      <header className="flex shrink-0 items-center gap-3 border-b border-border p-4">
         <BackLink />
         <ChatAvatar label={title} avatarUrl={conversation.otherUser?.avatarUrl} group={isGroup} />
         <div className="min-w-0 flex-1">
@@ -164,7 +164,7 @@ function AuthorizedConversation({ conversation }: { conversation: ChatConversati
               const el = event.currentTarget;
               nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
             }}
-            className="max-h-[62dvh] min-h-[280px] flex-1 overflow-y-auto overflow-x-hidden bg-background/50 px-3 py-4 sm:px-6 lg:max-h-none"
+            className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden bg-background/50 px-3 py-4 sm:min-h-[280px] sm:max-h-[62dvh] sm:px-6 max-md:min-h-0 max-md:max-h-none lg:max-h-none"
             data-testid="scroll-messages"
           >
             {messagesQuery.isPending ? (

@@ -17,6 +17,9 @@ const built = await build({
   plugins: [{
     name: "isolate-auth-and-transport",
     setup(b) {
+      b.onLoad({ filter: /\/lib\/logger\.ts$/ }, () => ({
+        contents: "export const logger={warn(){},error(){}};", loader: "js",
+      }));
       b.onLoad({ filter: /\/routes\/auth\.ts$/ }, () => ({
         contents: 'export async function currentSession(req) { const id = req.get("x-test-user"); return id ? {user:{id}} : null; }', loader: "js",
       }));

@@ -31,6 +31,19 @@ export function OutfyShell({ children }: OutfyShellProps) {
   const incomingCount = overview.isError ? 0 : (overview.data?.incoming.length ?? 0);
   const { t } = useTranslation("common");
   const [location, navigate] = useLocation();
+  const mobileConversation = /^\/chats\/[^/]+\/?$/.test(location);
+  const shellRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!mobileConversation || !window.visualViewport) return;
+    const viewport = window.visualViewport;
+    const resize = () => shellRef.current?.style.setProperty("--outfy-chat-viewport", `${viewport.height}px`);
+    resize();
+    viewport.addEventListener("resize", resize);
+    return () => {
+      viewport.removeEventListener("resize", resize);
+      shellRef.current?.style.removeProperty("--outfy-chat-viewport");
+    };
+  }, [mobileConversation]);
   const avatarUrlRef = useRef<string | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loadedAvatarUrl, setLoadedAvatarUrl] = useState<string | null>(null);
@@ -113,7 +126,8 @@ export function OutfyShell({ children }: OutfyShellProps) {
   const initials = (user?.username ?? "LC").slice(0, 2).toUpperCase();
 
   return (
-    <div className="min-h-[100dvh] bg-background">
+    <div ref={shellRef} className={cn("min-h-[100dvh] bg-background", mobileConversation &&
+      "max-md:flex max-md:h-[var(--outfy-chat-viewport,100dvh)] max-md:min-h-0 max-md:flex-col max-md:overflow-hidden")}>
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[238px] flex-col bg-sidebar px-5 py-6 text-sidebar-foreground md:flex">
         <Link
           href="/"
@@ -189,8 +203,8 @@ export function OutfyShell({ children }: OutfyShellProps) {
           </Link>
         </div>
       </aside>
-      <div className="md:pl-[238px]">
-        <header className="sticky top-0 z-20 border-b border-border/70 bg-background/90 px-4 py-4 backdrop-blur-xl sm:px-8">
+      <div className={cn("md:pl-[238px]", mobileConversation && "max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col")}>
+        <header className="sticky top-0 z-20 shrink-0 border-b border-border/70 bg-background/90 px-4 py-4 backdrop-blur-xl sm:px-8">
           <div className="mx-auto flex max-w-[1240px] items-center justify-between gap-3">
             <Link
               href="/explore"
@@ -273,12 +287,14 @@ export function OutfyShell({ children }: OutfyShellProps) {
             </div>
           </div>
         </header>
-        <main className="mx-auto max-w-[1240px] px-4 pb-28 pt-7 sm:px-8 md:pb-10 md:pt-10">
+        <main className={cn("mx-auto max-w-[1240px] px-4 pb-28 pt-7 sm:px-8 md:pb-10 md:pt-10", mobileConversation &&
+          "max-md:flex max-md:min-h-0 max-md:w-full max-md:flex-1 max-md:flex-col max-md:px-2 max-md:py-2")}>
           {children}
         </main>
       </div>
       <nav
-        className="fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-card/95 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl md:hidden"
+        className={cn("fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-card/95 px-2 pb-[max(8px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl md:hidden",
+          mobileConversation && "max-md:relative max-md:inset-auto max-md:shrink-0")}
         aria-label={t('navigation.mobile')}
       >
         {navItems.map((item) => {

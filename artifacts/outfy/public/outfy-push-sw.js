@@ -4,7 +4,9 @@ const appBase = () => new URL(self.registration.scope);
 function safeDestination(value) {
   const base = appBase();
   if (typeof value !== "string" || !(value.startsWith("/") || value.startsWith(`${base.origin}/`)) ||
-    value.startsWith("//") || /[\\\u0000-\u0020]/.test(value)) return base.href;
+    value.startsWith("//") || /[\\?#\u0000-\u0020]/.test(value) ||
+    /%(?:2e|2f|5c|25)/i.test(value) ||
+    value.split("/").some(part => part === "." || part === "..")) return base.href;
   try {
     const url = new URL(value, base.origin);
     if (url.origin !== base.origin || url.username || url.password || url.search || url.hash) return base.href;
@@ -13,8 +15,9 @@ function safeDestination(value) {
       path = `/${path.slice(base.pathname.length)}`;
     }
     const decoded = decodeURIComponent(path);
+    const chatPath = /^\/chats(?:\/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})?$/i.test(decoded);
     if (/[\\\u0000-\u0020]/.test(decoded) ||
-      !/^\/(?:(?:activities|users)\/[^/?#]+\/?|connections\/?)?$/.test(decoded) ||
+      (!chatPath && !/^\/(?:(?:activities|users)\/[^/?#]+\/?|connections\/?)?$/.test(decoded)) ||
       decoded.split("/").some(part => part === "." || part === "..")) return base.href;
     const destination = new URL(path.slice(1), base);
     return destination.origin === base.origin && destination.pathname.startsWith(base.pathname)

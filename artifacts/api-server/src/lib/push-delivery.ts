@@ -15,6 +15,7 @@ const ELIGIBLE = new Set([
   "activity_invitation_accepted",
   "activity_invitation_declined",
   "activity_joined",
+  "chat_message",
 ]);
 type Device = {
   id: string;
@@ -38,8 +39,11 @@ export async function pushPayload(recipientId: string, row: NotificationRow) {
     activity_invitation_accepted: `${actor} accepted your invitation to ${plan}.`,
     activity_invitation_declined: `${actor} declined your invitation to ${plan}.`,
     activity_joined: `${actor} joined your plan ${plan}.`,
+    chat_message: item.activity ? `${actor} sent a message in ${plan}.` : `${actor} sent you a message.`,
   };
-  const url = row.type.startsWith("connection_")
+  const url = row.type === "chat_message"
+    ? item.metadata.conversationId ? `/chats/${item.metadata.conversationId}` : "/chats"
+    : row.type.startsWith("connection_")
     ? item.actor
       ? `/users/${encodeURIComponent(item.actor.username)}`
       : "/connections"

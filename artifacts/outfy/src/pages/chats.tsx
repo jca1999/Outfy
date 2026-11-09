@@ -13,17 +13,18 @@ export function Chats() {
   const selectedId = params?.conversationId ?? null;
 
   return (
-    <div className="space-y-7">
+    <div className={cn("space-y-7", selectedId && "max-md:flex max-md:min-h-0 max-md:flex-1 max-md:flex-col max-md:space-y-0")}>
       <div className={cn(selectedId && "hidden lg:block")}>
         <p className="font-mono-ui text-[10px] uppercase tracking-[.18em] text-primary">{t("eyebrow")}</p>
         <h1 className="mt-2 text-4xl font-bold tracking-[-.06em]">{t("title")}</h1>
       </div>
 
-      <div className="grid overflow-hidden rounded-[24px] border border-border bg-card soft-shadow lg:h-[min(720px,calc(100dvh-220px))] lg:min-h-[530px] lg:grid-cols-[320px_1fr]">
+      <div className={cn("grid overflow-hidden rounded-[24px] border border-border bg-card soft-shadow lg:h-[min(720px,calc(100dvh-220px))] lg:min-h-[530px] lg:grid-cols-[320px_1fr]",
+        selectedId && "max-md:min-h-0 max-md:flex-1")}>
         <div className={cn("flex min-h-[420px] min-w-0 flex-col border-border lg:min-h-0 lg:border-r", selectedId && "hidden lg:flex")}>
           <ChatInbox selectedId={selectedId} />
         </div>
-        <div className={cn("min-w-0 flex-col lg:min-h-0", selectedId ? "flex" : "hidden lg:flex")}>
+        <div className={cn("min-w-0 flex-col lg:min-h-0", selectedId ? "flex max-md:min-h-0" : "hidden lg:flex")}>
           {selectedId ? (
             <ConversationView key={selectedId} conversationId={selectedId} />
           ) : (

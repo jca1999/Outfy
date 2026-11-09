@@ -27,7 +27,7 @@ En Outfy, mantener español e inglés en el mismo cambio, así como tema claro/o
 
 **How to apply:** Incluir ambas traducciones y comprobar los modos y tamaños relevantes cuando se cambie la interfaz.
 
-Block 8 is phased: internal notifications are the source event; standard Web Push is an optional additional channel, not a replacement. Email, automatic reminders, chat notification generation, sounds and notification-settings redesign remain deliberately deferred.
+Block 8 is phased: internal notifications are the source event; standard Web Push is an optional additional channel, not a replacement. Email, automatic reminders, sounds and notification-settings redesign remain deliberately deferred.
 
 **Why:** The user explicitly requested the Web Push phase after the internal notification phase, while keeping the other channels and automations out of scope.
 
@@ -50,3 +50,9 @@ Chat realtime must stay behind the trusted Outfy backend. Do not give browsers d
 **Why:** The user explicitly requires cookie-authenticated Outfy API access; the browser does not have a Supabase access token.
 
 **How to apply:** Use backend Supabase subscriptions and authenticated SSE for browser delivery. Keep ordinary reads/writes in the Outfy API and preserve existing membership and friendship semantics.
+
+Chat Web Push must not include message bodies. Use generic sender/accessible-plan text and link to the exact conversation instead.
+
+**Why:** The user explicitly wants to prevent private message contents and sensitive plan discussions from appearing on lock screens.
+
+**How to apply:** Keep chat delivery independent of SSE, reuse internal notifications/preferences, and never add message excerpts to Push payloads.

@@ -90,9 +90,9 @@ export async function presentNotifications(viewerId: string, rows: NotificationR
       (profile.display_name_visibility === "friends" && accepted.has(profile.id)));
     // Only server-owned opaque event identifiers may be returned as metadata.
     const metadata: Record<string, string> = {};
-    for (const key of ["connectionId", "invitationId"]) {
+    for (const key of ["connectionId", "invitationId", "conversationId", "messageId"]) {
       const value = row.metadata?.[key];
-      if (typeof value === "string" && /^[0-9a-f-]{36}$/i.test(value)) metadata[key] = value;
+      if (typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) metadata[key] = value;
     }
     return {
       id: row.id, type: row.type, readAt: row.read_at, createdAt: row.created_at, metadata,

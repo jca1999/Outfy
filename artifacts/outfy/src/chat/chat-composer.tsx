@@ -68,7 +68,7 @@ export function ChatComposer({ conversationId }: { conversationId: string }) {
   return (
     <form
       onSubmit={onSubmit}
-      className="sticky bottom-[calc(76px+env(safe-area-inset-bottom))] z-10 border-t border-border bg-card p-3 md:bottom-0"
+      className="z-10 shrink-0 border-t border-border bg-card p-3"
       data-testid="form-chat-composer"
     >
       {error && (
