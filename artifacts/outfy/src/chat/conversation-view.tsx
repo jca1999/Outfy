@@ -12,6 +12,7 @@ import { isChatDenied, mergeMessagePages } from "./chat-utils";
 import { MessageList } from "./message-list";
 import { useChatConversation, useChatMessages, useMarkChatReadOnce } from "./use-chat";
 import { useConversationTitle } from "./use-conversation-title";
+import { useChatRealtime } from "./use-chat-realtime";
 
 function BackLink() {
   const { t } = useTranslation("chats");
@@ -89,17 +90,20 @@ function AuthorizedConversation({ conversation }: { conversation: ChatConversati
     () => mergeMessagePages(messagesQuery.data?.pages ?? []),
     [messagesQuery.data],
   );
-  const denied = messagesQuery.isError && isChatDenied(messagesQuery.error);
+  const messageAccessDenied = messagesQuery.isError && isChatDenied(messagesQuery.error);
+  const accessRevoked = useChatRealtime(conversation.id, Boolean(messagesQuery.data) && !messageAccessDenied);
+  const denied = accessRevoked || messageAccessDenied;
 
   useMarkChatReadOnce(
     conversation.id,
-    messagesQuery.isSuccess && !messagesQuery.isFetching,
+    !denied && messagesQuery.isSuccess && !messagesQuery.isFetching,
   );
 
   // Scroll management: stick to bottom on new messages, preserve position when prepending.
   const scrollRef = useRef<HTMLDivElement>(null);
   const prependRef = useRef<{ height: number; top: number } | null>(null);
   const lastIdRef = useRef<string | null>(null);
+  const nearBottomRef = useRef(true);
   useLayoutEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
@@ -112,7 +116,7 @@ function AuthorizedConversation({ conversation }: { conversation: ChatConversati
     const lastId = messages[messages.length - 1]?.id ?? null;
     if (lastId !== lastIdRef.current) {
       lastIdRef.current = lastId;
-      el.scrollTop = el.scrollHeight;
+      if (nearBottomRef.current) el.scrollTop = el.scrollHeight;
     }
   }, [messages, messagesQuery.isFetchingNextPage]);
 
@@ -156,6 +160,10 @@ function AuthorizedConversation({ conversation }: { conversation: ChatConversati
         <>
           <div
             ref={scrollRef}
+            onScroll={event => {
+              const el = event.currentTarget;
+              nearBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 120;
+            }}
             className="max-h-[62dvh] min-h-[280px] flex-1 overflow-y-auto overflow-x-hidden bg-background/50 px-3 py-4 sm:px-6 lg:max-h-none"
             data-testid="scroll-messages"
           >

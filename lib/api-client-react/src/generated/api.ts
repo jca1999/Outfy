@@ -247,6 +247,88 @@ export function useGetChatConversation<TData = Awaited<ReturnType<typeof getChat
 
 
 
+export const getStreamChatConversationUrl = (id: string,) => {
+
+
+
+
+  return `/api/chat/conversations/${id}/events`
+}
+
+/**
+ * Backend-only Supabase INSERT subscription. chat_message data is a safe
+ * ChatMessage JSON object. ready signals a subscribed stream (rehydrate
+ * through the normal API after reconnect); access_revoked closes the stream.
+ * Comment heartbeats are sent approximately every 20 seconds. This is not
+ * a replay log; use the messages API to recover gaps.
+ * @summary Cookie-authenticated SSE for the currently open conversation
+ */
+export const streamChatConversation = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<string> => {
+
+  return customFetch<string>(getStreamChatConversationUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getStreamChatConversationQueryKey = (id: string,) => {
+    return [
+    `/api/chat/conversations/${id}/events`
+    ] as const;
+    }
+
+
+export const getStreamChatConversationQueryOptions = <TData = Awaited<ReturnType<typeof streamChatConversation>>, TError = ErrorType<ChatErrorResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof streamChatConversation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getStreamChatConversationQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof streamChatConversation>>> = ({ signal }) => streamChatConversation(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof streamChatConversation>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type StreamChatConversationQueryResult = NonNullable<Awaited<ReturnType<typeof streamChatConversation>>>
+export type StreamChatConversationQueryError = ErrorType<ChatErrorResponse>
+
+
+/**
+ * @summary Cookie-authenticated SSE for the currently open conversation
+ */
+
+export function useStreamChatConversation<TData = Awaited<ReturnType<typeof streamChatConversation>>, TError = ErrorType<ChatErrorResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof streamChatConversation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getStreamChatConversationQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getOpenDirectChatUrl = () => {
 
 

@@ -100,6 +100,21 @@ export const GetChatConversationResponse = zod.object({
 
 
 /**
+ * Backend-only Supabase INSERT subscription. chat_message data is a safe
+ * ChatMessage JSON object. ready signals a subscribed stream (rehydrate
+ * through the normal API after reconnect); access_revoked closes the stream.
+ * Comment heartbeats are sent approximately every 20 seconds. This is not
+ * a replay log; use the messages API to recover gaps.
+ * @summary Cookie-authenticated SSE for the currently open conversation
+ */
+export const StreamChatConversationParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const StreamChatConversationResponse = zod.unknown()
+
+
+/**
  * @summary Create or return the unique conversation with an accepted friend
  */
 export const OpenDirectChatBody = zod.object({

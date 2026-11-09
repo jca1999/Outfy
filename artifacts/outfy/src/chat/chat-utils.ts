@@ -49,7 +49,7 @@ export function isChatDenied(error: unknown) {
   return status === 403 || status === 404 || status === 400;
 }
 
-function compareMessages(a: ChatMessage, b: ChatMessage) {
+export function compareMessages(a: Pick<ChatMessage, "id" | "createdAt">, b: Pick<ChatMessage, "id" | "createdAt">) {
   const ta = Date.parse(a.createdAt);
   const tb = Date.parse(b.createdAt);
   if (ta !== tb) return ta - tb;

@@ -25,7 +25,8 @@ export function ConversationRow({
       ? t("youPrefix", { body: last.body })
       : last.body
     : "";
-  const unread = conversation.unreadCount;
+  // The open chat is read locally while its coalesced server write is pending.
+  const unread = selected ? 0 : conversation.unreadCount;
   return (
     <Link
       href={`/chats/${conversation.id}`}

@@ -44,3 +44,9 @@ Unused conversations must not appear in the normal chat inbox. Empty direct and 
 **Why:** The user explicitly chose to keep unused automatic activity chats and newly opened direct chats from cluttering the inbox.
 
 **How to apply:** Hide conversations without a last message in the inbox UI, not by changing backend pagination or access rules. Keep pagination available even when a fetched page contains only empty chats.
+
+Chat realtime must stay behind the trusted Outfy backend. Do not give browsers direct chat-table SELECT access, add browser RLS policies, or expose Supabase server credentials to enable realtime.
+
+**Why:** The user explicitly requires cookie-authenticated Outfy API access; the browser does not have a Supabase access token.
+
+**How to apply:** Use backend Supabase subscriptions and authenticated SSE for browser delivery. Keep ordinary reads/writes in the Outfy API and preserve existing membership and friendship semantics.

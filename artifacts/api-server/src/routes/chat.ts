@@ -6,6 +6,7 @@ import {
 } from "@workspace/api-zod";
 import { currentSession } from "./auth";
 import { getSupabaseAdmin } from "../lib/supabase";
+import { streamChatEvents } from "../lib/chat-events";
 import {
   CHAT_UUID, CONVERSATION_FIELDS, MESSAGE_FIELDS, ChatError, authorizeConversation,
   requireActivityMember, requireFriend, findDirect, databaseError, presentConversations,
@@ -31,6 +32,7 @@ function endpoint(handler: (request: Request, response: Response, userId: string
     if (!userId) { fail(response, 401, "authentication_required"); return; }
     try { await handler(request, response, userId.toLowerCase()); }
     catch (error) {
+      if (response.headersSent) { response.end(); return; }
       if (error instanceof ChatError) { fail(response, error.status, error.code); return; }
       // Do not log chat message bodies, profiles, or raw DB error details.
       request.log.error("Chat request failed");
@@ -82,6 +84,13 @@ router.get("/chat/conversations/:id", endpoint(async (request, response, userId)
   const payload = { conversation: (await presentConversations([conversation], userId))[0] };
   GetChatConversationResponse.parse(payload);
   response.json(payload);
+}));
+
+router.get("/chat/conversations/:id/events", endpoint(async (request, response, userId) => {
+  const id = uuid(request.params.id, "invalid_conversation");
+  await authorizeConversation(id, userId);
+  if (response.destroyed || request.aborted) return;
+  streamChatEvents(request, response, id, userId);
 }));
 
 router.post("/chat/direct", endpoint(async (request, response, userId) => {

@@ -16,6 +16,7 @@ import { useAuth } from "@/auth/auth-context";
 import { chatApi } from "./chat-api";
 import {
   appendSentMessage,
+  compareMessages,
   CHAT_KEY_ROOT,
   chatKeys,
   isChatDenied,
@@ -64,7 +65,7 @@ export function useChatMessages(id: string, enabled: boolean) {
   });
 }
 
-/** Write a successfully sent message into caches and refresh the inbox. */
+/** Shared by successful sends AND realtime INSERTs; idempotent by message ID. */
 export function useChatCacheWriters() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -86,8 +87,16 @@ export function useChatCacheWriters() {
         chatKeys.conversation(userId, conversationId),
         (old) =>
           old
-            ? { conversation: { ...old.conversation, lastMessage, lastMessageAt: message.createdAt } }
+            ? { conversation: old.conversation.lastMessage && compareMessages(old.conversation.lastMessage, message) > 0
+                ? old.conversation
+                : { ...old.conversation, lastMessage, lastMessageAt: message.createdAt } }
             : old,
+      );
+      queryClient.setQueryData<InfiniteData<ChatInboxPage, string | null>>(
+        chatKeys.inbox(userId),
+        old => patchInboxConversation(old, conversationId, c =>
+          c.lastMessage && compareMessages(c.lastMessage, message) > 0
+            ? c : { ...c, lastMessage, lastMessageAt: message.createdAt }),
       );
       void queryClient.invalidateQueries({ queryKey: chatKeys.inbox(userId), exact: true });
     },
