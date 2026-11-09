@@ -164,11 +164,6 @@ export function OutfyShell({ children }: OutfyShellProps) {
                   </span>
                 )}
 
-                {item.id === "messages" && (
-                  <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 font-mono-ui text-[9px] text-primary-foreground">
-                    4
-                  </span>
-                )}
               </Link>
             );
           })}

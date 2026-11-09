@@ -39,15 +39,3 @@ export interface Person {
   active: string;
   color: string;
 }
-
-export interface Chat {
-  id: string;
-  name: string;
-  initials: string;
-  preview: string;
-  time: string;
-  unread?: number;
-  isGroup?: boolean;
-  activity?: string;
-  color: string;
-}

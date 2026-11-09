@@ -170,6 +170,83 @@ export function useListChatConversations<TData = Awaited<ReturnType<typeof listC
 
 
 
+export const getGetChatConversationUrl = (id: string,) => {
+
+
+
+
+  return `/api/chat/conversations/${id}`
+}
+
+/**
+ * @summary Resolve an exact authorized conversation, including empty chats
+ */
+export const getChatConversation = async (id: string, options?: Parameters<typeof customFetch>[1]): Promise<ChatConversationResult> => {
+
+  return customFetch<ChatConversationResult>(getGetChatConversationUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetChatConversationQueryKey = (id: string,) => {
+    return [
+    `/api/chat/conversations/${id}`
+    ] as const;
+    }
+
+
+export const getGetChatConversationQueryOptions = <TData = Awaited<ReturnType<typeof getChatConversation>>, TError = ErrorType<ChatErrorResponse>>(id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChatConversation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetChatConversationQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getChatConversation>>> = ({ signal }) => getChatConversation(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: id !== null && id !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getChatConversation>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetChatConversationQueryResult = NonNullable<Awaited<ReturnType<typeof getChatConversation>>>
+export type GetChatConversationQueryError = ErrorType<ChatErrorResponse>
+
+
+/**
+ * @summary Resolve an exact authorized conversation, including empty chats
+ */
+
+export function useGetChatConversation<TData = Awaited<ReturnType<typeof getChatConversation>>, TError = ErrorType<ChatErrorResponse>>(
+ id: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getChatConversation>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetChatConversationQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
 export const getOpenDirectChatUrl = () => {
 
 

@@ -59,6 +59,47 @@ export const ListChatConversationsResponse = zod.object({
 
 
 /**
+ * @summary Resolve an exact authorized conversation, including empty chats
+ */
+export const GetChatConversationParams = zod.object({
+  "id": zod.coerce.string().uuid()
+})
+
+export const getChatConversationResponseConversationUnreadCountMin = 0;
+
+
+
+export const GetChatConversationResponse = zod.object({
+  "conversation": zod.object({
+  "id": zod.string().uuid(),
+  "type": zod.enum(['direct', 'activity']),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date(),
+  "lastMessageAt": zod.coerce.date().nullable(),
+  "unreadCount": zod.number().int().min(getChatConversationResponseConversationUnreadCountMin),
+  "lastMessage": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "body": zod.string(),
+  "senderId": zod.string().uuid(),
+  "createdAt": zod.coerce.date()
+}),zod.null()]),
+  "otherUser": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "username": zod.string(),
+  "displayName": zod.string().nullable(),
+  "avatarUrl": zod.string().nullable()
+}),zod.null()]),
+  "activity": zod.union([zod.object({
+  "id": zod.string().uuid(),
+  "title": zod.string(),
+  "status": zod.enum(['active', 'completed', 'cancelled']),
+  "category": zod.string()
+}),zod.null()])
+})
+})
+
+
+/**
  * @summary Create or return the unique conversation with an accepted friend
  */
 export const OpenDirectChatBody = zod.object({

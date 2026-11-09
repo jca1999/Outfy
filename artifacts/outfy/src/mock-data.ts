@@ -1,4 +1,4 @@
-import type { Activity, Chat, Person } from './types';
+import type { Activity, Person } from './types';
 
 export const activities: Activity[] = [
   {
@@ -165,47 +165,6 @@ export const people: Person[] = [
     interests: ['Senderismo', 'Cine', 'Creativo'],
     compatibility: 76,
     active: 'Ha guardado una ruta',
-    color: 'violet',
-  },
-];
-
-export const chats: Chat[] = [
-  {
-    id: 'grupo-futbol',
-    name: 'Fútbol al atardecer',
-    initials: 'FA',
-    preview: 'Álvaro: ¿llevamos petos claros?',
-    time: '16:42',
-    unread: 3,
-    isGroup: true,
-    activity: 'Hoy · 19:30',
-    color: 'coral',
-  },
-  {
-    id: 'ines-chat',
-    name: 'Inés Navarro',
-    initials: 'IN',
-    preview: 'El cine de Aragonia tiene buena sesión',
-    time: 'Ayer',
-    color: 'teal',
-  },
-  {
-    id: 'grupo-juegos',
-    name: 'Juegos de mesa',
-    initials: 'JM',
-    preview: 'Marta: llevo un par de juegos nuevos',
-    time: 'Ayer',
-    unread: 1,
-    isGroup: true,
-    activity: 'Vie · 18:00',
-    color: 'gold',
-  },
-  {
-    id: 'david-chat',
-    name: 'David Bueno',
-    initials: 'DB',
-    preview: '¿Te apetece la ruta del domingo?',
-    time: 'Mar',
     color: 'violet',
   },
 ];

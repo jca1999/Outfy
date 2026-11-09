@@ -9,6 +9,7 @@ import {
   sendConnectionRequest,
   type Relationship,
 } from "@/connections/connections-api";
+import { DirectMessageButton } from "@/chat/direct-message-button";
 import { ActionButton, InlineError, RemoveConnectionDialog } from "@/connections/connection-ui";
 
 type State =
@@ -134,6 +135,7 @@ export function ProfileRelationship({
           <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1.5 text-xs font-bold text-primary" data-testid="status-connected">
             <Check className="h-3.5 w-3.5" />{t("publicProfile.connected")}
           </span>
+          <DirectMessageButton key={userId} userId={userId} />
           <ActionButton variant="danger" disabled={disabled} onClick={() => setConfirmRemove(true)} testId="button-remove-connection">
             {t("common:connections.remove")}
           </ActionButton>

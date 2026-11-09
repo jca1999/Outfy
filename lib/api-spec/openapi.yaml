@@ -35,6 +35,25 @@ paths:
         "400": { $ref: "#/components/responses/ChatError" }
         "401": { $ref: "#/components/responses/ChatError" }
         "500": { $ref: "#/components/responses/ChatError" }
+  /chat/conversations/{id}:
+    get:
+      operationId: getChatConversation
+      tags: [chat]
+      security: [{ sessionCookie: [] }]
+      summary: Resolve an exact authorized conversation, including empty chats
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200":
+          description: Same conversation representation as the inbox
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ChatConversationResult" }
+        "400": { $ref: "#/components/responses/ChatError" }
+        "401": { $ref: "#/components/responses/ChatError" }
+        "403": { $ref: "#/components/responses/ChatError" }
+        "404": { $ref: "#/components/responses/ChatError" }
+        "500": { $ref: "#/components/responses/ChatError" }
   /chat/direct:
     post:
       operationId: openDirectChat

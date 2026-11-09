@@ -76,25 +76,6 @@
     "createPlan": "Crear plan",
     "notifications": "Notificaciones"
   },
-  "chats": {
-    "eyebrow": "La conversación sigue fuera",
-    "title": "Mensajes",
-    "yourConversations": "Tus conversaciones",
-    "activeConversations": "{{count}} activa",
-    "activeConversations_other": "{{count}} activas",
-    "back": "Volver a conversaciones",
-    "recentlyOnline": "En línea hace poco",
-    "conversationInfo": "Información de conversación",
-    "privateInfo": "Conversación privada y segura para organizar el próximo plan.",
-    "planLabel": "Plan · {{activity}}",
-    "recentConnection": "Amigo reciente",
-    "sampleIncoming": "¡Hola! Qué ganas de que llegue el plan. ¿Te apuntas?",
-    "sampleOutgoing": "Sí, me viene genial. Nos vemos allí.",
-    "now": "Ahora",
-    "addImage": "Añadir imagen",
-    "messagePlaceholder": "Escribe algo...",
-    "sendMessage": "Enviar mensaje"
-  },
   "connections": {
     "search": {
       "title": "Buscar personas",

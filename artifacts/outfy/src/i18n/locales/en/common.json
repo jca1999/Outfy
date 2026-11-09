@@ -76,25 +76,6 @@
     "createPlan": "Create plan",
     "notifications": "Notifications"
   },
-  "chats": {
-    "eyebrow": "The conversation continues beyond the plan",
-    "title": "Messages",
-    "yourConversations": "Your conversations",
-    "activeConversations": "{{count}} active",
-    "activeConversations_other": "{{count}} active",
-    "back": "Back to conversations",
-    "recentlyOnline": "Online recently",
-    "conversationInfo": "Conversation information",
-    "privateInfo": "A private and secure conversation to organize your next plan.",
-    "planLabel": "Plan · {{activity}}",
-    "recentConnection": "Recent friend",
-    "sampleIncoming": "Hi! I can't wait for the plan. Are you joining?",
-    "sampleOutgoing": "Yes, that works great for me. See you there.",
-    "now": "Now",
-    "addImage": "Add image",
-    "messagePlaceholder": "Write something...",
-    "sendMessage": "Send message"
-  },
   "connections": {
     "search": {
       "title": "Find people",

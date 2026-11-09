@@ -10,6 +10,7 @@ import { Explore } from "@/pages/explore";
 import { Home } from "@/pages/home";
 import { Matches } from "@/pages/matches";
 import { Chats } from "@/pages/chats";
+import { ChatIdentityGuard } from "@/chat/use-chat";
 import { Profile } from "@/pages/profile";
 import { ProfileEdit } from "@/pages/profile-edit";
 import { PublicProfile } from "@/pages/public-profile";
@@ -125,6 +126,7 @@ function Router() {
           <Route path="/connections" component={Matches} />
           <Route path="/matches" component={Matches} />
           <Route path="/chats" component={Chats} />
+          <Route path="/chats/:conversationId" component={Chats} />
           <Route path="/activities/new" component={CreateActivity} />
           <Route path="/activities/:id/edit" component={CreateActivity} />
           <Route path="/activities/:id" component={ActivityDetail} />
@@ -150,6 +152,7 @@ function App() {
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
           <AuthProvider>
+            <ChatIdentityGuard />
             <Router />
           </AuthProvider>
         </WouterRouter>

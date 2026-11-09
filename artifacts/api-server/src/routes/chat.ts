@@ -2,7 +2,7 @@ import { Router, type Request, type Response } from "express";
 import {
   OpenDirectChatBody, SendChatMessageBody, ListChatConversationsResponse,
   ListChatMessagesResponse, OpenDirectChatResponse, SendChatMessageResponse,
-  MarkChatReadResponse, GetActivityChatResponse,
+  MarkChatReadResponse, GetActivityChatResponse, GetChatConversationResponse,
 } from "@workspace/api-zod";
 import { currentSession } from "./auth";
 import { getSupabaseAdmin } from "../lib/supabase";
@@ -73,6 +73,14 @@ router.get("/chat/conversations", endpoint(async (request, response, userId) => 
     }) : null,
   };
   ListChatConversationsResponse.parse(payload);
+  response.json(payload);
+}));
+
+router.get("/chat/conversations/:id", endpoint(async (request, response, userId) => {
+  const id = uuid(request.params.id, "invalid_conversation");
+  const conversation = await authorizeConversation(id, userId);
+  const payload = { conversation: (await presentConversations([conversation], userId))[0] };
+  GetChatConversationResponse.parse(payload);
   response.json(payload);
 }));
 

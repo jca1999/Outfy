@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/dialog";
 import { ActivityReviewForm } from "@/activities/activity-review-form";
 import { useAuth } from "@/auth/auth-context";
+import { PlanChatButton } from "@/chat/plan-chat-button";
 
 type LoadState = "loading" | "ready" | "not-found" | "unauthorized" | "error";
 
@@ -768,6 +769,13 @@ export function ActivityDetail() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {(activity.membershipRole === "organizer" ||
+        activity.membershipRole === "participant") && (
+        <div className="flex justify-end">
+          <PlanChatButton key={activity.id} activityId={activity.id} />
+        </div>
+      )}
 
       <article className="overflow-hidden rounded-[28px] border border-border bg-card soft-shadow">
         <header className="border-b border-border bg-primary/[.04] p-6 sm:p-9">

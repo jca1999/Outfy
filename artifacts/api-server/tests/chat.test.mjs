@@ -204,14 +204,59 @@ test("Chat V1 authorization, writes, privacy and bounded pagination", async t =>
     return { status: response.status, body: await response.json(), cache: response.headers.get("cache-control") };
   };
   try {
-    await t.test("all six method/path combinations require authentication before database access", async () => {
+    await t.test("all seven method/path combinations require authentication before database access", async () => {
       reset();
       for (const [path, body] of [
-        ["/conversations"], ["/direct", { userId: B }], [`/conversations/${DIRECT}/messages`],
+        ["/conversations"], [`/conversations/${DIRECT}`], ["/direct", { userId: B }], [`/conversations/${DIRECT}/messages`],
         [`/conversations/${DIRECT}/messages`, { body: "Hi" }], [`/conversations/${DIRECT}/read`, {}],
         [`/activities/${ACTIVITY}`],
       ]) assert.equal((await request(path, null, body)).status, 401);
       assert.equal(state.calls.length, 0);
+    });
+    await t.test("exact deep-link lookup returns empty direct chats to original participants, including ex-friends", async () => {
+      reset();
+      state.tables.connections = [];
+      for (const user of [A, B]) {
+        const result = await request(`/conversations/${DIRECT}`, user);
+        assert.equal(result.status, 200);
+        assert.equal(result.cache, "private, no-store");
+        assert.equal(result.body.conversation.id, DIRECT);
+        assert.equal(result.body.conversation.lastMessage, null);
+        assert.equal(result.body.conversation.otherUser.id, user === A ? B : A);
+        assert.equal(result.body.conversation.otherUser.displayName, null);
+        assert.deepEqual(Object.keys(result.body), ["conversation"]);
+      }
+      const inbox = await request("/conversations");
+      const detail = await request(`/conversations/${DIRECT}`);
+      assert.deepEqual(detail.body.conversation, inbox.body.conversations.find(c => c.id === DIRECT));
+      const calls = state.calls.length;
+      const denied = await request(`/conversations/${DIRECT}`, C);
+      assert.equal(denied.status, 403);
+      assert.equal(denied.body.code, "chat_access_denied");
+      assert.equal(state.calls.slice(calls).some(call =>
+        call.url.pathname.endsWith("/profiles") || call.url.pathname.endsWith("/chat_messages")), false);
+      assert.equal(state.tables.chat_read_states.length, 0);
+    });
+    await t.test("exact activity deep links require current membership, never public activity visibility", async () => {
+      reset();
+      for (const user of [A, C]) {
+        const result = await request(`/conversations/${GROUP}`, user);
+        assert.equal(result.status, 200);
+        assert.equal(result.body.conversation.activity.id, ACTIVITY);
+        assert.equal(result.body.conversation.lastMessage, null);
+      }
+      state.tables.activities[0].visibility = "public";
+      for (const user of [B, D]) {
+        const result = await request(`/conversations/${GROUP}`, user);
+        assert.equal(result.status, 403);
+        assert.equal(result.body.conversation, undefined);
+      }
+      state.tables.activity_members = state.tables.activity_members.filter(m => m.user_id !== C);
+      assert.equal((await request(`/conversations/${GROUP}`, C)).status, 403);
+      assert.equal((await request("/conversations/bad")).body.code, "invalid_conversation");
+      assert.equal((await request(`/conversations/${id(555)}`)).body.code, "chat_not_found");
+      state.failure = true;
+      assert.equal((await request(`/conversations/${DIRECT}`)).body.code, "chat_unavailable");
     });
     await t.test("strangers, pending friends, self and missing/invalid targets cannot create empty chats", async () => {
       reset();

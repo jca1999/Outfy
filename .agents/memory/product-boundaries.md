@@ -38,3 +38,9 @@ Review authoring belongs in Activity Detail, not in Profile history. Profile his
 **Why:** The user explicitly chose one review-editing location rather than duplicate forms.
 
 **How to apply:** Keep future review creation/editing improvements on Activity Detail; do not reintroduce a Profile review editor.
+
+Unused conversations must not appear in the normal chat inbox. Empty direct and activity chats must remain usable through exact conversation links, friend profiles and activity details.
+
+**Why:** The user explicitly chose to keep unused automatic activity chats and newly opened direct chats from cluttering the inbox.
+
+**How to apply:** Hide conversations without a last message in the inbox UI, not by changing backend pagination or access rules. Keep pagination available even when a fetched page contains only empty chats.
