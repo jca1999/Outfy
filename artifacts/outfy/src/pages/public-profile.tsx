@@ -270,7 +270,10 @@ export function PublicProfile() {
 
       <section className="rounded-[26px] border border-border bg-card p-6 soft-shadow sm:p-8">
         <div className="flex flex-col items-center text-center">
-          <ConnectionAvatar profile={profile} className="h-24 w-24 text-2xl" />
+          <ConnectionAvatar
+            profile={profile}
+            className="h-28 w-28 text-3xl ring-4 ring-primary/10"
+          />
 
           <h1 className="mt-5 text-3xl font-bold tracking-[-.05em]">
             {visibleName}
@@ -282,43 +285,48 @@ export function PublicProfile() {
             </p>
           )}
 
-          {!profile.isPrivate && reputation && (
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-              <div className="flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-sm">
-                <Star className="h-4 w-4 text-primary" />
-
-                <span className="font-bold">
-                  {reputation.averageRating !== null
-                    ? reputation.averageRating.toFixed(1)
-                    : t("publicProfile.reputation.noReviews")}
-                </span>
-
-                {reputation.reviewCount > 0 && (
-                  <span className="text-muted-foreground">
-                    ·{" "}
-                    {t("publicProfile.reputation.reviews", {
-                      count: reputation.reviewCount,
-                    })}
-                  </span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-sm">
-                <CalendarDays className="h-4 w-4 text-primary" />
-
-                <span className="font-semibold">
-                  {t("publicProfile.reputation.completedPlans", {
-                    count: reputation.completedActivityCount,
-                  })}
-                </span>
-              </div>
+          {!profile.isPrivate && location && (
+            <div className="mt-3 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
+              <MapPin className="h-4 w-4 shrink-0 text-primary" />
+              <span>{location}</span>
             </div>
           )}
 
-          {!profile.isPrivate && location && (
-            <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
-              <MapPin className="h-4 w-4 text-primary" />
-              <span>{location}</span>
+          {!profile.isPrivate && reputation && (
+            <div className="mt-6 grid w-full max-w-xl grid-cols-3 gap-2">
+              <div className="rounded-[18px] border border-border bg-background px-2 py-4 text-center">
+                <p className="text-xl font-bold tracking-[-.04em]">
+                  {reputation.completedActivityCount}
+                </p>
+
+                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                  {t("socialStats.completed")}
+                </p>
+              </div>
+
+              <div className="rounded-[18px] border border-border bg-background px-2 py-4 text-center">
+                <p className="flex items-center justify-center gap-1 text-xl font-bold tracking-[-.04em]">
+                  <Star className="h-4 w-4 fill-current text-primary" />
+
+                  {reputation.averageRating !== null
+                    ? reputation.averageRating.toFixed(1)
+                    : "—"}
+                </p>
+
+                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                  {t("socialStats.rating")}
+                </p>
+              </div>
+
+              <div className="rounded-[18px] border border-border bg-background px-2 py-4 text-center">
+                <p className="text-xl font-bold tracking-[-.04em]">
+                  {reputation.reviewCount}
+                </p>
+
+                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                  {t("socialStats.reviews")}
+                </p>
+              </div>
             </div>
           )}
 
@@ -336,14 +344,17 @@ export function PublicProfile() {
             </div>
           )}
 
-          <ProfileRelationship
-            key={profile.id}
-            userId={profile.id}
-            name={visibleName}
-            onChanged={handleRelationshipChanged}
-          />
+          <div className="mt-6 w-full">
+            <ProfileRelationship
+              key={profile.id}
+              userId={profile.id}
+              name={visibleName}
+              onChanged={handleRelationshipChanged}
+            />
+          </div>
         </div>
       </section>
+      
       {!profile.isPrivate &&
         reputation &&
         reputation.recentReviews.length > 0 && (

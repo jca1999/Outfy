@@ -893,7 +893,7 @@ export function Profile() {
         <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-start sm:text-left">
           <div className="flex shrink-0 flex-col items-center gap-3">
             <div className="relative">
-              <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-primary text-2xl font-bold text-primary-foreground">
+              <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-primary text-3xl font-bold text-primary-foreground ring-4 ring-primary/10">
                 {avatarUrl ? (
                   <img
                     src={avatarUrl}
@@ -901,9 +901,10 @@ export function Profile() {
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  initials || <UserRound className="h-8 w-8" />
+                  initials || <UserRound className="h-9 w-9" />
                 )}
               </div>
+
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
@@ -918,6 +919,7 @@ export function Profile() {
               >
                 <Camera className="h-4 w-4" />
               </button>
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -951,6 +953,7 @@ export function Profile() {
                 ) : (
                   <Trash2 className="h-3.5 w-3.5" />
                 )}
+
                 {avatarOperation === "deleting"
                   ? t("avatar.removing")
                   : t("avatar.removePhoto")}
@@ -958,35 +961,31 @@ export function Profile() {
             )}
           </div>
 
-          <div className="min-w-0 flex-1">
-            <h2 className="text-2xl font-bold tracking-[-.04em]">
+          <div className="min-w-0 w-full flex-1">
+            <h2 className="text-3xl font-bold tracking-[-.05em]">
               {visibleName}
             </h2>
 
-            <div className="mt-4">
-              <p className="text-xs font-bold text-muted-foreground">
-                {t("identity.username")}
-              </p>
+            <p className="mt-1 text-sm font-semibold text-muted-foreground">
+              @{user?.username}
+            </p>
 
-              <p className="mt-1 text-sm text-foreground">@{user?.username}</p>
-            </div>
+            <div className="mt-3 flex items-center justify-center gap-1.5 text-sm text-muted-foreground sm:justify-start">
+              <MapPin className="h-4 w-4 shrink-0 text-primary" />
 
-            <div className="mt-4">
-              <p className="text-xs font-bold text-muted-foreground">
-                {t("identity.location.label")}
-              </p>
-
-              <p className="mt-1 text-sm text-foreground">
+              <span>
                 {(user?.homeLocation
                   ? `${user.homeLocation.city}, ${user.homeLocation.country}`
                   : user?.homeCity?.trim()) || t("identity.location.notSet")}
-              </p>
+              </span>
             </div>
+
             <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
               <div className="rounded-[18px] border border-border bg-background px-3 py-4 text-center">
                 <p className="text-xl font-bold tracking-[-.04em]">
                   {createdPlansCount ?? "—"}
                 </p>
+
                 <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
                   {t("socialStats.created")}
                 </p>
@@ -996,6 +995,7 @@ export function Profile() {
                 <p className="text-xl font-bold tracking-[-.04em]">
                   {completedPlansCount ?? "—"}
                 </p>
+
                 <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
                   {t("socialStats.completed")}
                 </p>
@@ -1006,6 +1006,7 @@ export function Profile() {
                   <Star className="h-4 w-4 fill-current text-primary" />
                   {ratingValue !== null ? ratingValue.toFixed(1) : "—"}
                 </p>
+
                 <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
                   {t("socialStats.rating")}
                 </p>
@@ -1015,6 +1016,7 @@ export function Profile() {
                 <p className="text-xl font-bold tracking-[-.04em]">
                   {friendsCount ?? "—"}
                 </p>
+
                 <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
                   {t("socialStats.friends")}
                 </p>
