@@ -255,5 +255,12 @@
     "title": "Tu perfil cuenta una historia.",
     "description": "Cada plan que haces abre una puerta nueva.",
     "addInterest": "Añadir interés"
+  },
+
+  "socialStats": {
+    "created": "Planes creados",
+    "completed": "Planes realizados",
+    "rating": "Valoración",
+    "friends": "Amigos"
   }
 }

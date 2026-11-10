@@ -38,6 +38,7 @@ import {
   uploadProfileAvatar,
 } from "@/auth/auth-api";
 import { useAuth } from "@/auth/auth-context";
+import { useConnectionOverview } from "@/connections/use-connection-overview";
 import { ProfileConnectionsCard } from "@/connections/profile-connections-card";
 import {
   Dialog,
@@ -110,6 +111,7 @@ export function Profile() {
   const { t, i18n } = useTranslation(["profile", "activities"]);
   const { user } = useAuth();
   const [, navigate] = useLocation();
+  const connectionsOverview = useConnectionOverview();
   const [tab, setTab] = useState<"created" | "upcoming" | "history">("created");
   const [plansSearch, setPlansSearch] = useState("");
   const [plansSort, setPlansSort] = useState<
@@ -576,6 +578,20 @@ export function Profile() {
     .join("")
     .toUpperCase();
 
+  const createdPlansCount =
+    createdState === "ready" ? createdActivities.length : null;
+
+  const completedPlansCount =
+    reputation?.completedActivityCount ?? null;
+
+  const ratingValue =
+    reputation?.averageRating ?? null;
+
+  const friendsCount =
+    connectionsOverview.isSuccess
+      ? connectionsOverview.data.accepted.length
+      : null;
+
   function organizeActivities<
     T extends MyCreatedActivity | MyJoinedActivity | MyHistoryActivity,
   >(activities: T[], currentTab: "created" | "upcoming" | "history") {
@@ -874,7 +890,7 @@ export function Profile() {
       </div>
 
       <section className="rounded-[26px] border border-border bg-card p-6 soft-shadow sm:p-8">
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+        <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-start sm:text-left">
           <div className="flex shrink-0 flex-col items-center gap-3">
             <div className="relative">
               <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-primary text-2xl font-bold text-primary-foreground">
@@ -966,38 +982,44 @@ export function Profile() {
                   : user?.homeCity?.trim()) || t("identity.location.notSet")}
               </p>
             </div>
-            {reputation && (
-              <div className="mt-5 flex flex-wrap gap-2">
-                <div className="flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-sm">
-                  <Star className="h-4 w-4 text-primary" />
-
-                  <span className="font-bold">
-                    {reputation.averageRating !== null
-                      ? reputation.averageRating.toFixed(1)
-                      : t("publicProfile.reputation.noReviews")}
-                  </span>
-
-                  {reputation.reviewCount > 0 && (
-                    <span className="text-muted-foreground">
-                      ·{" "}
-                      {t("publicProfile.reputation.reviews", {
-                        count: reputation.reviewCount,
-                      })}
-                    </span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1.5 text-sm">
-                  <CalendarDays className="h-4 w-4 text-primary" />
-
-                  <span className="font-semibold">
-                    {t("publicProfile.reputation.completedPlans", {
-                      count: reputation.completedActivityCount,
-                    })}
-                  </span>
-                </div>
+            <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="rounded-[18px] border border-border bg-background px-3 py-4 text-center">
+                <p className="text-xl font-bold tracking-[-.04em]">
+                  {createdPlansCount ?? "—"}
+                </p>
+                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                  {t("socialStats.created")}
+                </p>
               </div>
-            )}
+
+              <div className="rounded-[18px] border border-border bg-background px-3 py-4 text-center">
+                <p className="text-xl font-bold tracking-[-.04em]">
+                  {completedPlansCount ?? "—"}
+                </p>
+                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                  {t("socialStats.completed")}
+                </p>
+              </div>
+
+              <div className="rounded-[18px] border border-border bg-background px-3 py-4 text-center">
+                <p className="flex items-center justify-center gap-1 text-xl font-bold tracking-[-.04em]">
+                  <Star className="h-4 w-4 fill-current text-primary" />
+                  {ratingValue !== null ? ratingValue.toFixed(1) : "—"}
+                </p>
+                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                  {t("socialStats.rating")}
+                </p>
+              </div>
+
+              <div className="rounded-[18px] border border-border bg-background px-3 py-4 text-center">
+                <p className="text-xl font-bold tracking-[-.04em]">
+                  {friendsCount ?? "—"}
+                </p>
+                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                  {t("socialStats.friends")}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
 

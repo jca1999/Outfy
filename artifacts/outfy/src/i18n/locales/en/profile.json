@@ -255,5 +255,12 @@
     "title": "Your profile tells a story.",
     "description": "Every plan you make opens a new door.",
     "addInterest": "Add interest"
+  },
+
+  "socialStats": {
+    "created": "Plans created",
+    "completed": "Plans completed",
+    "rating": "Rating",
+    "friends": "Friends"
   }
 }
