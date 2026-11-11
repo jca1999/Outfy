@@ -41,7 +41,6 @@ import {
 } from "@/auth/auth-api";
 import { useAuth } from "@/auth/auth-context";
 import { useConnectionOverview } from "@/connections/use-connection-overview";
-import { ProfileConnectionsCard } from "@/connections/profile-connections-card";
 import {
   Dialog,
   DialogContent,
@@ -120,6 +119,7 @@ export function Profile() {
     "smart" | "dateAsc" | "dateDesc" | "title"
   >("smart");
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const reputationSectionRef = useRef<HTMLDivElement>(null);
   const avatarVersionRef = useRef(0);
   const localAvatarUrlRef = useRef<string | null>(null);
   const avatarBusyRef = useRef(false);
@@ -169,8 +169,9 @@ export function Profile() {
     type: "accept" | "decline";
   } | null>(null);
 
-  const [invitationInboxError, setInvitationInboxError] =
-    useState<string | null>(null);
+  const [invitationInboxError, setInvitationInboxError] = useState<
+    string | null
+  >(null);
   const [now, setNow] = useState(() => Date.now());
 
   function loadPendingInvitations() {
@@ -203,18 +204,14 @@ export function Profile() {
       await acceptActivityInvitation(invitationId);
 
       setPendingInvitations((current) =>
-        current.filter(
-          (invitation) => invitation.id !== invitationId,
-        ),
+        current.filter((invitation) => invitation.id !== invitationId),
       );
 
       if (tab === "upcoming") {
         loadJoinedActivities();
       }
     } catch {
-      setInvitationInboxError(
-        t("activities:myInvitations.acceptError"),
-      );
+      setInvitationInboxError(t("activities:myInvitations.acceptError"));
     } finally {
       setInvitationAction(null);
     }
@@ -236,14 +233,10 @@ export function Profile() {
       await declineActivityInvitation(invitationId);
 
       setPendingInvitations((current) =>
-        current.filter(
-          (invitation) => invitation.id !== invitationId,
-        ),
+        current.filter((invitation) => invitation.id !== invitationId),
       );
     } catch {
-      setInvitationInboxError(
-        t("activities:myInvitations.declineError"),
-      );
+      setInvitationInboxError(t("activities:myInvitations.declineError"));
     } finally {
       setInvitationAction(null);
     }
@@ -583,17 +576,67 @@ export function Profile() {
   const createdPlansCount =
     createdState === "ready" ? createdActivities.length : null;
 
-  const completedPlansCount =
-    reputation?.completedActivityCount ?? null;
+  const completedPlansCount = reputation?.completedActivityCount ?? null;
 
-  const ratingValue =
-    reputation?.averageRating ?? null;
+  const ratingValue = reputation?.averageRating ?? null;
 
-  const friendsCount =
-    connectionsOverview.isSuccess
-      ? connectionsOverview.data.accepted.length
-      : null;
+  const friendsCount = connectionsOverview.isSuccess
+    ? connectionsOverview.data.accepted.length
+    : null;
 
+  function scrollToReputation() {
+    const target = reputationSectionRef.current;
+
+    if (!target) {
+      return;
+    }
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      target.scrollIntoView({
+        behavior: "auto",
+        block: "start",
+      });
+      return;
+    }
+
+    const startY = window.scrollY;
+
+    const targetY =
+      target.getBoundingClientRect().top +
+      window.scrollY -
+      96;
+
+    const distance = targetY - startY;
+    const duration = 900;
+    let startTime: number | null = null;
+
+    function animate(currentTime: number) {
+      if (startTime === null) {
+        startTime = currentTime;
+      }
+
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(
+        elapsed / duration,
+        1,
+      );
+
+      const eased =
+        1 - Math.pow(1 - progress, 3);
+
+      window.scrollTo(
+        0,
+        startY + distance * eased,
+      );
+
+      if (progress < 1) {
+        window.requestAnimationFrame(animate);
+      }
+    }
+
+    window.requestAnimationFrame(animate);
+  }
+  
   function organizeActivities<
     T extends MyCreatedActivity | MyJoinedActivity | MyHistoryActivity,
   >(activities: T[], currentTab: "created" | "upcoming" | "history") {
@@ -792,7 +835,7 @@ export function Profile() {
           <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
         </div>
 
-        <h3 className="mt-3 break-words text-lg font-bold leading-tight tracking-[-.03em] [overflow-wrap:anywhere]">
+        <h3 className="mt-3 line-clamp-2 text-lg font-bold leading-tight tracking-[-.03em]">
           {activity.title}
         </h3>
         <p className="mt-1 text-xs font-semibold text-primary">
@@ -845,9 +888,7 @@ export function Profile() {
                     </span>
                   </>
                 ) : (
-                  <span>
-                    {t("activities:myPlans.review.noReviews")}
-                  </span>
+                  <span>{t("activities:myPlans.review.noReviews")}</span>
                 )}
               </span>
             )}
@@ -1014,7 +1055,11 @@ export function Profile() {
                 </p>
               </div>
 
-              <div className="rounded-[18px] border border-border bg-background px-2 py-3 text-center sm:px-3 sm:py-4">
+              <button
+                type="button"
+                onClick={scrollToReputation}
+                className="rounded-[18px] border border-border bg-background px-2 py-3 text-center transition hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:px-3 sm:py-4"
+              >
                 <p className="flex items-center justify-center gap-1 text-xl font-bold tracking-[-.04em]">
                   <Star className="h-4 w-4 fill-current text-primary" />
                   {ratingValue !== null ? ratingValue.toFixed(1) : "—"}
@@ -1023,9 +1068,13 @@ export function Profile() {
                 <p className="mt-1 text-[11px] font-semibold leading-tight text-muted-foreground">
                   {t("socialStats.rating")}
                 </p>
-              </div>
+              </button>
 
-              <div className="rounded-[18px] border border-border bg-background px-2 py-3 text-center sm:px-3 sm:py-4">
+              <button
+                type="button"
+                onClick={() => navigate("/connections")}
+                className="rounded-[18px] border border-border bg-background px-2 py-3 text-center transition hover:-translate-y-0.5 hover:border-primary/50 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary sm:px-3 sm:py-4"
+              >
                 <p className="text-xl font-bold tracking-[-.04em]">
                   {friendsCount ?? "—"}
                 </p>
@@ -1033,7 +1082,7 @@ export function Profile() {
                 <p className="mt-1 text-[11px] font-semibold leading-tight text-muted-foreground">
                   {t("socialStats.friends")}
                 </p>
-              </div>
+              </button>
             </div>
           </div>
         </div>
@@ -1053,7 +1102,12 @@ export function Profile() {
       )}
 
       {reputation && (
-        <ProfileReputationCard reputation={reputation} />
+        <div
+          ref={reputationSectionRef}
+          className="scroll-mt-24"
+        >
+          <ProfileReputationCard reputation={reputation} />
+        </div>
       )}
 
       {reputation && reputation.recentReviews.length > 0 && (
@@ -1116,11 +1170,7 @@ export function Profile() {
         </section>
       )}
 
-      <ProfileConnectionsCard />
-      {(
-        invitationInboxState !== "ready" ||
-        pendingInvitations.length > 0
-      ) && (
+      {(invitationInboxState !== "ready" || pendingInvitations.length > 0) && (
         <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-7">
           <div className="flex items-center gap-3">
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -1169,14 +1219,9 @@ export function Profile() {
                     invitation.organizer.displayName?.trim() ||
                     (invitation.organizer.username
                       ? `@${invitation.organizer.username}`
-                      : t(
-                          "activities:myInvitations.organizerFallback",
-                        ));
+                      : t("activities:myInvitations.organizerFallback"));
 
-                  const locale =
-                    i18n.language === "en"
-                      ? "en-GB"
-                      : "es-ES";
+                  const locale = i18n.language === "en" ? "en-GB" : "es-ES";
 
                   let dateLabel: string;
 
@@ -1184,28 +1229,20 @@ export function Profile() {
                     dateLabel = new Intl.DateTimeFormat(locale, {
                       dateStyle: "medium",
                       timeStyle: "short",
-                      timeZone:
-                        invitation.activity.timezoneName,
-                    }).format(
-                      new Date(invitation.activity.startsAt),
-                    );
+                      timeZone: invitation.activity.timezoneName,
+                    }).format(new Date(invitation.activity.startsAt));
                   } catch {
                     dateLabel = new Intl.DateTimeFormat(locale, {
                       dateStyle: "medium",
                       timeStyle: "short",
-                    }).format(
-                      new Date(invitation.activity.startsAt),
-                    );
+                    }).format(new Date(invitation.activity.startsAt));
                   }
 
                   const location =
-                    invitation.activity.locationType ===
-                    "online"
+                    invitation.activity.locationType === "online"
                       ? t("activities:locationTypes.online")
                       : invitation.activity.city ||
-                        t(
-                          "activities:locationTypes.physical",
-                        );
+                        t("activities:locationTypes.physical");
 
                   const accepting =
                     invitationAction?.id === invitation.id &&
@@ -1221,12 +1258,9 @@ export function Profile() {
                       className="rounded-[20px] border border-border bg-background p-4"
                     >
                       <p className="text-xs font-semibold text-primary">
-                        {t(
-                          "activities:myInvitations.invitedBy",
-                          {
-                            name: organizerName,
-                          },
-                        )}
+                        {t("activities:myInvitations.invitedBy", {
+                          name: organizerName,
+                        })}
                       </p>
 
                       <h3 className="mt-1 text-base font-bold">
@@ -1242,53 +1276,33 @@ export function Profile() {
                         <button
                           type="button"
                           disabled={Boolean(invitationAction)}
-                          onClick={() =>
-                            handleAcceptInvitation(
-                              invitation.id,
-                            )
-                          }
+                          onClick={() => handleAcceptInvitation(invitation.id)}
                           className="rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {accepting
-                            ? t(
-                                "activities:myInvitations.accepting",
-                              )
-                            : t(
-                                "activities:myInvitations.accept",
-                              )}
+                            ? t("activities:myInvitations.accepting")
+                            : t("activities:myInvitations.accept")}
                         </button>
 
                         <button
                           type="button"
                           disabled={Boolean(invitationAction)}
-                          onClick={() =>
-                            handleDeclineInvitation(
-                              invitation.id,
-                            )
-                          }
+                          onClick={() => handleDeclineInvitation(invitation.id)}
                           className="rounded-full border border-border px-4 py-2 text-xs font-bold text-muted-foreground transition hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {declining
-                            ? t(
-                                "activities:myInvitations.declining",
-                              )
-                            : t(
-                                "activities:myInvitations.decline",
-                              )}
+                            ? t("activities:myInvitations.declining")
+                            : t("activities:myInvitations.decline")}
                         </button>
 
                         <button
                           type="button"
                           onClick={() =>
-                            navigate(
-                              `/activities/${invitation.activity.id}`,
-                            )
+                            navigate(`/activities/${invitation.activity.id}`)
                           }
                           className="rounded-full border border-primary/30 px-4 py-2 text-xs font-bold text-primary transition hover:bg-primary/10"
                         >
-                          {t(
-                            "activities:myInvitations.viewPlan",
-                          )}
+                          {t("activities:myInvitations.viewPlan")}
                         </button>
                       </div>
                     </div>
@@ -1327,7 +1341,7 @@ export function Profile() {
               aria-selected={tab === "created"}
               aria-controls="created-plans-panel"
               onClick={() => setTab("created")}
-              className={`flex-1 rounded-full px-2 py-2 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:flex-none sm:px-4 ${
+              className={`flex-1 rounded-full px-2 py-2 text-xs font-bold transition sm:flex-none sm:px-4 ${
                 tab === "created"
                   ? "bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -1341,7 +1355,7 @@ export function Profile() {
               aria-selected={tab === "upcoming"}
               aria-controls="upcoming-plans-panel"
               onClick={() => setTab("upcoming")}
-              className={`flex-1 rounded-full px-2 py-2 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:flex-none sm:px-4 ${
+              className={`flex-1 rounded-full px-2 py-2 text-xs font-bold transition sm:flex-none sm:px-4 ${
                 tab === "upcoming"
                   ? "bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -1355,7 +1369,7 @@ export function Profile() {
               aria-selected={tab === "history"}
               aria-controls="history-plans-panel"
               onClick={() => setTab("history")}
-              className={`flex-1 rounded-full px-2 py-2 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:flex-none sm:px-4 ${
+              className={`flex-1 rounded-full px-2 py-2 text-xs font-bold transition sm:flex-none sm:px-4 ${
                 tab === "history"
                   ? "bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -1440,7 +1454,7 @@ export function Profile() {
             )}
 
             {createdState === "ready" && createdActivities.length === 0 && (
-              <div className="rounded-[22px] border border-dashed border-border bg-card p-5 text-center sm:p-6">
+              <div className="rounded-[22px] border border-dashed border-border bg-card p-7 text-center">
                 <CalendarDays className="mx-auto h-8 w-8 text-primary" />
                 <h3 className="mt-4 text-base font-bold">
                   {t("activities:myPlans.emptyTitle")}
@@ -1507,7 +1521,7 @@ export function Profile() {
             )}
 
             {joinedState === "ready" && joinedActivities.length === 0 && (
-              <div className="rounded-[22px] border border-dashed border-border bg-card p-5 text-center sm:p-6">
+              <div className="rounded-[22px] border border-dashed border-border bg-card p-7 text-center">
                 <CalendarDays className="mx-auto h-8 w-8 text-primary" />
                 <h3 className="mt-4 text-base font-bold">
                   {t("activities:myPlans.upcomingEmptyTitle")}
@@ -1568,7 +1582,7 @@ export function Profile() {
             )}
 
             {historyState === "ready" && historyActivities.length === 0 && (
-              <div className="rounded-[22px] border border-dashed border-border bg-card p-5 text-center sm:p-6">
+              <div className="rounded-[22px] border border-dashed border-border bg-card p-7 text-center">
                 <CalendarDays className="mx-auto h-8 w-8 text-primary" />
                 <h3 className="mt-4 text-base font-bold">
                   {t("activities:myPlans.historyEmptyTitle")}
