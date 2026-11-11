@@ -15,7 +15,7 @@ export function ProfileReputationCard({
   const { t } = useTranslation("profile");
 
   return (
-    <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-7">
+    <section className="border-b border-border/80 pb-5 sm:pb-6">
       <div>
         <h2 className="text-xl font-bold tracking-[-.03em]">
           {t("reputationCard.title")}
@@ -26,14 +26,20 @@ export function ProfileReputationCard({
         </p>
       </div>
 
-      <div className="mt-6 grid gap-7 sm:grid-cols-[180px_1fr] sm:items-center">
-        <div className="flex flex-col items-center justify-center text-center">
-          <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
-            <Star className="h-9 w-9 fill-current text-primary" />
+      <div
+        className={`mt-5 grid gap-5 ${
+          reputation.reviewCount > 0
+            ? "sm:grid-cols-[180px_minmax(0,1fr)] sm:items-center"
+            : "justify-items-center"
+        }`}
+      >
+        <div className="flex min-w-0 flex-col items-center justify-center text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 sm:h-[72px] sm:w-[72px]">
+            <Star className="h-8 w-8 fill-current text-primary" />
           </div>
 
           <div className="mt-4 flex items-baseline justify-center gap-1">
-            <span className="text-4xl font-bold tracking-[-.06em]">
+            <span className="text-3xl font-bold tracking-[-.06em] sm:text-4xl">
               {reputation.averageRating !== null
                 ? reputation.averageRating.toFixed(1)
                 : "—"}
@@ -57,47 +63,45 @@ export function ProfileReputationCard({
           )}
         </div>
 
-        <div className="space-y-3">
-          {RATINGS.map((rating) => {
-            const count = reputation.ratingDistribution[rating];
+        {reputation.reviewCount > 0 && (
+          <div className="min-w-0 space-y-2.5 sm:space-y-3">
+            {RATINGS.map((rating) => {
+              const count = reputation.ratingDistribution[rating];
+              const percentage = Math.round(
+                (count / reputation.reviewCount) * 100,
+              );
 
-            const percentage =
-              reputation.reviewCount > 0
-                ? Math.round(
-                    (count / reputation.reviewCount) * 100,
-                  )
-                : 0;
+              return (
+                <div
+                  key={rating}
+                  className="grid grid-cols-[34px_minmax(0,1fr)_32px] items-center gap-2 sm:gap-3"
+                  aria-label={t("reputationCard.ratingBreakdown", {
+                    rating,
+                    count,
+                  })}
+                >
+                  <span className="flex items-center gap-1 text-xs font-bold">
+                    {rating}
+                    <Star className="h-3 w-3 fill-current text-primary" />
+                  </span>
 
-            return (
-              <div
-                key={rating}
-                className="grid grid-cols-[34px_1fr_32px] items-center gap-3"
-                aria-label={t("reputationCard.ratingBreakdown", {
-                  rating,
-                  count,
-                })}
-              >
-                <span className="flex items-center gap-1 text-xs font-bold">
-                  {rating}
-                  <Star className="h-3 w-3 fill-current text-primary" />
-                </span>
+                  <div className="h-2 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className="h-full rounded-full bg-primary transition-[width]"
+                      style={{
+                        width: `${percentage}%`,
+                      }}
+                    />
+                  </div>
 
-                <div className="h-2.5 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className="h-full rounded-full bg-primary transition-[width]"
-                    style={{
-                      width: `${percentage}%`,
-                    }}
-                  />
+                  <span className="text-right text-xs font-semibold text-muted-foreground">
+                    {count}
+                  </span>
                 </div>
-
-                <span className="text-right text-xs font-semibold text-muted-foreground">
-                  {count}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </section>
   );

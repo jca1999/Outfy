@@ -792,7 +792,7 @@ export function Profile() {
           <ArrowRight className="h-4 w-4 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
         </div>
 
-        <h3 className="mt-3 line-clamp-2 text-lg font-bold leading-tight tracking-[-.03em]">
+        <h3 className="mt-3 break-words text-lg font-bold leading-tight tracking-[-.03em] [overflow-wrap:anywhere]">
           {activity.title}
         </h3>
         <p className="mt-1 text-xs font-semibold text-primary">
@@ -857,14 +857,14 @@ export function Profile() {
   };
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-5 sm:space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="font-mono-ui text-[10px] uppercase tracking-[.18em] text-primary">
             {t("header.eyebrow")}
           </p>
 
-          <h1 className="mt-2 text-4xl font-bold tracking-[-.06em]">
+          <h1 className="mt-2 text-3xl font-bold tracking-[-.06em] sm:text-4xl">
             {t("header.title")}
           </h1>
         </div>
@@ -891,8 +891,8 @@ export function Profile() {
         </div>
       </div>
 
-      <section className="rounded-[26px] border border-border bg-card p-6 soft-shadow sm:p-8">
-        <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-start sm:text-left">
+      <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-7 lg:p-8">
+        <div className="flex flex-col items-center gap-5 text-center sm:flex-row sm:items-start sm:gap-7 sm:text-left">
           <div className="flex shrink-0 flex-col items-center gap-3">
             <div className="relative">
               <div className="flex h-28 w-28 items-center justify-center overflow-hidden rounded-full bg-primary text-3xl font-bold text-primary-foreground ring-4 ring-primary/10">
@@ -964,62 +964,73 @@ export function Profile() {
           </div>
 
           <div className="min-w-0 w-full flex-1">
-            <h2 className="text-3xl font-bold tracking-[-.05em]">
+            <h2 className="break-words text-3xl font-bold tracking-[-.05em] [overflow-wrap:anywhere]">
               {visibleName}
             </h2>
 
-            <p className="mt-1 text-sm font-semibold text-muted-foreground">
+            <p className="mt-1 break-words text-sm font-semibold text-muted-foreground [overflow-wrap:anywhere]">
               @{user?.username}
             </p>
 
-            <div className="mt-3 flex items-center justify-center gap-1.5 text-sm text-muted-foreground sm:justify-start">
+            <div className="mt-3 flex items-start justify-center gap-1.5 text-sm text-muted-foreground sm:justify-start">
               <MapPin className="h-4 w-4 shrink-0 text-primary" />
 
-              <span>
+              <span className="min-w-0 break-words [overflow-wrap:anywhere]">
                 {(user?.homeLocation
                   ? `${user.homeLocation.city}, ${user.homeLocation.country}`
                   : user?.homeCity?.trim()) || t("identity.location.notSet")}
               </span>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              <div className="rounded-[18px] border border-border bg-background px-3 py-4 text-center">
+            {user?.bio && (
+              <div className="mx-auto mt-4 max-w-3xl sm:mx-0">
+                <p className="text-[11px] font-bold uppercase tracking-[.12em] text-muted-foreground">
+                  {t("identity.bio.label")}
+                </p>
+                <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/85 [overflow-wrap:anywhere]">
+                  {user.bio}
+                </p>
+              </div>
+            )}
+
+            <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              <div className="rounded-[18px] border border-border bg-background px-2 py-3 text-center sm:px-3 sm:py-4">
                 <p className="text-xl font-bold tracking-[-.04em]">
                   {createdPlansCount ?? "—"}
                 </p>
 
-                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                <p className="mt-1 text-[11px] font-semibold leading-tight text-muted-foreground">
                   {t("socialStats.created")}
                 </p>
               </div>
 
-              <div className="rounded-[18px] border border-border bg-background px-3 py-4 text-center">
+              <div className="rounded-[18px] border border-border bg-background px-2 py-3 text-center sm:px-3 sm:py-4">
                 <p className="text-xl font-bold tracking-[-.04em]">
                   {completedPlansCount ?? "—"}
                 </p>
 
-                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                <p className="mt-1 text-[11px] font-semibold leading-tight text-muted-foreground">
                   {t("socialStats.completed")}
                 </p>
               </div>
 
-              <div className="rounded-[18px] border border-border bg-background px-3 py-4 text-center">
+              <div className="rounded-[18px] border border-border bg-background px-2 py-3 text-center sm:px-3 sm:py-4">
                 <p className="flex items-center justify-center gap-1 text-xl font-bold tracking-[-.04em]">
                   <Star className="h-4 w-4 fill-current text-primary" />
                   {ratingValue !== null ? ratingValue.toFixed(1) : "—"}
                 </p>
 
-                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                <p className="mt-1 text-[11px] font-semibold leading-tight text-muted-foreground">
                   {t("socialStats.rating")}
                 </p>
               </div>
 
-              <div className="rounded-[18px] border border-border bg-background px-3 py-4 text-center">
+              <div className="rounded-[18px] border border-border bg-background px-2 py-3 text-center sm:px-3 sm:py-4">
                 <p className="text-xl font-bold tracking-[-.04em]">
                   {friendsCount ?? "—"}
                 </p>
 
-                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                <p className="mt-1 text-[11px] font-semibold leading-tight text-muted-foreground">
                   {t("socialStats.friends")}
                 </p>
               </div>
@@ -1037,18 +1048,6 @@ export function Profile() {
         )}
       </section>
 
-      {user?.bio && (
-        <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-7">
-          <h2 className="text-xl font-bold tracking-[-.03em]">
-            {t("identity.bio.label")}
-          </h2>
-
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-            {user.bio}
-          </p>
-        </section>
-      )}
-
       {user?.interests && user.interests.length > 0 && (
         <ProfileInterestsCard interests={user.interests} />
       )}
@@ -1058,7 +1057,7 @@ export function Profile() {
       )}
 
       {reputation && reputation.recentReviews.length > 0 && (
-        <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-7">
+        <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-6">
           <div>
             <h2 className="text-xl font-bold tracking-[-.03em]">
               {t("publicProfile.reputation.ownOpinionsTitle")}
@@ -1073,7 +1072,7 @@ export function Profile() {
             {reputation.recentReviews.map((review) => (
               <div
                 key={`${review.activityId}-${review.reviewerId}`}
-                className="rounded-[20px] border border-border bg-background p-4"
+                className="min-w-0 rounded-[20px] border border-border bg-background p-4"
               >
                 <div className="flex items-center gap-1">
                   {Array.from({ length: 5 }).map((_, index) => (
@@ -1088,22 +1087,22 @@ export function Profile() {
                   ))}
                 </div>
 
-                <p className="mt-3 text-sm leading-relaxed text-foreground">
+                <p className="mt-3 break-words text-sm leading-relaxed text-foreground [overflow-wrap:anywhere]">
                   “{review.comment}”
                 </p>
 
-                <div className="mt-4 flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                <div className="mt-4 flex min-w-0 flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                   <button
                     type="button"
                     onClick={() => navigate(`/activities/${review.activityId}`)}
-                    className="text-left font-semibold text-primary transition hover:underline"
+                    className="min-w-0 break-words text-left font-semibold text-primary transition hover:underline [overflow-wrap:anywhere]"
                   >
                     {t("publicProfile.reputation.opinionPlan", {
                       title: review.activityTitle,
                     })}
                   </button>
 
-                  <span>
+                  <span className="break-words [overflow-wrap:anywhere]">
                     {review.reviewerUsername
                       ? t("publicProfile.reputation.opinionBy", {
                           username: review.reviewerUsername,
@@ -1328,7 +1327,7 @@ export function Profile() {
               aria-selected={tab === "created"}
               aria-controls="created-plans-panel"
               onClick={() => setTab("created")}
-              className={`flex-1 rounded-full px-2 py-2 text-xs font-bold transition sm:flex-none sm:px-4 ${
+              className={`flex-1 rounded-full px-2 py-2 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:flex-none sm:px-4 ${
                 tab === "created"
                   ? "bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -1342,7 +1341,7 @@ export function Profile() {
               aria-selected={tab === "upcoming"}
               aria-controls="upcoming-plans-panel"
               onClick={() => setTab("upcoming")}
-              className={`flex-1 rounded-full px-2 py-2 text-xs font-bold transition sm:flex-none sm:px-4 ${
+              className={`flex-1 rounded-full px-2 py-2 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:flex-none sm:px-4 ${
                 tab === "upcoming"
                   ? "bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -1356,7 +1355,7 @@ export function Profile() {
               aria-selected={tab === "history"}
               aria-controls="history-plans-panel"
               onClick={() => setTab("history")}
-              className={`flex-1 rounded-full px-2 py-2 text-xs font-bold transition sm:flex-none sm:px-4 ${
+              className={`flex-1 rounded-full px-2 py-2 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:flex-none sm:px-4 ${
                 tab === "history"
                   ? "bg-card text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
@@ -1441,7 +1440,7 @@ export function Profile() {
             )}
 
             {createdState === "ready" && createdActivities.length === 0 && (
-              <div className="rounded-[22px] border border-dashed border-border bg-card p-7 text-center">
+              <div className="rounded-[22px] border border-dashed border-border bg-card p-5 text-center sm:p-6">
                 <CalendarDays className="mx-auto h-8 w-8 text-primary" />
                 <h3 className="mt-4 text-base font-bold">
                   {t("activities:myPlans.emptyTitle")}
@@ -1508,7 +1507,7 @@ export function Profile() {
             )}
 
             {joinedState === "ready" && joinedActivities.length === 0 && (
-              <div className="rounded-[22px] border border-dashed border-border bg-card p-7 text-center">
+              <div className="rounded-[22px] border border-dashed border-border bg-card p-5 text-center sm:p-6">
                 <CalendarDays className="mx-auto h-8 w-8 text-primary" />
                 <h3 className="mt-4 text-base font-bold">
                   {t("activities:myPlans.upcomingEmptyTitle")}
@@ -1569,7 +1568,7 @@ export function Profile() {
             )}
 
             {historyState === "ready" && historyActivities.length === 0 && (
-              <div className="rounded-[22px] border border-dashed border-border bg-card p-7 text-center">
+              <div className="rounded-[22px] border border-dashed border-border bg-card p-5 text-center sm:p-6">
                 <CalendarDays className="mx-auto h-8 w-8 text-primary" />
                 <h3 className="mt-4 text-base font-bold">
                   {t("activities:myPlans.historyEmptyTitle")}

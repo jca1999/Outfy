@@ -87,11 +87,11 @@ export function ProfileRelationship({
   }
 
   if (state.status === "loading") {
-    return <div className="mt-6 h-10 w-40 animate-pulse rounded-xl bg-muted" data-testid="status-relationship-loading" />;
+    return <div className="mx-auto mt-2 h-10 w-40 animate-pulse rounded-xl bg-muted md:mx-0 md:mt-0" data-testid="status-relationship-loading" />;
   }
   if (state.status === "error") {
     return (
-      <div className="mt-6 w-full">
+      <div className="mt-2 w-full md:mt-0">
         <InlineError message={t("publicProfile.connectionError")} onRetry={() => load()} testId="error-relationship" />
       </div>
     );
@@ -101,14 +101,14 @@ export function ProfileRelationship({
   const disabled = busy !== null;
 
   return (
-    <div className="mt-6 flex w-full flex-col items-center gap-3" data-testid="section-relationship">
+    <div className="mt-2 flex w-full flex-col items-center gap-3 md:mt-0 md:items-start" data-testid="section-relationship">
       {!rel && (
         <ActionButton busy={busy === "send"} disabled={disabled} onClick={() => run("send", () => sendConnectionRequest(userId))} testId="button-connect">
           <UserPlus className="h-3.5 w-3.5" />{t("common:connections.connect")}
         </ActionButton>
       )}
       {rel?.status === "pending" && rel.direction === "outgoing" && (
-        <div className="flex flex-wrap items-center justify-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-bold text-muted-foreground" data-testid="status-request-sent">
             <Clock3 className="h-3.5 w-3.5" />{t("publicProfile.requestSent")}
           </span>
@@ -131,7 +131,7 @@ export function ProfileRelationship({
         </>
       )}
       {rel?.status === "accepted" && (
-        <div className="flex flex-wrap items-center justify-center gap-2">
+        <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
           <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/15 px-3 py-1.5 text-xs font-bold text-primary" data-testid="status-connected">
             <Check className="h-3.5 w-3.5" />{t("publicProfile.connected")}
           </span>

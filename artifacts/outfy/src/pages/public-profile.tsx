@@ -314,7 +314,7 @@ export function PublicProfile() {
       : profile.city || profile.country;
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-5">
+    <div className="mx-auto w-full max-w-5xl space-y-5 sm:space-y-6">
       <button
         type="button"
         onClick={goBack}
@@ -324,160 +324,157 @@ export function PublicProfile() {
         {t("publicProfile.back")}
       </button>
 
-      <section className="rounded-[26px] border border-border bg-card p-6 soft-shadow sm:p-8">
-        <div className="flex flex-col items-center text-center">
+      <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-7 lg:p-8">
+        <div className="flex flex-col items-center gap-5 text-center md:flex-row md:items-start md:gap-7 md:text-left">
           <ConnectionAvatar
             profile={profile}
             className="h-28 w-28 text-3xl ring-4 ring-primary/10"
           />
 
-          <h1 className="mt-5 text-3xl font-bold tracking-[-.05em]">
-            {visibleName}
-          </h1>
+          <div className="min-w-0 w-full flex-1">
+            <h1 className="break-words text-3xl font-bold tracking-[-.05em] [overflow-wrap:anywhere]">
+              {visibleName}
+            </h1>
 
-          {profile.displayName && (
-            <p className="mt-1 text-sm font-semibold text-muted-foreground">
-              @{profile.username}
-            </p>
-          )}
+            {profile.displayName && (
+              <p className="mt-1 break-words text-sm font-semibold text-muted-foreground [overflow-wrap:anywhere]">
+                @{profile.username}
+              </p>
+            )}
 
-          {!profile.isPrivate && location && (
-            <div className="mt-3 flex items-center justify-center gap-1.5 text-sm text-muted-foreground">
-              <MapPin className="h-4 w-4 shrink-0 text-primary" />
-              <span>{location}</span>
-            </div>
-          )}
+            {!profile.isPrivate && location && (
+              <div className="mt-3 flex items-start justify-center gap-1.5 text-sm text-muted-foreground md:justify-start">
+                <MapPin className="h-4 w-4 shrink-0 text-primary" />
+                <span className="min-w-0 break-words [overflow-wrap:anywhere]">
+                  {location}
+                </span>
+              </div>
+            )}
 
-          {!profile.isPrivate && reputation && (
-            <div className="mt-6 grid w-full max-w-2xl grid-cols-2 gap-2 sm:grid-cols-4">
-              <div className="rounded-[18px] border border-border bg-background px-2 py-4 text-center">
-                <p className="text-xl font-bold tracking-[-.04em]">
-                  {reputation.completedActivityCount}
+            {!profile.isPrivate && profile.bio && (
+              <div className="mx-auto mt-4 max-w-3xl md:mx-0">
+                <p className="text-[11px] font-bold uppercase tracking-[.12em] text-muted-foreground">
+                  {t("identity.bio.label")}
                 </p>
-
-                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
-                  {t("socialStats.completed")}
+                <p className="mt-1.5 whitespace-pre-wrap break-words text-sm leading-relaxed text-foreground/85 [overflow-wrap:anywhere]">
+                  {profile.bio}
                 </p>
               </div>
+            )}
 
-              <div className="rounded-[18px] border border-border bg-background px-2 py-4 text-center">
-                <p className="flex items-center justify-center gap-1 text-xl font-bold tracking-[-.04em]">
-                  <Star className="h-4 w-4 fill-current text-primary" />
+            {!profile.isPrivate && reputation && (
+              <div className="mt-5 grid w-full grid-cols-2 gap-2 sm:grid-cols-4">
+                <div className="rounded-[18px] border border-border bg-background px-2 py-3 text-center sm:px-3 sm:py-4">
+                  <p className="text-xl font-bold tracking-[-.04em]">
+                    {reputation.completedActivityCount}
+                  </p>
+                  <p className="mt-1 text-[11px] font-semibold leading-tight text-muted-foreground">
+                    {t("socialStats.completed")}
+                  </p>
+                </div>
 
-                  {reputation.averageRating !== null
-                    ? reputation.averageRating.toFixed(1)
-                    : "—"}
-                </p>
+                <div className="rounded-[18px] border border-border bg-background px-2 py-3 text-center sm:px-3 sm:py-4">
+                  <p className="flex items-center justify-center gap-1 text-xl font-bold tracking-[-.04em]">
+                    <Star className="h-4 w-4 fill-current text-primary" />
+                    {reputation.averageRating !== null
+                      ? reputation.averageRating.toFixed(1)
+                      : "—"}
+                  </p>
+                  <p className="mt-1 text-[11px] font-semibold leading-tight text-muted-foreground">
+                    {t("socialStats.rating")}
+                  </p>
+                </div>
 
-                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
-                  {t("socialStats.rating")}
-                </p>
-              </div>
+                <div className="rounded-[18px] border border-border bg-background px-2 py-3 text-center sm:px-3 sm:py-4">
+                  <p className="text-xl font-bold tracking-[-.04em]">
+                    {reputation.reviewCount}
+                  </p>
+                  <p className="mt-1 text-[11px] font-semibold leading-tight text-muted-foreground">
+                    {t("socialStats.reviews")}
+                  </p>
+                </div>
 
-              <div className="rounded-[18px] border border-border bg-background px-2 py-4 text-center">
-                <p className="text-xl font-bold tracking-[-.04em]">
-                  {reputation.reviewCount}
-                </p>
-
-                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
-                  {t("socialStats.reviews")}
-                </p>
-              </div>
-
-              <div className="rounded-[18px] border border-border bg-background px-2 py-4 text-center">
-                <p className="text-xl font-bold tracking-[-.04em]">
-                  {socialState === "ready"
-                    ? (socialOverview?.friendCount ?? "—")
-                    : "—"}
-                </p>
-
-                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
-                  {t("socialStats.friends")}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {!profile.isPrivate &&
-            socialState === "ready" &&
-            socialOverview &&
-            socialOverview.mutualCount > 0 && (
-              <div className="mt-5 w-full max-w-2xl rounded-[20px] border border-border bg-background p-4">
-                <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex -space-x-2">
-                      {socialOverview.mutualFriends.map((friend) => (
-                        <button
-                          key={friend.id}
-                          type="button"
-                          onClick={() =>
-                            navigate(
-                              `/users/${encodeURIComponent(friend.username)}`,
-                            )
-                          }
-                          title={`@${friend.username}`}
-                          className="rounded-full ring-2 ring-background transition hover:z-10 hover:-translate-y-0.5"
-                        >
-                          <ConnectionAvatar
-                            profile={friend}
-                            className="h-9 w-9 text-xs"
-                          />
-                        </button>
-                      ))}
-                    </div>
-
-                    <div className="text-left">
-                      <p className="text-sm font-bold">
-                        {t("publicProfile.mutualFriends", {
-                          count: socialOverview.mutualCount,
-                        })}
-                      </p>
-
-                      <p className="text-xs text-muted-foreground">
-                        {t("publicProfile.mutualFriendsDescription")}
-                      </p>
-                    </div>
-                  </div>
+                <div className="rounded-[18px] border border-border bg-background px-2 py-3 text-center sm:px-3 sm:py-4">
+                  <p className="text-xl font-bold tracking-[-.04em]">
+                    {socialState === "ready"
+                      ? (socialOverview?.friendCount ?? "—")
+                      : "—"}
+                  </p>
+                  <p className="mt-1 text-[11px] font-semibold leading-tight text-muted-foreground">
+                    {t("socialStats.friends")}
+                  </p>
                 </div>
               </div>
             )}
 
-          {profile.isPrivate && (
-            <div className="mt-6 w-full rounded-[20px] border border-border bg-muted/30 p-5">
-              <LockKeyhole className="mx-auto h-6 w-6 text-muted-foreground" />
+            {!profile.isPrivate &&
+              socialState === "ready" &&
+              socialOverview &&
+              socialOverview.mutualCount > 0 && (
+                <div className="mt-4 w-full rounded-[20px] border border-border bg-background p-4">
+                  <div className="flex flex-col items-center gap-3 md:flex-row md:items-center">
+                    <div className="flex items-center gap-3">
+                      <div className="flex -space-x-2">
+                        {socialOverview.mutualFriends.map((friend) => (
+                          <button
+                            key={friend.id}
+                            type="button"
+                            onClick={() =>
+                              navigate(
+                                `/users/${encodeURIComponent(friend.username)}`,
+                              )
+                            }
+                            title={`@${friend.username}`}
+                            className="rounded-full ring-2 ring-background transition hover:z-10 hover:-translate-y-0.5"
+                          >
+                            <ConnectionAvatar
+                              profile={friend}
+                              className="h-9 w-9 text-xs"
+                            />
+                          </button>
+                        ))}
+                      </div>
 
-              <h2 className="mt-3 text-sm font-bold">
-                {t("publicProfile.privateTitle")}
-              </h2>
+                      <div className="min-w-0 text-left">
+                        <p className="text-sm font-bold">
+                          {t("publicProfile.mutualFriends", {
+                            count: socialOverview.mutualCount,
+                          })}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {t("publicProfile.mutualFriendsDescription")}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-              <p className="mt-1 text-sm text-muted-foreground">
-                {t("publicProfile.privateDescription")}
-              </p>
+            {profile.isPrivate && (
+              <div className="mt-5 w-full rounded-[20px] border border-border bg-muted/30 p-5 text-center">
+                <span className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-background text-muted-foreground">
+                  <LockKeyhole className="h-5 w-5" />
+                </span>
+                <h2 className="mt-3 text-sm font-bold">
+                  {t("publicProfile.privateTitle")}
+                </h2>
+                <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+                  {t("publicProfile.privateDescription")}
+                </p>
+              </div>
+            )}
+
+            <div className="mt-4 w-full">
+              <ProfileRelationship
+                key={profile.id}
+                userId={profile.id}
+                name={visibleName}
+                onChanged={handleRelationshipChanged}
+              />
             </div>
-          )}
-
-          <div className="mt-6 w-full">
-            <ProfileRelationship
-              key={profile.id}
-              userId={profile.id}
-              name={visibleName}
-              onChanged={handleRelationshipChanged}
-            />
           </div>
         </div>
       </section>
-
-      {!profile.isPrivate && profile.bio && (
-        <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-7">
-          <h2 className="text-xl font-bold tracking-[-.03em]">
-            {t("identity.bio.label")}
-          </h2>
-
-          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-            {profile.bio}
-          </p>
-        </section>
-      )}
 
       {!profile.isPrivate && profile.interests.length > 0 && (
         <ProfileInterestsCard interests={profile.interests} />
@@ -490,7 +487,7 @@ export function PublicProfile() {
       {!profile.isPrivate &&
         reputation &&
         reputation.recentReviews.length > 0 && (
-          <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-7">
+          <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-6">
             <div>
               <h2 className="text-xl font-bold tracking-[-.03em]">
                 {t("publicProfile.reputation.publicOpinionsTitle")}
@@ -505,7 +502,7 @@ export function PublicProfile() {
               {reputation.recentReviews.map((review) => (
                 <div
                   key={`${review.activityId}-${review.reviewerId}`}
-                  className="rounded-[20px] border border-border bg-background p-4"
+                  className="min-w-0 rounded-[20px] border border-border bg-background p-4"
                 >
                   <div className="flex items-center gap-1">
                     {Array.from({ length: 5 }).map((_, index) => (
@@ -520,24 +517,24 @@ export function PublicProfile() {
                     ))}
                   </div>
 
-                  <p className="mt-3 text-sm leading-relaxed text-foreground">
+                  <p className="mt-3 break-words text-sm leading-relaxed text-foreground [overflow-wrap:anywhere]">
                     “{review.comment}”
                   </p>
 
-                  <div className="mt-4 flex flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+                  <div className="mt-4 flex min-w-0 flex-col gap-1 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
                     <button
                       type="button"
                       onClick={() =>
                         navigate(`/activities/${review.activityId}`)
                       }
-                      className="text-left font-semibold text-primary transition hover:underline"
+                      className="min-w-0 break-words text-left font-semibold text-primary transition hover:underline [overflow-wrap:anywhere]"
                     >
                       {t("publicProfile.reputation.opinionPlan", {
                         title: review.activityTitle,
                       })}
                     </button>
 
-                    <span>
+                    <span className="break-words [overflow-wrap:anywhere]">
                       {review.reviewerUsername
                         ? t("publicProfile.reputation.opinionBy", {
                             username: review.reviewerUsername,
@@ -551,7 +548,7 @@ export function PublicProfile() {
           </section>
         )}
       {!profile.isPrivate && (
-        <section className="rounded-[26px] border border-border bg-card p-6 soft-shadow sm:p-8">
+        <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-7 lg:p-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="text-xl font-bold tracking-[-.03em]">
@@ -566,7 +563,7 @@ export function PublicProfile() {
             </div>
 
             <div
-              className="flex rounded-full bg-muted p-1"
+              className="flex w-full rounded-full bg-muted p-1 sm:w-auto"
               role="tablist"
               aria-label={t("publicProfile.plans.title")}
             >
@@ -575,7 +572,7 @@ export function PublicProfile() {
                 role="tab"
                 aria-selected={profilePlansTab === "upcoming"}
                 onClick={() => setProfilePlansTab("upcoming")}
-                className={`rounded-full px-4 py-2 text-xs font-bold transition ${
+                className={`flex-1 rounded-full px-3 py-2 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:flex-none sm:px-4 ${
                   profilePlansTab === "upcoming"
                     ? "bg-card text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
@@ -589,7 +586,7 @@ export function PublicProfile() {
                 role="tab"
                 aria-selected={profilePlansTab === "completed"}
                 onClick={() => setProfilePlansTab("completed")}
-                className={`rounded-full px-4 py-2 text-xs font-bold transition ${
+                className={`flex-1 rounded-full px-3 py-2 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:flex-none sm:px-4 ${
                   profilePlansTab === "completed"
                     ? "bg-card text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground"
@@ -601,7 +598,7 @@ export function PublicProfile() {
           </div>
 
           {plansState === "loading" ? (
-            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
               {Array.from({ length: 2 }).map((_, index) => (
                 <div
                   key={index}
@@ -610,7 +607,7 @@ export function PublicProfile() {
               ))}
             </div>
           ) : plansState === "error" ? (
-            <div className="mt-6 rounded-[20px] border border-dashed border-border p-6 text-center">
+            <div className="mt-5 rounded-[20px] border border-dashed border-border p-5 text-center sm:p-6">
               <p className="text-sm font-semibold">
                 {t("publicProfile.plans.error")}
               </p>
@@ -627,7 +624,7 @@ export function PublicProfile() {
             </div>
           ) : profilePlansTab === "upcoming" ? (
             plans.length === 0 ? (
-              <div className="mt-6 rounded-[20px] border border-dashed border-border p-7 text-center">
+              <div className="mt-5 rounded-[20px] border border-dashed border-border p-5 text-center sm:p-6">
                 <CalendarDays className="mx-auto h-7 w-7 text-muted-foreground" />
 
                 <h3 className="mt-3 text-sm font-bold">
@@ -639,7 +636,7 @@ export function PublicProfile() {
                 </p>
               </div>
             ) : (
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                 {plans.map((activity) => {
                   const date = new Date(activity.startsAt);
 
@@ -697,7 +694,7 @@ export function PublicProfile() {
                         )}
                       </div>
 
-                      <h3 className="mt-3 line-clamp-2 text-lg font-bold leading-tight group-hover:underline">
+                      <h3 className="mt-3 break-words text-lg font-bold leading-tight group-hover:underline [overflow-wrap:anywhere]">
                         {activity.title}
                       </h3>
 
@@ -709,7 +706,7 @@ export function PublicProfile() {
 
                         <div className="flex items-center gap-2">
                           <MapPin className="h-4 w-4 shrink-0 text-foreground/40" />
-                          <span className="truncate">
+                          <span className="min-w-0 break-words [overflow-wrap:anywhere]">
                             {locationLabel}
                           </span>
                         </div>
@@ -741,7 +738,7 @@ export function PublicProfile() {
               </div>
             )
           ) : completedPlans.length === 0 ? (
-            <div className="mt-6 rounded-[20px] border border-dashed border-border p-7 text-center">
+            <div className="mt-5 rounded-[20px] border border-dashed border-border p-5 text-center sm:p-6">
               <CalendarDays className="mx-auto h-7 w-7 text-muted-foreground" />
 
               <h3 className="mt-3 text-sm font-bold">
@@ -753,7 +750,7 @@ export function PublicProfile() {
               </p>
             </div>
           ) : (
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {completedPlans.map((activity) => {
                 const date = new Date(activity.startsAt);
 
@@ -802,7 +799,7 @@ export function PublicProfile() {
                       </span>
                     </div>
 
-                    <h3 className="mt-3 line-clamp-2 text-lg font-bold leading-tight">
+                    <h3 className="mt-3 break-words text-lg font-bold leading-tight [overflow-wrap:anywhere]">
                       {activity.title}
                     </h3>
 
@@ -814,7 +811,7 @@ export function PublicProfile() {
 
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 shrink-0 text-foreground/40" />
-                        <span className="truncate">
+                        <span className="min-w-0 break-words [overflow-wrap:anywhere]">
                           {locationLabel}
                         </span>
                       </div>
