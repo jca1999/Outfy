@@ -174,6 +174,148 @@ router.get("/connections/search", async (request, response) => {
   } catch (error) { unavailable(request, response, error); }
 });
 
+router.get("/connections/social/:userId", async (request, response) => {
+  const viewerId = await viewer(request, response);
+
+  if (!viewerId) {
+    return;
+  }
+
+  const targetId = String(request.params.userId);
+
+  if (!UUID.test(targetId)) {
+    fail(response, 400, "invalid_target");
+    return;
+  }
+
+  try {
+    const supabase = getSupabaseAdmin();
+
+    const { data: targetProfile, error: targetProfileError } =
+      await supabase
+        .from("profiles")
+        .select("id,is_profile_private")
+        .eq("id", targetId)
+        .maybeSingle();
+
+    if (targetProfileError) {
+      throw targetProfileError;
+    }
+
+    if (!targetProfile) {
+      fail(response, 404, "user_not_found");
+      return;
+    }
+
+    const isOwnProfile = viewerId === targetId;
+
+    let isFriend = false;
+
+    if (!isOwnProfile) {
+      const relationship = await findConnection(viewerId, targetId);
+      isFriend = relationship?.status === "accepted";
+    }
+
+    const canSeeSocialData =
+      isOwnProfile ||
+      targetProfile.is_profile_private !== true ||
+      isFriend;
+
+    if (!canSeeSocialData) {
+      response.set("Cache-Control", "private, no-store");
+
+      response.json({
+        friendCount: null,
+        mutualCount: 0,
+        mutualFriends: [],
+      });
+
+      return;
+    }
+
+    const [viewerRows, targetRows] = await Promise.all([
+      userConnections(viewerId),
+      userConnections(targetId),
+    ]);
+
+    function acceptedPeerIds(
+      rows: ConnectionRow[],
+      ownerId: string,
+    ) {
+      return rows
+        .filter((row) => row.status === "accepted")
+        .map((row) =>
+          row.requester_id === ownerId
+            ? row.addressee_id
+            : row.requester_id,
+        );
+    }
+
+    const viewerFriendIds = acceptedPeerIds(
+      viewerRows,
+      viewerId,
+    );
+
+    const targetFriendIds = acceptedPeerIds(
+      targetRows,
+      targetId,
+    );
+
+    const viewerFriendSet = new Set(viewerFriendIds);
+
+    const mutualIds = targetFriendIds.filter((id) =>
+      viewerFriendSet.has(id),
+    );
+
+    const visibleMutualIds = mutualIds.slice(0, 4);
+
+    let mutualFriends: Awaited<
+      ReturnType<typeof summaries>
+    > = [];
+
+    if (visibleMutualIds.length > 0) {
+      const { data: profiles, error: profilesError } =
+        await supabase
+          .from("profiles")
+          .select(PROFILE_FIELDS)
+          .in("id", visibleMutualIds);
+
+      if (profilesError) {
+        throw profilesError;
+      }
+
+      const profileById = new Map(
+        ((profiles ?? []) as ProfileRow[]).map((profile) => [
+          profile.id,
+          profile,
+        ]),
+      );
+
+      const orderedProfiles = visibleMutualIds.flatMap(
+        (id) => {
+          const profile = profileById.get(id);
+          return profile ? [profile] : [];
+        },
+      );
+
+      mutualFriends = await summaries(
+        orderedProfiles,
+        new Set(visibleMutualIds),
+      );
+    }
+
+    response.set("Cache-Control", "private, no-store");
+
+    response.json({
+      friendCount: targetFriendIds.length,
+      mutualCount: mutualIds.length,
+      mutualFriends,
+    });
+  } catch (error) {
+    unavailable(request, response, error);
+  }
+});
+
 router.get("/connections/with/:userId", async (request, response) => {
   const userId = await viewer(request, response);
   if (!userId) return;

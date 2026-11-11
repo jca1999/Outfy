@@ -4,6 +4,24 @@ export type DisplayNameVisibility =
   | 'friends'
   | 'nobody';
 
+export type ProfileSectionVisibility =
+  | 'everyone'
+  | 'friends';
+
+export type ProfileInterest =
+  | 'sports'
+  | 'music'
+  | 'movies'
+  | 'outdoors'
+  | 'social'
+  | 'food'
+  | 'gaming'
+  | 'board_games'
+  | 'culture'
+  | 'travel'
+  | 'learning'
+  | 'other';
+
 export interface HomeLocation {
   countryCode: string;
   country: string;
@@ -30,6 +48,10 @@ export interface AuthUser {
   homeLocation: HomeLocation | null;
   isProfilePrivate: boolean;
   notificationPreferences: NotificationPreferences;
+  interests: ProfileInterest[];
+  bio: string | null;
+  bioVisibility: ProfileSectionVisibility;
+  interestsVisibility: ProfileSectionVisibility;
 }
 
 export interface UpdateProfileResponse {
@@ -59,6 +81,8 @@ export interface PublicProfile {
   country: string | null;
   isPrivate: boolean;
   isOwnProfile: boolean;
+  interests: ProfileInterest[];
+  bio: string | null;
 }
 
 export interface PublicProfileResponse {
@@ -216,6 +240,10 @@ export function updateProfile(input: {
   homeLocation?: HomeLocation | null;
   isProfilePrivate?: boolean;
   notificationPreferences?: Partial<NotificationPreferences>;
+  interests?: ProfileInterest[];
+  bio?: string;
+  bioVisibility?: ProfileSectionVisibility;
+  interestsVisibility?: ProfileSectionVisibility;
 }) {
   return request<UpdateProfileResponse>('/profile', {
     method: 'PATCH',

@@ -37,6 +37,9 @@
     "connected": "Friends",
     "requestSent": "Request sent",
     "incomingRequest": "This person sent you a friend request",
+    "mutualFriends_one": "{{count}} mutual friend",
+    "mutualFriends_other": "{{count}} mutual friends",
+    "mutualFriendsDescription": "People you're both friends with.",
     "reputation": {
       "noReviews": "No ratings yet",
       "reviews_one": "{{count}} rating",
@@ -57,7 +60,13 @@
       "emptyDescription": "When they publish a plan you can see, it will appear here.",
       "error": "We couldn't load their plans.",
       "retry": "Retry",
-      "friendsOnly": "Friends only"
+      "friendsOnly": "Friends only",
+      "upcomingTab": "Upcoming",
+      "completedTab": "Completed",
+      "completedDescription": "Some of the latest plans they have organized.",
+      "completedEmptyTitle": "No completed plans yet",
+      "completedEmptyDescription": "Completed plans will appear here.",
+      "completedBadge": "Completed"
     }
   },
 
@@ -114,6 +123,11 @@
       "friends": "Friends only",
       "nobody": "Nobody"
     },
+    "bio": {
+      "label": "About you",
+      "placeholder": "Tell people a little about yourself, the plans you enjoy or what you'd like to do...",
+      "help": "A short introduction so other people can get to know you a little better."
+    },
     "location": {
       "label": "Your usual location",
       "help": "We'll use it to show you plans nearby. You can explore other locations without changing it.",
@@ -154,6 +168,14 @@
       "help": "Turn this on if you want to limit who can view your profile.",
       "publicStatus": "Your profile is public.",
       "privateStatus": "Your profile is private."
+    },
+    "sectionPrivacy": {
+      "title": "Social profile visibility",
+      "help": "Choose who can see each part of your profile.",
+      "bio": "Bio",
+      "interests": "Interests",
+      "everyone": "Everyone",
+      "friends": "Friends only"
     }
   },
 
@@ -190,7 +212,9 @@
     "profilePrivacySaved": "Profile privacy updated.",
     "profilePrivacySaveError": "We couldn't update your profile privacy. Please try again.",
     "notificationsSaved": "Notification preferences updated.",
-    "notificationsSaveError": "We couldn't update your notification preferences. Please try again."
+    "notificationsSaveError": "We couldn't update your notification preferences. Please try again.",
+    "sectionPrivacySaved": "Profile privacy updated.",
+    "sectionPrivacySaveError": "We couldn't update your privacy settings. Please try again."
   },
 
   "stats": {
@@ -200,31 +224,15 @@
   },
 
   "interests": {
-    "eyebrow": "Your mix",
-    "title": "Interests",
-    "selected_one": "{{count}} selected",
-    "selected_other": "{{count}} selected",
-    "description": "Your interests help us organize plans and help you meet people who enjoy similar things.",
-
-    "categories": {
-      "football": "Football",
-      "cinema": "Cinema",
-      "boardGames": "Board games",
-      "drinks": "Drinks",
-      "hiking": "Hiking",
-      "creative": "Creative",
-      "cooking": "Cooking"
-    },
-
-    "short": {
-      "football": "FB",
-      "cinema": "CI",
-      "boardGames": "BG",
-      "drinks": "DR",
-      "hiking": "HI",
-      "creative": "CR",
-      "cooking": "CO"
-    }
+    "eyebrow": "Your interests",
+    "title": "What kind of plans are you into?",
+    "selected_one": "{{count}} of 5 selected",
+    "selected_other": "{{count}} of 5 selected",
+    "description": "Choose up to 5 types of plans you enjoy. We'll use them to personalize your profile and recommendations.",
+    "maxHint": "You can choose up to 5 interests.",
+    "maxReached": "You've selected the maximum of 5 interests.",
+    "profileTitle": "Interests",
+    "profileDescription": "The kinds of plans they enjoy most."
   },
 
   "completed": {
@@ -263,5 +271,13 @@
     "rating": "Rating",
     "reviews": "Ratings",
     "friends": "Friends"
+  },
+  "reputationCard": {
+    "title": "Reputation",
+    "description": "Ratings received from completed plans.",
+    "reviews_one": "{{count}} rating",
+    "reviews_other": "{{count}} ratings",
+    "noReviews": "No ratings yet.",
+    "ratingBreakdown": "{{rating}} stars: {{count}} ratings"
   }
 }

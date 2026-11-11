@@ -221,11 +221,21 @@ export type ProfileReputation = {
   averageRating: number | null;
   reviewCount: number;
   completedActivityCount: number;
+
+  ratingDistribution: {
+    1: number;
+    2: number;
+    3: number;
+    4: number;
+    5: number;
+  };
+
   recentReviews: ProfileRecentReview[];
 };
 
 export type ProfileActivitiesResponse = {
   activities: ProfileActivity[];
+  completedActivities: ProfileActivity[];
   reputation: ProfileReputation | null;
 };
 

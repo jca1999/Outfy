@@ -30,6 +30,12 @@ export type ConnectionOverview = {
   accepted: ConnectionEntry[];
 };
 
+export type ConnectionSocialOverview = {
+  friendCount: number | null;
+  mutualCount: number;
+  mutualFriends: ConnectionProfile[];
+};
+
 export class ConnectionApiError extends Error {
   constructor(
     message: string,
@@ -75,6 +81,12 @@ export function searchConnectionProfiles(query: string) {
 export function getRelationship(userId: string) {
   return request<{ relationship: Relationship | null }>(
     `/with/${encodeURIComponent(userId)}`,
+  );
+}
+
+export function getConnectionSocialOverview(userId: string) {
+  return request<ConnectionSocialOverview>(
+    `/social/${encodeURIComponent(userId)}`,
   );
 }
 

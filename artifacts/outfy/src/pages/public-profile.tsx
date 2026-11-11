@@ -23,6 +23,12 @@ import {
 } from "@/activities/activity-api";
 import { ConnectionAvatar } from "@/connections/connection-ui";
 import { ProfileRelationship } from "@/connections/profile-relationship";
+import { ProfileInterestsCard } from "@/components/profile-interests-card";
+import {
+  getConnectionSocialOverview,
+  type ConnectionSocialOverview,
+} from "@/connections/connections-api";
+import { ProfileReputationCard } from "@/components/profile-reputation-card";
 
 type LoadState = "loading" | "ready" | "notFound" | "error";
 
@@ -40,11 +46,24 @@ export function PublicProfile() {
   const [reloadKey, setReloadKey] = useState(0);
 
   const [plans, setPlans] = useState<ProfileActivity[]>([]);
+  const [completedPlans, setCompletedPlans] = useState<ProfileActivity[]>([]);
+  const [profilePlansTab, setProfilePlansTab] = useState<
+    "upcoming" | "completed"
+  >("upcoming");
   const [reputation, setReputation] = useState<ProfileReputation | null>(null);
   const [plansState, setPlansState] = useState<
     "idle" | "loading" | "ready" | "error"
   >("idle");
   const [plansReloadKey, setPlansReloadKey] = useState(0);
+
+  const [socialOverview, setSocialOverview] =
+    useState<ConnectionSocialOverview | null>(null);
+
+  const [socialState, setSocialState] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
+
+  const [socialReloadKey, setSocialReloadKey] = useState(0);
 
   // Silent refresh after relationship changes: privacy representation may change.
   const refreshProfile = useCallback(() => {
@@ -121,6 +140,7 @@ export function PublicProfile() {
   useEffect(() => {
     if (!profile) {
       setPlans([]);
+      setCompletedPlans([]);
       setReputation(null);
       setPlansState("idle");
       return;
@@ -128,6 +148,7 @@ export function PublicProfile() {
 
     if (profile.isPrivate) {
       setPlans([]);
+      setCompletedPlans([]);
       setReputation(null);
       setPlansState("ready");
       return;
@@ -142,6 +163,7 @@ export function PublicProfile() {
         if (!active) return;
 
         setPlans(result.activities);
+        setCompletedPlans(result.completedActivities);
         setReputation(result.reputation);
         setPlansState("ready");
       })
@@ -149,6 +171,7 @@ export function PublicProfile() {
         if (!active) return;
 
         setPlans([]);
+        setCompletedPlans([]);
         setReputation(null);
         setPlansState("error");
       });
@@ -158,9 +181,42 @@ export function PublicProfile() {
     };
   }, [profile?.id, profile?.isPrivate, plansReloadKey]);
 
+  useEffect(() => {
+    if (!profile) {
+      setSocialOverview(null);
+      setSocialState("idle");
+      return;
+    }
+
+    let active = true;
+
+    setSocialOverview(null);
+    setSocialState("loading");
+
+    getConnectionSocialOverview(profile.id)
+      .then((result) => {
+        if (!active) return;
+
+        setSocialOverview(result);
+        setSocialState("ready");
+      })
+      .catch(() => {
+        if (!active) return;
+
+        setSocialOverview(null);
+        setSocialState("error");
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [profile?.id, socialReloadKey]);
+
   const handleRelationshipChanged = useCallback(() => {
     refreshProfile();
+
     setPlansReloadKey((current) => current + 1);
+    setSocialReloadKey((current) => current + 1);
   }, [refreshProfile]);
 
   function goBack() {
@@ -293,7 +349,7 @@ export function PublicProfile() {
           )}
 
           {!profile.isPrivate && reputation && (
-            <div className="mt-6 grid w-full max-w-xl grid-cols-3 gap-2">
+            <div className="mt-6 grid w-full max-w-2xl grid-cols-2 gap-2 sm:grid-cols-4">
               <div className="rounded-[18px] border border-border bg-background px-2 py-4 text-center">
                 <p className="text-xl font-bold tracking-[-.04em]">
                   {reputation.completedActivityCount}
@@ -327,8 +383,64 @@ export function PublicProfile() {
                   {t("socialStats.reviews")}
                 </p>
               </div>
+
+              <div className="rounded-[18px] border border-border bg-background px-2 py-4 text-center">
+                <p className="text-xl font-bold tracking-[-.04em]">
+                  {socialState === "ready"
+                    ? (socialOverview?.friendCount ?? "—")
+                    : "—"}
+                </p>
+
+                <p className="mt-1 text-[11px] font-semibold text-muted-foreground">
+                  {t("socialStats.friends")}
+                </p>
+              </div>
             </div>
           )}
+
+          {!profile.isPrivate &&
+            socialState === "ready" &&
+            socialOverview &&
+            socialOverview.mutualCount > 0 && (
+              <div className="mt-5 w-full max-w-2xl rounded-[20px] border border-border bg-background p-4">
+                <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex -space-x-2">
+                      {socialOverview.mutualFriends.map((friend) => (
+                        <button
+                          key={friend.id}
+                          type="button"
+                          onClick={() =>
+                            navigate(
+                              `/users/${encodeURIComponent(friend.username)}`,
+                            )
+                          }
+                          title={`@${friend.username}`}
+                          className="rounded-full ring-2 ring-background transition hover:z-10 hover:-translate-y-0.5"
+                        >
+                          <ConnectionAvatar
+                            profile={friend}
+                            className="h-9 w-9 text-xs"
+                          />
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="text-left">
+                      <p className="text-sm font-bold">
+                        {t("publicProfile.mutualFriends", {
+                          count: socialOverview.mutualCount,
+                        })}
+                      </p>
+
+                      <p className="text-xs text-muted-foreground">
+                        {t("publicProfile.mutualFriendsDescription")}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
           {profile.isPrivate && (
             <div className="mt-6 w-full rounded-[20px] border border-border bg-muted/30 p-5">
@@ -354,22 +466,38 @@ export function PublicProfile() {
           </div>
         </div>
       </section>
-      
+
+      {!profile.isPrivate && profile.bio && (
+        <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-7">
+          <h2 className="text-xl font-bold tracking-[-.03em]">
+            {t("identity.bio.label")}
+          </h2>
+
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+            {profile.bio}
+          </p>
+        </section>
+      )}
+
+      {!profile.isPrivate && profile.interests.length > 0 && (
+        <ProfileInterestsCard interests={profile.interests} />
+      )}
+
+      {!profile.isPrivate && reputation && (
+        <ProfileReputationCard reputation={reputation} />
+      )}
+
       {!profile.isPrivate &&
         reputation &&
         reputation.recentReviews.length > 0 && (
           <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-7">
             <div>
               <h2 className="text-xl font-bold tracking-[-.03em]">
-                {t(
-                  "publicProfile.reputation.publicOpinionsTitle",
-                )}
+                {t("publicProfile.reputation.publicOpinionsTitle")}
               </h2>
 
               <p className="mt-1 text-sm text-muted-foreground">
-                {t(
-                  "publicProfile.reputation.opinionsDescription",
-                )}
+                {t("publicProfile.reputation.opinionsDescription")}
               </p>
             </div>
 
@@ -380,18 +508,16 @@ export function PublicProfile() {
                   className="rounded-[20px] border border-border bg-background p-4"
                 >
                   <div className="flex items-center gap-1">
-                    {Array.from({ length: 5 }).map(
-                      (_, index) => (
-                        <Star
-                          key={index}
-                          className={`h-4 w-4 ${
-                            index < review.rating
-                              ? "fill-current text-primary"
-                              : "text-muted-foreground/30"
-                          }`}
-                        />
-                      ),
-                    )}
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <Star
+                        key={index}
+                        className={`h-4 w-4 ${
+                          index < review.rating
+                            ? "fill-current text-primary"
+                            : "text-muted-foreground/30"
+                        }`}
+                      />
+                    ))}
                   </div>
 
                   <p className="mt-3 text-sm leading-relaxed text-foreground">
@@ -402,32 +528,21 @@ export function PublicProfile() {
                     <button
                       type="button"
                       onClick={() =>
-                        navigate(
-                          `/activities/${review.activityId}`,
-                        )
+                        navigate(`/activities/${review.activityId}`)
                       }
                       className="text-left font-semibold text-primary transition hover:underline"
                     >
-                      {t(
-                        "publicProfile.reputation.opinionPlan",
-                        {
-                          title: review.activityTitle,
-                        },
-                      )}
+                      {t("publicProfile.reputation.opinionPlan", {
+                        title: review.activityTitle,
+                      })}
                     </button>
 
                     <span>
                       {review.reviewerUsername
-                        ? t(
-                            "publicProfile.reputation.opinionBy",
-                            {
-                              username:
-                                review.reviewerUsername,
-                            },
-                          )
-                        : t(
-                            "publicProfile.reputation.opinionByFallback",
-                          )}
+                        ? t("publicProfile.reputation.opinionBy", {
+                            username: review.reviewerUsername,
+                          })
+                        : t("publicProfile.reputation.opinionByFallback")}
                     </span>
                   </div>
                 </div>
@@ -437,15 +552,51 @@ export function PublicProfile() {
         )}
       {!profile.isPrivate && (
         <section className="rounded-[26px] border border-border bg-card p-6 soft-shadow sm:p-8">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h2 className="text-xl font-bold tracking-[-.03em]">
                 {t("publicProfile.plans.title")}
               </h2>
 
               <p className="mt-1 text-sm text-muted-foreground">
-                {t("publicProfile.plans.description")}
+                {profilePlansTab === "upcoming"
+                  ? t("publicProfile.plans.description")
+                  : t("publicProfile.plans.completedDescription")}
               </p>
+            </div>
+
+            <div
+              className="flex rounded-full bg-muted p-1"
+              role="tablist"
+              aria-label={t("publicProfile.plans.title")}
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={profilePlansTab === "upcoming"}
+                onClick={() => setProfilePlansTab("upcoming")}
+                className={`rounded-full px-4 py-2 text-xs font-bold transition ${
+                  profilePlansTab === "upcoming"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {t("publicProfile.plans.upcomingTab")}
+              </button>
+
+              <button
+                type="button"
+                role="tab"
+                aria-selected={profilePlansTab === "completed"}
+                onClick={() => setProfilePlansTab("completed")}
+                className={`rounded-full px-4 py-2 text-xs font-bold transition ${
+                  profilePlansTab === "completed"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {t("publicProfile.plans.completedTab")}
+              </button>
             </div>
           </div>
 
@@ -466,27 +617,144 @@ export function PublicProfile() {
 
               <button
                 type="button"
-                onClick={() => setPlansReloadKey((current) => current + 1)}
+                onClick={() =>
+                  setPlansReloadKey((current) => current + 1)
+                }
                 className="mt-4 rounded-full bg-foreground px-4 py-2 text-xs font-bold text-background"
               >
                 {t("publicProfile.plans.retry")}
               </button>
             </div>
-          ) : plans.length === 0 ? (
+          ) : profilePlansTab === "upcoming" ? (
+            plans.length === 0 ? (
+              <div className="mt-6 rounded-[20px] border border-dashed border-border p-7 text-center">
+                <CalendarDays className="mx-auto h-7 w-7 text-muted-foreground" />
+
+                <h3 className="mt-3 text-sm font-bold">
+                  {t("publicProfile.plans.emptyTitle")}
+                </h3>
+
+                <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
+                  {t("publicProfile.plans.emptyDescription")}
+                </p>
+              </div>
+            ) : (
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                {plans.map((activity) => {
+                  const date = new Date(activity.startsAt);
+
+                  let dateLabel: string;
+
+                  try {
+                    dateLabel = new Intl.DateTimeFormat(
+                      i18n.language === "en" ? "en-GB" : "es-ES",
+                      {
+                        weekday: "short",
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        timeZone: activity.timezoneName,
+                      },
+                    ).format(date);
+                  } catch {
+                    dateLabel = new Intl.DateTimeFormat(
+                      i18n.language === "en" ? "en-GB" : "es-ES",
+                      {
+                        day: "numeric",
+                        month: "short",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      },
+                    ).format(date);
+                  }
+
+                  const locationLabel =
+                    activity.locationType === "online"
+                      ? tActivities("locationTypes.online")
+                      : (activity.city ?? "");
+
+                  return (
+                    <button
+                      key={activity.id}
+                      type="button"
+                      onClick={() =>
+                        navigate(`/activities/${activity.id}`)
+                      }
+                      className="group flex w-full flex-col rounded-[22px] border border-border bg-background p-4 text-left transition hover:border-primary/40 hover:shadow-sm"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <span className="rounded-md bg-secondary px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-secondary-foreground">
+                          {tActivities(
+                            `categories.${activity.category}`,
+                          )}
+                        </span>
+
+                        {activity.visibility === "friends" && (
+                          <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
+                            {t("publicProfile.plans.friendsOnly")}
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="mt-3 line-clamp-2 text-lg font-bold leading-tight group-hover:underline">
+                        {activity.title}
+                      </h3>
+
+                      <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <CalendarDays className="h-4 w-4 shrink-0 text-foreground/40" />
+                          <span>{dateLabel}</span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <MapPin className="h-4 w-4 shrink-0 text-foreground/40" />
+                          <span className="truncate">
+                            {locationLabel}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <Users className="h-4 w-4 shrink-0 text-foreground/40" />
+
+                          <span>
+                            {activity.participationMode === "limited"
+                              ? tActivities(
+                                  "create.detail.participantsLimited",
+                                  {
+                                    count: activity.memberCount,
+                                    max: activity.maxParticipants,
+                                  },
+                                )
+                              : tActivities(
+                                  "create.detail.participantsUnlimited",
+                                  {
+                                    count: activity.memberCount,
+                                  },
+                                )}
+                          </span>
+                        </div>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )
+          ) : completedPlans.length === 0 ? (
             <div className="mt-6 rounded-[20px] border border-dashed border-border p-7 text-center">
               <CalendarDays className="mx-auto h-7 w-7 text-muted-foreground" />
 
               <h3 className="mt-3 text-sm font-bold">
-                {t("publicProfile.plans.emptyTitle")}
+                {t("publicProfile.plans.completedEmptyTitle")}
               </h3>
 
               <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
-                {t("publicProfile.plans.emptyDescription")}
+                {t("publicProfile.plans.completedEmptyDescription")}
               </p>
             </div>
           ) : (
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              {plans.map((activity) => {
+              {completedPlans.map((activity) => {
                 const date = new Date(activity.startsAt);
 
                 let dateLabel: string;
@@ -495,11 +763,9 @@ export function PublicProfile() {
                   dateLabel = new Intl.DateTimeFormat(
                     i18n.language === "en" ? "en-GB" : "es-ES",
                     {
-                      weekday: "short",
                       day: "numeric",
                       month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
+                      year: "numeric",
                       timeZone: activity.timezoneName,
                     },
                   ).format(date);
@@ -509,8 +775,7 @@ export function PublicProfile() {
                     {
                       day: "numeric",
                       month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
+                      year: "numeric",
                     },
                   ).format(date);
                 }
@@ -521,25 +786,23 @@ export function PublicProfile() {
                     : (activity.city ?? "");
 
                 return (
-                  <button
+                  <div
                     key={activity.id}
-                    type="button"
-                    onClick={() => navigate(`/activities/${activity.id}`)}
-                    className="group flex w-full flex-col rounded-[22px] border border-border bg-background p-4 text-left transition hover:border-foreground/20 hover:shadow-sm"
+                    className="flex w-full flex-col rounded-[22px] border border-border bg-muted/20 p-4 text-left"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <span className="rounded-md bg-secondary px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-secondary-foreground">
-                        {tActivities(`categories.${activity.category}`)}
+                        {tActivities(
+                          `categories.${activity.category}`,
+                        )}
                       </span>
 
-                      {activity.visibility === "friends" && (
-                        <span className="rounded-full bg-primary/10 px-2.5 py-1 text-[10px] font-bold text-primary">
-                          {t("publicProfile.plans.friendsOnly")}
-                        </span>
-                      )}
+                      <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-bold text-muted-foreground">
+                        {t("publicProfile.plans.completedBadge")}
+                      </span>
                     </div>
 
-                    <h3 className="mt-3 line-clamp-2 text-lg font-bold leading-tight group-hover:underline">
+                    <h3 className="mt-3 line-clamp-2 text-lg font-bold leading-tight">
                       {activity.title}
                     </h3>
 
@@ -551,7 +814,9 @@ export function PublicProfile() {
 
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 shrink-0 text-foreground/40" />
-                        <span className="truncate">{locationLabel}</span>
+                        <span className="truncate">
+                          {locationLabel}
+                        </span>
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -559,10 +824,13 @@ export function PublicProfile() {
 
                         <span>
                           {activity.participationMode === "limited"
-                            ? tActivities("create.detail.participantsLimited", {
-                                count: activity.memberCount,
-                                max: activity.maxParticipants,
-                              })
+                            ? tActivities(
+                                "create.detail.participantsLimited",
+                                {
+                                  count: activity.memberCount,
+                                  max: activity.maxParticipants,
+                                },
+                              )
                             : tActivities(
                                 "create.detail.participantsUnlimited",
                                 {
@@ -572,7 +840,7 @@ export function PublicProfile() {
                         </span>
                       </div>
                     </div>
-                  </button>
+                  </div>
                 );
               })}
             </div>

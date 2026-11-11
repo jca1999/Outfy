@@ -10,6 +10,7 @@ import { useLocation } from 'wouter';
 import {
   type DisplayNameVisibility,
   type NotificationPreferences,
+  type ProfileSectionVisibility,
 } from '@/auth/auth-api';
 import { useAuth } from '@/auth/auth-context';
 import { LanguageSwitcher } from '@/components/language-switcher';
@@ -38,6 +39,21 @@ export function Settings() {
     isProfilePrivate,
     setIsProfilePrivate,
   ] = useState(false);
+
+  const [
+    bioVisibility,
+    setBioVisibility,
+  ] = useState<ProfileSectionVisibility>('everyone');
+
+  const [
+    interestsVisibility,
+    setInterestsVisibility,
+  ] = useState<ProfileSectionVisibility>('everyone');
+
+  const [
+    savingSectionVisibility,
+    setSavingSectionVisibility,
+  ] = useState<'bio' | 'interests' | null>(null);
 
   const [
     savingProfilePrivacy,
@@ -75,6 +91,14 @@ export function Settings() {
 
     setIsProfilePrivate(
       user?.isProfilePrivate ?? false,
+    );
+
+    setBioVisibility(
+      user?.bioVisibility ?? 'everyone',
+    );
+
+    setInterestsVisibility(
+      user?.interestsVisibility ?? 'everyone',
     );
 
     setNotificationPreferences(
@@ -160,6 +184,62 @@ export function Settings() {
       );
     } finally {
       setSavingProfilePrivacy(false);
+    }
+  }
+
+  async function handleSectionVisibilityChange(
+    section: 'bio' | 'interests',
+    nextVisibility: ProfileSectionVisibility,
+  ) {
+    if (savingSectionVisibility) {
+      return;
+    }
+
+    const currentVisibility =
+      section === 'bio'
+        ? bioVisibility
+        : interestsVisibility;
+
+    if (currentVisibility === nextVisibility) {
+      return;
+    }
+
+    setSavingSectionVisibility(section);
+    setError('');
+    setNotice('');
+
+    if (section === 'bio') {
+      setBioVisibility(nextVisibility);
+    } else {
+      setInterestsVisibility(nextVisibility);
+    }
+
+    try {
+      if (section === 'bio') {
+        await updateProfile({
+          bioVisibility: nextVisibility,
+        });
+      } else {
+        await updateProfile({
+          interestsVisibility: nextVisibility,
+        });
+      }
+
+      setNotice(
+        t('messages.sectionPrivacySaved'),
+      );
+    } catch {
+      if (section === 'bio') {
+        setBioVisibility(currentVisibility);
+      } else {
+        setInterestsVisibility(currentVisibility);
+      }
+
+      setError(
+        t('messages.sectionPrivacySaveError'),
+      );
+    } finally {
+      setSavingSectionVisibility(null);
     }
   }
 
@@ -389,6 +469,131 @@ export function Settings() {
                   }`}
                 />
               </button>
+            </div>
+          </div>
+        </div>
+        <div className="mt-6 border-t border-border pt-6">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-bold">
+              {t('identity.sectionPrivacy.title')}
+            </p>
+
+            {savingSectionVisibility && (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+            )}
+          </div>
+
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+            {t('identity.sectionPrivacy.help')}
+          </p>
+
+          <div className="mt-5 space-y-5">
+            <div>
+              <p className="text-sm font-semibold">
+                {t('identity.sectionPrivacy.bio')}
+              </p>
+
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {(
+                  [
+                    {
+                      value: 'everyone',
+                      label: t(
+                        'identity.sectionPrivacy.everyone',
+                      ),
+                    },
+                    {
+                      value: 'friends',
+                      label: t(
+                        'identity.sectionPrivacy.friends',
+                      ),
+                    },
+                  ] as {
+                    value: ProfileSectionVisibility;
+                    label: string;
+                  }[]
+                ).map((option) => {
+                  const selected =
+                    bioVisibility === option.value;
+
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      disabled={
+                        savingSectionVisibility !== null
+                      }
+                      onClick={() => {
+                        void handleSectionVisibilityChange(
+                          'bio',
+                          option.value,
+                        );
+                      }}
+                      className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+                        selected
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                      } disabled:opacity-60`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm font-semibold">
+                {t('identity.sectionPrivacy.interests')}
+              </p>
+
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {(
+                  [
+                    {
+                      value: 'everyone',
+                      label: t(
+                        'identity.sectionPrivacy.everyone',
+                      ),
+                    },
+                    {
+                      value: 'friends',
+                      label: t(
+                        'identity.sectionPrivacy.friends',
+                      ),
+                    },
+                  ] as {
+                    value: ProfileSectionVisibility;
+                    label: string;
+                  }[]
+                ).map((option) => {
+                  const selected =
+                    interestsVisibility === option.value;
+
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      disabled={
+                        savingSectionVisibility !== null
+                      }
+                      onClick={() => {
+                        void handleSectionVisibilityChange(
+                          'interests',
+                          option.value,
+                        );
+                      }}
+                      className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+                        selected
+                          ? 'border-primary bg-primary/10 text-primary'
+                          : 'border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground'
+                      } disabled:opacity-60`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>

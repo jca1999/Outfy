@@ -17,6 +17,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 import { useTranslation } from "react-i18next";
 import { useLocation } from "wouter";
+import { ProfileReputationCard } from "@/components/profile-reputation-card";
+import { ProfileInterestsCard } from "@/components/profile-interests-card";
 
 import {
   getMyActivityHistory,
@@ -1034,6 +1036,26 @@ export function Profile() {
           </p>
         )}
       </section>
+
+      {user?.bio && (
+        <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-7">
+          <h2 className="text-xl font-bold tracking-[-.03em]">
+            {t("identity.bio.label")}
+          </h2>
+
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+            {user.bio}
+          </p>
+        </section>
+      )}
+
+      {user?.interests && user.interests.length > 0 && (
+        <ProfileInterestsCard interests={user.interests} />
+      )}
+
+      {reputation && (
+        <ProfileReputationCard reputation={reputation} />
+      )}
 
       {reputation && reputation.recentReviews.length > 0 && (
         <section className="rounded-[26px] border border-border bg-card p-5 soft-shadow sm:p-7">

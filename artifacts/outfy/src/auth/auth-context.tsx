@@ -11,6 +11,8 @@ import type {
   DisplayNameVisibility,
   HomeLocation,
   NotificationPreferences,
+  ProfileInterest,
+  ProfileSectionVisibility,
 } from './auth-api';
 import * as authApi from './auth-api';
 import { clearPushForSignOut } from '@/push/push-api';
@@ -40,6 +42,10 @@ interface AuthContextValue {
     homeLocation?: HomeLocation | null;
     isProfilePrivate?: boolean;
     notificationPreferences?: Partial<NotificationPreferences>;
+    interests?: ProfileInterest[];
+    bio?: string;
+    bioVisibility?: ProfileSectionVisibility;
+    interestsVisibility?: ProfileSectionVisibility;
   }) => Promise<AuthUser>;
 }
 

@@ -1806,6 +1806,7 @@ router.get("/activities/user/:userId", async (request, response) => {
     if (!canSeePrivateProfile) {
       response.json({
         activities: [],
+        completedActivities: [],
         reputation: null,
       });
       return;
@@ -1848,6 +1849,50 @@ router.get("/activities/user/:userId", async (request, response) => {
       return;
     }
 
+    let completedPlansQuery = supabase
+      .from("activities")
+      .select(
+        "id,title,category,subcategory,starts_at,ends_at,timezone_name,location_type,city,online_platform,participation_mode,max_participants,status,visibility,activity_members(count)",
+      )
+      .eq("creator_id", userId)
+      .eq("status", "completed")
+      .order("starts_at", { ascending: false })
+      .limit(6);
+
+    if (canSeeFriendsOnly) {
+      completedPlansQuery = completedPlansQuery.in("visibility", [
+        "public",
+        "friends",
+      ]);
+    } else {
+      completedPlansQuery = completedPlansQuery.eq(
+        "visibility",
+        "public",
+      );
+    }
+
+    const {
+      data: completedPlans,
+      error: completedPlansError,
+    } = await completedPlansQuery;
+
+    if (completedPlansError) {
+      request.log.error(
+        {
+          err: completedPlansError,
+          userId,
+          viewerId: session.user.id,
+        },
+        "Unable to load completed profile activities",
+      );
+
+      response.status(500).json({
+        error: "The completed activities could not be loaded.",
+      });
+
+      return;
+    }
+
     const { data: completedCandidates, error: completedActivitiesError } =
       await supabase
         .from("activities")
@@ -1885,6 +1930,14 @@ router.get("/activities/user/:userId", async (request, response) => {
     let averageRating: number | null = null;
     let reviewCount = 0;
 
+    const ratingDistribution: Record<1 | 2 | 3 | 4 | 5, number> = {
+      1: 0,
+      2: 0,
+      3: 0,
+      4: 0,
+      5: 0,
+    };
+
     let recentReviews: Array<{
       rating: number;
       comment: string;
@@ -1921,6 +1974,26 @@ router.get("/activities/user/:userId", async (request, response) => {
       }
 
       reviewCount = reviews?.length ?? 0;
+
+      for (const review of reviews ?? []) {
+        switch (review.rating) {
+          case 1:
+            ratingDistribution[1] += 1;
+            break;
+          case 2:
+            ratingDistribution[2] += 1;
+            break;
+          case 3:
+            ratingDistribution[3] += 1;
+            break;
+          case 4:
+            ratingDistribution[4] += 1;
+            break;
+          case 5:
+            ratingDistribution[5] += 1;
+            break;
+        }
+      }
 
       if (reviewCount > 0) {
         const ratingSum = reviews!.reduce(
@@ -1990,11 +2063,13 @@ router.get("/activities/user/:userId", async (request, response) => {
       averageRating,
       reviewCount,
       completedActivityCount: completedActivityIds.length,
+      ratingDistribution,
       recentReviews,
     };
 
     response.json({
       reputation,
+
       activities: (activities ?? []).map((activity) => ({
         id: activity.id,
         title: activity.title,
@@ -2012,6 +2087,27 @@ router.get("/activities/user/:userId", async (request, response) => {
         status: activity.status,
         visibility: activity.visibility,
       })),
+
+      completedActivities: (completedPlans ?? []).map(
+        (activity) => ({
+          id: activity.id,
+          title: activity.title,
+          category: activity.category,
+          subcategory: activity.subcategory,
+          startsAt: activity.starts_at,
+          endsAt: activity.ends_at,
+          timezoneName: activity.timezone_name,
+          locationType: activity.location_type,
+          city: activity.city,
+          onlinePlatform: activity.online_platform,
+          participationMode: activity.participation_mode,
+          maxParticipants: activity.max_participants,
+          memberCount:
+            activity.activity_members?.[0]?.count ?? 0,
+          status: activity.status,
+          visibility: activity.visibility,
+        }),
+      ),
     });
   } catch (error) {
     request.log.error(

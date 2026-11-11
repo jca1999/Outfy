@@ -37,6 +37,9 @@
     "connected": "Amigos",
     "requestSent": "Solicitud enviada",
     "incomingRequest": "Te ha enviado una solicitud de amistad",
+    "mutualFriends_one": "{{count}} amigo en común",
+    "mutualFriends_other": "{{count}} amigos en común",
+    "mutualFriendsDescription": "Personas que ambos tenéis como amigos.",
     "reputation": {
       "noReviews": "Sin valoraciones",
       "reviews_one": "{{count}} valoración",
@@ -57,7 +60,13 @@
       "emptyDescription": "Cuando publique un plan que puedas ver, aparecerá aquí.",
       "error": "No hemos podido cargar sus planes.",
       "retry": "Reintentar",
-      "friendsOnly": "Solo amigos"
+      "friendsOnly": "Solo amigos",
+      "upcomingTab": "Próximos",
+      "completedTab": "Realizados",
+      "completedDescription": "Algunos de los últimos planes que ha organizado.",
+      "completedEmptyTitle": "Todavía no hay planes realizados",
+      "completedEmptyDescription": "Cuando complete planes, aparecerán aquí.",
+      "completedBadge": "Realizado"
     }
   },
 
@@ -114,6 +123,11 @@
       "friends": "Solo amigos",
       "nobody": "Nadie"
     },
+    "bio": {
+      "label": "Sobre ti",
+      "placeholder": "Cuéntanos un poco sobre ti, qué planes te gustan o qué te apetece hacer...",
+      "help": "Una breve presentación para que otras personas sepan un poco más de ti."
+    },
     "location": {
       "label": "Tu ubicación habitual",
       "help": "La usaremos para mostrarte planes cerca de ti. Podrás explorar otras ubicaciones sin cambiarla.",
@@ -154,6 +168,14 @@
       "help": "Actívalo si quieres limitar quién puede ver tu perfil.",
       "publicStatus": "Tu perfil es público.",
       "privateStatus": "Tu perfil es privado."
+    },
+    "sectionPrivacy": {
+      "title": "Visibilidad del perfil social",
+      "help": "Elige quién puede ver cada parte de tu perfil.",
+      "bio": "Bio",
+      "interests": "Intereses",
+      "everyone": "Todos",
+      "friends": "Solo amigos"
     }
   },
 
@@ -190,7 +212,9 @@
     "profilePrivacySaved": "Privacidad del perfil actualizada.",
     "profilePrivacySaveError": "No se ha podido cambiar la privacidad del perfil. Inténtalo de nuevo.",
     "notificationsSaved": "Preferencias de notificaciones actualizadas.",
-    "notificationsSaveError": "No se han podido actualizar las notificaciones. Inténtalo de nuevo."
+    "notificationsSaveError": "No se han podido actualizar las notificaciones. Inténtalo de nuevo.",
+    "sectionPrivacySaved": "Privacidad del perfil actualizada.",
+    "sectionPrivacySaveError": "No se ha podido actualizar la privacidad. Inténtalo de nuevo."
   },
 
   "stats": {
@@ -200,31 +224,15 @@
   },
 
   "interests": {
-    "eyebrow": "Tu mezcla",
-    "title": "Intereses",
-    "selected_one": "{{count}} elegido",
-    "selected_other": "{{count}} elegidos",
-    "description": "Tus intereses ayudan a ordenar los planes y conocer gente con gustos parecidos.",
-
-    "categories": {
-      "football": "Fútbol",
-      "cinema": "Cine",
-      "boardGames": "Juegos de mesa",
-      "drinks": "Cañas",
-      "hiking": "Senderismo",
-      "creative": "Creativo",
-      "cooking": "Cocina"
-    },
-
-    "short": {
-      "football": "FÚ",
-      "cinema": "CI",
-      "boardGames": "JM",
-      "drinks": "CA",
-      "hiking": "SE",
-      "creative": "CR",
-      "cooking": "CO"
-    }
+    "eyebrow": "Tus gustos",
+    "title": "¿Qué planes te interesan?",
+    "selected_one": "{{count}} de 5 seleccionado",
+    "selected_other": "{{count}} de 5 seleccionados",
+    "description": "Elige hasta 5 tipos de planes que te gusten. Nos ayudarán a personalizar tu perfil y tus recomendaciones.",
+    "maxHint": "Puedes elegir hasta 5 intereses.",
+    "maxReached": "Has elegido el máximo de 5 intereses.",
+    "profileTitle": "Intereses",
+    "profileDescription": "Tipos de planes que más le gustan."
   },
 
   "completed": {
@@ -263,5 +271,13 @@
     "rating": "Valoración",
     "reviews": "Valoraciones",
     "friends": "Amigos"
+  },
+  "reputationCard": {
+    "title": "Reputación",
+    "description": "Valoraciones recibidas en planes completados.",
+    "reviews_one": "{{count}} valoración",
+    "reviews_other": "{{count}} valoraciones",
+    "noReviews": "Todavía no hay valoraciones.",
+    "ratingBreakdown": "{{rating}} estrellas: {{count}} valoraciones"
   }
 }

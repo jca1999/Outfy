@@ -42,12 +42,66 @@ type DisplayNameVisibility =
   | "friends"
   | "nobody";
 
+type ProfileSectionVisibility =
+  | "everyone"
+  | "friends";
+
+function isProfileSectionVisibility(
+  value: unknown,
+): value is ProfileSectionVisibility {
+  return (
+    value === "everyone" ||
+    value === "friends"
+  );
+}
+
 type NotificationPreferences = {
   activities: boolean;
   connections: boolean;
   messages: boolean;
   reminders: boolean;
 };
+
+const PROFILE_INTERESTS = [
+  "sports",
+  "music",
+  "movies",
+  "outdoors",
+  "social",
+  "food",
+  "gaming",
+  "board_games",
+  "culture",
+  "travel",
+  "learning",
+  "other",
+] as const;
+
+type ProfileInterest = (typeof PROFILE_INTERESTS)[number];
+
+const PROFILE_INTEREST_SET = new Set<string>(PROFILE_INTERESTS);
+
+function parseProfileInterests(value: unknown): ProfileInterest[] | undefined {
+  if (!Array.isArray(value) || value.length > 5) {
+    return undefined;
+  }
+
+  const result: ProfileInterest[] = [];
+
+  for (const interest of value) {
+    if (
+      typeof interest !== "string" ||
+      !PROFILE_INTEREST_SET.has(interest) ||
+      result.includes(interest as ProfileInterest)
+    ) {
+      return undefined;
+    }
+
+    result.push(interest as ProfileInterest);
+  }
+
+  return result;
+}
 
 function isDisplayNameVisibility(
   value: unknown,
@@ -73,6 +127,10 @@ interface AuthBody {
   homeLocation?: unknown;
   isProfilePrivate?: unknown;
   notificationPreferences?: unknown;
+  interests?: unknown;
+  bio?: unknown;
+  bioVisibility?: unknown;
+  interestsVisibility?: unknown;
 }
 
 interface ProfileLookup {
@@ -94,6 +152,10 @@ interface ProfileLookup {
   notify_connections?: boolean | null;
   notify_messages?: boolean | null;
   notify_reminders?: boolean | null;
+  interests?: string[] | null;
+  bio?: string | null;
+  bio_visibility?: ProfileSectionVisibility | null;
+  interests_visibility?: ProfileSectionVisibility | null;
 }
 
 interface HomeLocation {
@@ -346,10 +408,7 @@ function avatarBodyMiddleware(
     }
 
     const parserError = error as { type?: string; status?: number };
-    if (
-      parserError.type === "entity.too.large" ||
-      parserError.status === 413
-    ) {
+    if (parserError.type === "entity.too.large" || parserError.status === 413) {
       sendError(response, 413, "La imagen procesada es demasiado grande.");
       return;
     }
@@ -381,14 +440,10 @@ function profileNotificationPreferences(
   profile?: ProfileLookup,
 ): NotificationPreferences {
   return {
-    activities:
-      profile?.notify_activities !== false,
-    connections:
-      profile?.notify_connections !== false,
-    messages:
-      profile?.notify_messages !== false,
-    reminders:
-      profile?.notify_reminders !== false,
+    activities: profile?.notify_activities !== false,
+    connections: profile?.notify_connections !== false,
+    messages: profile?.notify_messages !== false,
+    reminders: profile?.notify_reminders !== false,
   };
 }
 
@@ -406,7 +461,11 @@ function publicUser(
     messages: true,
     reminders: true,
   },
-) {
+  interests: ProfileInterest[] = [],
+  bio: string | null = null,
+  bioVisibility: ProfileSectionVisibility = "everyone",
+  interestsVisibility: ProfileSectionVisibility = "everyone",
+  ) {
   const username = user.user_metadata?.username;
 
   return {
@@ -423,6 +482,10 @@ function publicUser(
     homeLocation,
     isProfilePrivate,
     notificationPreferences,
+    interests,
+    bio,
+    bioVisibility,
+    interestsVisibility,
   };
 }
 
@@ -490,8 +553,28 @@ async function sessionPayload(user: SupabaseUser) {
 
   const isProfilePrivate = profile?.is_profile_private === true;
 
-  const notificationPreferences =
-    profileNotificationPreferences(profile);
+  const notificationPreferences = profileNotificationPreferences(profile);
+
+  const interests = parseProfileInterests(profile?.interests) ?? [];
+
+  const bio =
+    typeof profile?.bio === "string" && profile.bio.trim()
+      ? profile.bio.trim()
+      : null;
+
+  const bioVisibility =
+    isProfileSectionVisibility(
+      profile?.bio_visibility,
+    )
+      ? profile.bio_visibility
+      : "everyone";
+
+  const interestsVisibility =
+    isProfileSectionVisibility(
+      profile?.interests_visibility,
+    )
+      ? profile.interests_visibility
+      : "everyone";
 
   return {
     authenticated: true,
@@ -504,6 +587,10 @@ async function sessionPayload(user: SupabaseUser) {
       homeLocation,
       isProfilePrivate,
       notificationPreferences,
+      interests,
+      bio,
+      bioVisibility,
+      interestsVisibility,
     ),
   };
 }
@@ -563,7 +650,7 @@ async function findProfileByUserId(userId: string) {
   const { data, error } = await getSupabaseAdmin()
     .from("profiles")
     .select(
-      "id,username,display_name,display_name_visibility,home_country_code,home_country,home_region_code,home_region,home_city,home_latitude,home_longitude,is_profile_private,notify_activities,notify_connections,notify_messages,notify_reminders",
+      "id,username,display_name,display_name_visibility,home_country_code,home_country,home_region_code,home_region,home_city,home_latitude,home_longitude,is_profile_private,notify_activities,notify_connections,notify_messages,notify_reminders,interests,bio,visibility,interests_visibility",
     )
     .eq("id", userId)
     .limit(1);
@@ -623,14 +710,13 @@ router.get("/auth/users/:username", async (request, response) => {
   }
 
   try {
-    const { data: profiles, error: profileError } =
-      await getSupabaseAdmin()
-        .from("profiles")
+    const { data: profiles, error: profileError } = await getSupabaseAdmin()
+      .from("profiles")
       .select(
-        "id,username,display_name,display_name_visibility,home_city,home_country,is_profile_private",
+        "id,username,display_name,display_name_visibility,home_city,home_country,is_profile_private,interests,bio,bio_visibility,interests_visibility",
       )
-        .eq("username_normalized", normalizeUsername(username))
-        .limit(1);
+      .eq("username_normalized", normalizeUsername(username))
+      .limit(1);
 
     if (profileError) {
       request.log.error(
@@ -666,16 +752,19 @@ router.get("/auth/users/:username", async (request, response) => {
         // Before the reviewed migration is applied, retain existing privacy.
         // Other DB failures must not accidentally broaden access.
         if (
-          !error || typeof error !== "object" ||
+          !error ||
+          typeof error !== "object" ||
           !isConnectionsMigrationMissing(error)
-        ) throw error;
+        )
+          throw error;
       }
     }
 
-    const displayNameVisibility =
-      isDisplayNameVisibility(profile.display_name_visibility)
-        ? profile.display_name_visibility
-        : "shared_activity";
+    const displayNameVisibility = isDisplayNameVisibility(
+      profile.display_name_visibility,
+    )
+      ? profile.display_name_visibility
+      : "shared_activity";
 
     const displayNameVisible =
       isOwnProfile ||
@@ -683,16 +772,44 @@ router.get("/auth/users/:username", async (request, response) => {
       (displayNameVisibility === "friends" && isConnection);
 
     const isPrivate =
-      profile.is_profile_private === true &&
-      !isOwnProfile && !isConnection;
+      profile.is_profile_private === true && !isOwnProfile && !isConnection;
+
+    const bioVisibility =
+      isProfileSectionVisibility(
+        profile.bio_visibility,
+      )
+        ? profile.bio_visibility
+        : "everyone";
+
+    const interestsVisibility =
+      isProfileSectionVisibility(
+        profile.interests_visibility,
+      )
+        ? profile.interests_visibility
+        : "everyone";
+
+    const canSeeBio =
+      !isPrivate &&
+      (
+        isOwnProfile ||
+        bioVisibility === "everyone" ||
+        isConnection
+      );
+
+    const canSeeInterests =
+      !isPrivate &&
+      (
+        isOwnProfile ||
+        interestsVisibility === "everyone" ||
+        isConnection
+      );
 
     let avatarUrl: string | null = null;
 
     try {
-      const { data: signedAvatar } =
-        await createAvatarSignedUrl(
-          avatarPathFor(profile.id),
-        );
+      const { data: signedAvatar } = await createAvatarSignedUrl(
+        avatarPathFor(profile.id),
+      );
 
       avatarUrl = signedAvatar?.signedUrl ?? null;
     } catch (error) {
@@ -727,6 +844,17 @@ router.get("/auth/users/:username", async (request, response) => {
           typeof profile.home_country === "string" &&
           profile.home_country.trim()
             ? profile.home_country.trim()
+            : null,
+        interests:
+          canSeeInterests
+            ? parseProfileInterests(profile.interests) ?? []
+            : [],
+
+        bio:
+          canSeeBio &&
+          typeof profile.bio === "string" &&
+          profile.bio.trim()
+            ? profile.bio.trim()
             : null,
         isPrivate,
         isOwnProfile,
@@ -849,7 +977,10 @@ router.put(
       });
 
     if (uploadError) {
-      request.log.error({ err: uploadError }, "Unable to upload profile avatar");
+      request.log.error(
+        { err: uploadError },
+        "Unable to upload profile avatar",
+      );
       sendError(response, 500, "No se ha podido guardar la foto de perfil.");
       return;
     }
@@ -932,10 +1063,7 @@ router.delete("/auth/profile/avatar", async (request, response) => {
       );
     }
   } catch (error) {
-    request.log.error(
-      { err: error },
-      "Unable to remove profile avatar object",
-    );
+    request.log.error({ err: error }, "Unable to remove profile avatar object");
   }
 
   response.json({ avatarUrl: null });
@@ -1287,9 +1415,7 @@ router.post("/auth/resend-code", async (request, response) => {
         "No se ha podido reenviar el código.",
       );
 
-      const providerCode = getSupabaseErrorCode(
-        resendResult.data,
-      );
+      const providerCode = getSupabaseErrorCode(resendResult.data);
 
       request.log.warn(
         {
@@ -1301,15 +1427,10 @@ router.post("/auth/resend-code", async (request, response) => {
       );
 
       if (resendResult.response.status === 429) {
-        const retryMatch = providerError.match(
-          /after\s+(\d+)\s+seconds?/i,
-        );
+        const retryMatch = providerError.match(/after\s+(\d+)\s+seconds?/i);
 
         const retryAfterSeconds = retryMatch
-          ? Math.max(
-              1,
-              Number.parseInt(retryMatch[1], 10),
-            )
+          ? Math.max(1, Number.parseInt(retryMatch[1], 10))
           : 60;
 
         response.status(429).json({
@@ -1321,11 +1442,7 @@ router.post("/auth/resend-code", async (request, response) => {
         return;
       }
 
-      sendError(
-        response,
-        400,
-        "No se ha podido reenviar el código.",
-      );
+      sendError(response, 400, "No se ha podido reenviar el código.");
 
       return;
     }
@@ -1532,6 +1649,20 @@ router.patch("/auth/profile", async (request, response) => {
     "displayNameVisibility",
   );
 
+  const hasBio = Object.prototype.hasOwnProperty.call(body, "bio");
+
+  const hasBioVisibility =
+    Object.prototype.hasOwnProperty.call(
+      body,
+      "bioVisibility",
+    );
+
+  const hasInterestsVisibility =
+    Object.prototype.hasOwnProperty.call(
+      body,
+      "interestsVisibility",
+    );
+
   const hasHomeCity = Object.prototype.hasOwnProperty.call(body, "homeCity");
   const hasHomeLocation = Object.prototype.hasOwnProperty.call(
     body,
@@ -1543,11 +1674,12 @@ router.patch("/auth/profile", async (request, response) => {
     "isProfilePrivate",
   );
 
-  const hasNotificationPreferences =
-    Object.prototype.hasOwnProperty.call(
-      body,
-      "notificationPreferences",
-    );
+  const hasNotificationPreferences = Object.prototype.hasOwnProperty.call(
+    body,
+    "notificationPreferences",
+  );
+
+  const hasInterests = Object.prototype.hasOwnProperty.call(body, "interests");
 
   if (
     !hasDisplayName &&
@@ -1555,9 +1687,17 @@ router.patch("/auth/profile", async (request, response) => {
     !hasHomeCity &&
     !hasHomeLocation &&
     !hasProfilePrivacy &&
-    !hasNotificationPreferences
+    !hasNotificationPreferences &&
+    !hasInterests &&
+    !hasBio &&
+    !hasBioVisibility &&
+    !hasInterestsVisibility
   ) {
-    sendError(response, 400, "No se ha indicado ningún cambio.");
+    sendError(
+      response,
+      400,
+      "No se ha indicado ningún cambio.",
+    );
     return;
   }
 
@@ -1576,6 +1716,10 @@ router.patch("/auth/profile", async (request, response) => {
     notify_connections?: boolean;
     notify_messages?: boolean;
     notify_reminders?: boolean;
+    interests?: ProfileInterest[];
+    bio?: string | null;
+    bio_visibility?: ProfileSectionVisibility;
+    interests_visibility?: ProfileSectionVisibility;
   } = {};
 
   if (hasDisplayName) {
@@ -1650,8 +1794,7 @@ router.patch("/auth/profile", async (request, response) => {
   }
 
   if (hasNotificationPreferences) {
-    const preferences =
-      body.notificationPreferences;
+    const preferences = body.notificationPreferences;
 
     if (
       !preferences ||
@@ -1666,21 +1809,11 @@ router.patch("/auth/profile", async (request, response) => {
       return;
     }
 
-    const values =
-      preferences as Record<string, unknown>;
+    const values = preferences as Record<string, unknown>;
 
-    const allowedKeys = [
-      "activities",
-      "connections",
-      "messages",
-      "reminders",
-    ];
+    const allowedKeys = ["activities", "connections", "messages", "reminders"];
 
-    if (
-      Object.keys(values).some(
-        (key) => !allowedKeys.includes(key),
-      )
-    ) {
+    if (Object.keys(values).some((key) => !allowedKeys.includes(key))) {
       sendError(
         response,
         400,
@@ -1689,16 +1822,8 @@ router.patch("/auth/profile", async (request, response) => {
       return;
     }
 
-    if (
-      Object.prototype.hasOwnProperty.call(
-        values,
-        "activities",
-      )
-    ) {
-      if (
-        typeof values.activities !==
-        "boolean"
-      ) {
+    if (Object.prototype.hasOwnProperty.call(values, "activities")) {
+      if (typeof values.activities !== "boolean") {
         sendError(
           response,
           400,
@@ -1707,20 +1832,11 @@ router.patch("/auth/profile", async (request, response) => {
         return;
       }
 
-      updates.notify_activities =
-        values.activities;
+      updates.notify_activities = values.activities;
     }
 
-    if (
-      Object.prototype.hasOwnProperty.call(
-        values,
-        "connections",
-      )
-    ) {
-      if (
-        typeof values.connections !==
-        "boolean"
-      ) {
+    if (Object.prototype.hasOwnProperty.call(values, "connections")) {
+      if (typeof values.connections !== "boolean") {
         sendError(
           response,
           400,
@@ -1729,20 +1845,11 @@ router.patch("/auth/profile", async (request, response) => {
         return;
       }
 
-      updates.notify_connections =
-        values.connections;
+      updates.notify_connections = values.connections;
     }
 
-    if (
-      Object.prototype.hasOwnProperty.call(
-        values,
-        "messages",
-      )
-    ) {
-      if (
-        typeof values.messages !==
-        "boolean"
-      ) {
+    if (Object.prototype.hasOwnProperty.call(values, "messages")) {
+      if (typeof values.messages !== "boolean") {
         sendError(
           response,
           400,
@@ -1751,20 +1858,11 @@ router.patch("/auth/profile", async (request, response) => {
         return;
       }
 
-      updates.notify_messages =
-        values.messages;
+      updates.notify_messages = values.messages;
     }
 
-    if (
-      Object.prototype.hasOwnProperty.call(
-        values,
-        "reminders",
-      )
-    ) {
-      if (
-        typeof values.reminders !==
-        "boolean"
-      ) {
+    if (Object.prototype.hasOwnProperty.call(values, "reminders")) {
+      if (typeof values.reminders !== "boolean") {
         sendError(
           response,
           400,
@@ -1773,11 +1871,77 @@ router.patch("/auth/profile", async (request, response) => {
         return;
       }
 
-      updates.notify_reminders =
-        values.reminders;
+      updates.notify_reminders = values.reminders;
     }
   }
-  
+
+  if (hasInterests) {
+    const interests = parseProfileInterests(body.interests);
+
+    if (interests === undefined) {
+      sendError(response, 400, "Los intereses seleccionados no son válidos.");
+      return;
+    }
+
+    updates.interests = interests;
+  }
+
+  if (hasBio) {
+    if (typeof body.bio !== "string") {
+      sendError(response, 400, "La biografía no es válida.");
+      return;
+    }
+
+    const bio = body.bio.trim();
+
+    if (bio.length > 300) {
+      sendError(
+        response,
+        400,
+        "La biografía no puede superar los 300 caracteres.",
+      );
+      return;
+    }
+
+    updates.bio = bio || null;
+  }
+
+  if (hasBioVisibility) {
+    if (
+      !isProfileSectionVisibility(
+        body.bioVisibility,
+      )
+    ) {
+      sendError(
+        response,
+        400,
+        "La privacidad de la biografía no es válida.",
+      );
+      return;
+    }
+
+    updates.bio_visibility =
+      body.bioVisibility;
+  }
+
+  if (hasInterestsVisibility) {
+    if (
+      !isProfileSectionVisibility(
+        body.interestsVisibility,
+      )
+    ) {
+      sendError(
+        response,
+        400,
+        "La privacidad de los intereses no es válida.",
+      );
+      return;
+    }
+
+    updates.interests_visibility =
+      body.interestsVisibility;
+  }
+
   try {
     const session = await currentSession(request, response);
 
@@ -1791,7 +1955,7 @@ router.patch("/auth/profile", async (request, response) => {
       .update(updates)
       .eq("id", session.user.id)
       .select(
-        "id,username,display_name,display_name_visibility,home_country_code,home_country,home_region_code,home_region,home_city,home_latitude,home_longitude,is_profile_private,notify_activities,notify_connections,notify_messages,notify_reminders",
+        "id,username,display_name,display_name_visibility,home_country_code,home_country,home_region_code,home_region,home_city,home_latitude,home_longitude,is_profile_private,notify_activities,notify_connections,notify_messages,notify_reminders,interests,bio,bio_visibility,interests_visibility",
       )
       .limit(1);
 
@@ -1818,14 +1982,27 @@ router.patch("/auth/profile", async (request, response) => {
         isDisplayNameVisibility(profile.display_name_visibility)
           ? profile.display_name_visibility
           : "shared_activity",
-
         typeof profile.home_city === "string" ? profile.home_city : null,
         profileHomeLocation(profile as ProfileLookup),
         profile.is_profile_private === true,
-        profileNotificationPreferences(
-          profile as ProfileLookup,
-        ),
+        profileNotificationPreferences(profile as ProfileLookup),
+        parseProfileInterests(profile.interests) ?? [],
+        typeof profile.bio === "string" && profile.bio.trim()
+          ? profile.bio.trim()
+          : null,
+        isProfileSectionVisibility(
+          profile.bio_visibility,
+        )
+          ? profile.bio_visibility
+          : "everyone",
+
+        isProfileSectionVisibility(
+          profile.interests_visibility,
+        )
+          ? profile.interests_visibility
+          : "everyone",
       ),
+      
     });
   } catch (error) {
     request.log.error({ err: error }, "Profile update failed");
